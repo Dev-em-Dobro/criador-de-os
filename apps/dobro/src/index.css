@@ -1,0 +1,18 @@
+/* Entrada de estilos do app Dobro.
+   Ordem importa:
+   1) Fontes usadas pelo tema do core (Hanken Grotesk + JetBrains Mono).
+   2) Tailwind 4 (motor de utilities).
+   3) Tema base do @os/core (tokens @theme, utilities customizadas do shell). */
+
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..800;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@import 'tailwindcss';
+
+@import '@os/core/theme/base.css';
+
+/* Reforço explícito do scan do Tailwind sobre o código do @os/core.
+   O core é consumido como SOURCE e entra no module graph do Vite, então o
+   plugin normalmente já detecta as classes. Este @source garante o scan de
+   forma determinística mesmo que a heurística do plugin mude.
+   Caminho relativo a partir deste arquivo (apps/dobro/src/) até o core. */
+@source '../../../packages/core/src';

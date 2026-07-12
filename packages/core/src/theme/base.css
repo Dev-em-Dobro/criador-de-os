@@ -1,0 +1,223 @@
+/* ============================================================
+   @os/core — tema base do design system (dark / glass).
+   Genérico: NÃO contém nome, logo ou texto de cliente.
+   As cores de marca são tokens (CSS custom properties) e podem
+   ser sobrescritas em runtime pelo ThemeProvider por cliente.
+   ============================================================ */
+
+/* IMPORTANTE (Tailwind 4 — scan de conteúdo):
+   O @os/core é consumido como SOURCE (entra no module graph do Vite),
+   então o plugin @tailwindcss/vite normalmente já detecta as classes
+   utilitárias usadas aqui. Como reforço determinístico, apontamos a
+   fonte de conteúdo do core explicitamente via @source (resolvido a
+   partir da localização deste arquivo). Assim, mesmo que o app importe
+   só o CSS, o Tailwind varre TODOS os componentes do core.
+   Caminho relativo: deste arquivo (src/theme/) para os componentes. */
+@source "../ui";
+@source "../shell";
+@source "../period";
+@source "../auth";
+
+/* ------------------------------------------------------------
+   Tokens de tema (@theme) — redefinem as escalas do Tailwind
+   para que TODA utility `gray-*` / `blue-*` herde a paleta do
+   design system automaticamente, sem tocar em cada componente.
+   ------------------------------------------------------------ */
+@theme {
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Neutros "ink" com leve tom violeta (remapeia toda utility gray-*) */
+  --color-gray-950: #050507;
+  --color-gray-900: #0b0b13;
+  --color-gray-800: #13131f;
+  --color-gray-700: #262638;
+  --color-gray-600: #3a3a52;
+  --color-gray-500: #6e6e8c;
+  --color-gray-400: #9d9dbd;
+  --color-gray-300: #c4c4dd;
+  --color-gray-200: #e0e0ee;
+  --color-gray-100: #f2f2f9;
+  --color-gray-50:  #fafaff;
+
+  /* Acento de marca (remapeia toda utility blue-* → cor da marca).
+     Deriva das custom properties de marca para permitir override por
+     cliente via ThemeProvider (que redefine --color-brand et al). */
+  --color-blue-300: var(--color-brand-soft);
+  --color-blue-400: var(--color-brand-bright);
+  --color-blue-500: var(--color-brand);
+  --color-blue-600: var(--color-brand-strong);
+  --color-blue-700: var(--color-brand-deep);
+}
+
+/* ------------------------------------------------------------
+   Tokens de marca (default NEUTRO). Paleta sóbria (azul/cinza)
+   propositalmente genérica: um cliente SEM tema não deve "parecer"
+   nenhum cliente específico. O ThemeProvider sobrescreve estes
+   valores em :root/wrapper para pintar o OS com a cor do cliente.
+   ------------------------------------------------------------ */
+:root {
+  --color-brand:        #3b6bd6;  /* azul sóbrio, neutro */
+  --color-brand-bright: #5b86e5;
+  --color-brand-soft:   #9db9f0;
+  --color-brand-strong: #2f56ad;
+  --color-brand-deep:   #244488;
+  --color-signal:       #22c55e;
+
+  /* Fundo do OS (usado pelo atmosphere glow atrás de tudo). Cinza-azulado neutro. */
+  --os-bg: #0a0c12;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--os-bg);
+  color: #f2f2f9;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Atmosfera: brilho radial duplo (marca no topo, sinal no canto) — fixo, atrás de tudo. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(62% 48% at 50% -12%, color-mix(in srgb, var(--color-brand) 28%, transparent), transparent 68%),
+    radial-gradient(40% 38% at 100% 4%, color-mix(in srgb, var(--color-signal) 7%, transparent), transparent 60%),
+    radial-gradient(50% 50% at 0% 100%, color-mix(in srgb, var(--color-brand) 8%, transparent), transparent 60%),
+    var(--os-bg);
+}
+
+/* Textura sutil de grade (estilo "control room"). */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 35%, transparent 85%);
+  pointer-events: none;
+}
+
+/* ---- Chrome fosco (nav + sidebar) ---- */
+.nav-glass {
+  background: rgba(11, 11, 19, 0.7);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  /* Borda de refração: 1px de destaque interno no topo, como vidro fosco real. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ---- Emblema de marca genérico: dois quadrados sobrepostos ----
+   Genérico (sem semântica de cliente). Cores vêm dos tokens de marca. */
+.brand-mark {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+.brand-mark::before,
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border-radius: 5px;
+}
+.brand-mark::before {
+  left: 0;
+  top: 0;
+  background: linear-gradient(135deg, var(--color-brand-bright), var(--color-brand));
+  box-shadow: 0 4px 14px -4px color-mix(in srgb, var(--color-brand) 90%, transparent);
+}
+.brand-mark::after {
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--color-signal), #16a34a);
+  mix-blend-mode: screen;
+  box-shadow: 0 4px 14px -4px color-mix(in srgb, var(--color-signal) 60%, transparent);
+}
+
+/* ---- Ponto de status "ao vivo" ---- */
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: var(--color-signal);
+  animation: pulse-dot 2.4s ease-out infinite;
+}
+@keyframes pulse-dot {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-signal) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-signal) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-signal) 0%, transparent); }
+}
+
+/* ---- Movimento de entrada ---- */
+.animate-rise {
+  animation: rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Números tabulares para métricas. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ---- Scrollbar customizada (tema ink) ---- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2f2f46 transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: #26263a;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #3a3a58;
+  background-clip: padding-box;
+}
+
+/* Seleção na cor de marca. */
+::selection {
+  background: color-mix(in srgb, var(--color-brand) 40%, transparent);
+  color: #fff;
+}
+
+/* Esconde a scrollbar em barras de abas mantendo o scroll. */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise { animation: none; }
+  .status-dot { animation: none; }
+  html { scroll-behavior: auto; }
+}
