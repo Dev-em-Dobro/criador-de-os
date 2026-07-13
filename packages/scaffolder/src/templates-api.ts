@@ -93,6 +93,16 @@ export function getAuthUrl(): string {
   return process.env.BETTER_AUTH_URL?.trim() || 'http://localhost:5173';
 }
 
+/** Segredo que cifra as settings do cliente (BYOK — @os/server). Default: deriva do BETTER_AUTH_SECRET. */
+export function getSettingsEncKey(): string {
+  return process.env.SETTINGS_ENC_KEY?.trim() || getAuthSecret();
+}
+
+/** Chave da Anthropic da AGÊNCIA (fallback DEV das ações de IA). Opcional (null se ausente). */
+export function getAgencyAnthropicKey(): string | null {
+  return process.env.ANTHROPIC_API_KEY?.trim() || null;
+}
+
 export function getApiPort(): number {
   const raw = process.env.API_PORT?.trim();
   const port = raw ? Number(raw) : 8787;
@@ -315,15 +325,17 @@ export function isKnownColumn(view: AllowedView, column: string): boolean {
 
 export function apiApp(slug: string): string {
   return `/**
- * apps/${slug} — app Hono: Better Auth + /api/query genérico e SEGURO.
+ * apps/${slug} — app Hono: Better Auth + capacidades de fábrica (@os/server:
+ * Configurações/BYOK, leads, faturas por IA) + /api/query genérico e SEGURO.
  *
- * Defesas: (1) auth-first (401 sem sessão antes de tocar o banco);
- * (2) allowlist de views (403/400); (3) SQL parametrizado (bind).
+ * Defesas do /api/query: (1) auth-first; (2) allowlist de views; (3) bind params.
  */
 
 import { Hono } from 'hono';
+import { mountApi, type ServerDb } from '@os/server';
 import { auth } from './auth';
-import { dbQuery } from '../db/client';
+import { dbAuth, dbQuery } from '../db/client';
+import { getAgencyAnthropicKey, getSettingsEncKey } from './env';
 import { buildSecureQuery, QueryValidationError, type QueryRequest } from './query-builder';
 
 export const app = new Hono();
@@ -331,6 +343,14 @@ export const app = new Hono();
 app.get('/api/health', (c) => c.json({ ok: true }));
 
 app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
+
+// Capacidades de fábrica: /api/settings, /api/leads/*, /api/invoices/* (@os/server).
+mountApi(app, {
+  auth,
+  db: dbAuth as unknown as ServerDb,
+  settingsEncKey: getSettingsEncKey,
+  agencyAnthropicKey: getAgencyAnthropicKey,
+});
 
 app.post('/api/query', async (c) => {
   // DEFESA 1 — auth-first (fail-closed).

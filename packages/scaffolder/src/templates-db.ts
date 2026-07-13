@@ -38,7 +38,6 @@ export { schema };
 
 export function dbSchema(slug: string, views: ViewSpec[]): string {
   const hasBusiness = views.length > 0;
-  const imports = ['boolean', ...(hasBusiness ? ['doublePrecision', 'integer'] : []), 'pgTable', 'text', 'timestamp'];
 
   const businessBlocks = views
     .map((v) => {
@@ -64,85 +63,38 @@ ${cols}
     })
     .join('\n\n');
 
-  return `/**
- * apps/${slug} — Schema Drizzle (schema-as-code) do Neon do cliente.
- *
- *  1) Better Auth (user/session/account/verification) — colunas conforme o core
- *     schema do Better Auth 1.6.x (o adapter mapeia por nome).
- *  2) Negócio — uma tabela por menu \`kind:'query'\`. As views read-only \`v_*\`
- *     (contrato de exposição) vivem em db/views.sql (Drizzle não modela views).
- */
+  const businessSection = hasBusiness
+    ? `
+import { pgTable, text, timestamp, integer, doublePrecision } from 'drizzle-orm/pg-core';
 
-import {
-  ${imports.join(',\n  ')},
-} from 'drizzle-orm/pg-core';
-
-// ============================================================
-// Better Auth — tabelas de autenticação
-// ============================================================
-
-export const user = pgTable('user', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified')
-    .$defaultFn(() => false)
-    .notNull(),
-  image: text('image'),
-  createdAt: timestamp('created_at')
-    .$defaultFn(() => new Date())
-    .notNull(),
-  updatedAt: timestamp('updated_at')
-    .$defaultFn(() => new Date())
-    .notNull(),
-});
-
-export const session = pgTable('session', {
-  id: text('id').primaryKey(),
-  expiresAt: timestamp('expires_at').notNull(),
-  token: text('token').notNull().unique(),
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at').notNull(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-});
-
-export const account = pgTable('account', {
-  id: text('id').primaryKey(),
-  accountId: text('account_id').notNull(),
-  providerId: text('provider_id').notNull(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  accessToken: text('access_token'),
-  refreshToken: text('refresh_token'),
-  idToken: text('id_token'),
-  accessTokenExpiresAt: timestamp('access_token_expires_at'),
-  refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
-  scope: text('scope'),
-  password: text('password'),
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at').notNull(),
-});
-
-export const verification = pgTable('verification', {
-  id: text('id').primaryKey(),
-  identifier: text('identifier').notNull(),
-  value: text('value').notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at').$defaultFn(() => new Date()),
-  updatedAt: timestamp('updated_at').$defaultFn(() => new Date()),
-});
-${hasBusiness ? `
 // ============================================================
 // Negócio — uma tabela por menu \`kind:'query'\`
 // ============================================================
 
 ${businessBlocks}
-` : ''}`;
+`
+    : '';
+
+  return `/**
+ * apps/${slug} — Schema Drizzle do Neon do cliente.
+ *
+ *  1) Tabelas COMPARTILHADAS da fábrica (@os/server/schema): Better Auth +
+ *     app_settings (BYOK) + leads + faturas. A lógica delas vive no @os/server.
+ *  2) Negócio — uma tabela por menu \`kind:'query'\` (as views v_* em db/views.sql).
+ */
+
+export {
+  user,
+  session,
+  account,
+  verification,
+  appSettings,
+  leadSourceRows,
+  leads,
+  invoices,
+  invoiceItems,
+} from '@os/server/schema';
+${businessSection}`;
 }
 
 export function dbMigrate(slug: string): string {
@@ -283,6 +235,11 @@ REVOKE SELECT ON "user" FROM PUBLIC;
 REVOKE SELECT ON "session" FROM PUBLIC;
 REVOKE SELECT ON account FROM PUBLIC;
 REVOKE SELECT ON verification FROM PUBLIC;
+REVOKE SELECT ON app_settings FROM PUBLIC;
+REVOKE SELECT ON lead_source_rows FROM PUBLIC;
+REVOKE SELECT ON leads FROM PUBLIC;
+REVOKE SELECT ON invoices FROM PUBLIC;
+REVOKE SELECT ON invoice_items FROM PUBLIC;
 ${revokeBusiness ? revokeBusiness + '\n' : ''}${revokeViews ? revokeViews + '\n' : ''}
 -- 4) USAGE no schema para ambos.
 GRANT USAGE ON SCHEMA public TO app_auth;
@@ -293,6 +250,14 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON "user"       TO app_auth;
 GRANT SELECT, INSERT, UPDATE, DELETE ON "session"    TO app_auth;
 GRANT SELECT, INSERT, UPDATE, DELETE ON account      TO app_auth;
 GRANT SELECT, INSERT, UPDATE, DELETE ON verification TO app_auth;
+-- Capacidades de fábrica (@os/server): Configurações/BYOK, leads, faturas.
+GRANT SELECT, INSERT, UPDATE, DELETE ON app_settings     TO app_auth;
+GRANT SELECT, INSERT, UPDATE, DELETE ON lead_source_rows TO app_auth;
+GRANT SELECT, INSERT, UPDATE, DELETE ON leads            TO app_auth;
+GRANT SELECT, INSERT, UPDATE, DELETE ON invoices         TO app_auth;
+GRANT SELECT, INSERT, UPDATE, DELETE ON invoice_items    TO app_auth;
+-- Colunas IDENTITY (lead_source_rows.id, invoice_items.id) → USAGE nas sequências.
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_auth;
 
 -- 6) app_query: SELECT SÓ nas views de exposição (a view roda com privilégio do
 --    owner dela, então lê a tabela base sem app_query ter acesso à tabela crua).

@@ -39,8 +39,10 @@ export function frontPackageJson(slug: string, preset: Preset, productName: stri
     'react-dom': '^19.2.0',
     ...(isFull
       ? {
+          '@anthropic-ai/sdk': '^0.111.0',
           '@hono/node-server': '^2.0.8',
           '@neondatabase/serverless': '^1.1.0',
+          '@os/server': 'workspace:*',
           'better-auth': '^1.6.23',
           'drizzle-orm': '^0.45.2',
           hono: '^4.12.29',
@@ -296,6 +298,17 @@ QUERY_DATABASE_URL=
 #   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 BETTER_AUTH_SECRET=
 BETTER_AUTH_URL=http://localhost:5173
+
+# --- Configurações do cliente (BYOK) — cifra em repouso (@os/server) ---
+# Segredo que CRIPTOGRAFA as chaves que o cliente salva em Configurações. NÃO é a
+# chave do cliente. Opcional: se vazio, deriva do BETTER_AUTH_SECRET. Se definir,
+# use um valor forte e ESTÁVEL (trocar invalida os segredos já cifrados).
+SETTINGS_ENC_KEY=
+
+# --- Claude API (Anthropic) — FALLBACK de DEV das ações de IA (fatura PDF etc.) ---
+# Opcional. O primário é BYOK (o cliente cola a própria chave em Configurações).
+# Esta serve só de fallback em DEV. Nunca vai para o bundle do front.
+ANTHROPIC_API_KEY=
 
 # --- API local (dev) ---
 API_PORT=8787
