@@ -9,7 +9,7 @@
  * tabelas + views read-only na allowlist do /api/query.
  */
 
-import { pgTable, text, timestamp, boolean, integer, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, integer, jsonb, doublePrecision } from 'drizzle-orm/pg-core';
 
 // ============================================================
 // Better Auth — tabelas de autenticação
@@ -136,4 +136,34 @@ export const leads = pgTable('leads', {
   createdAt: timestamp('created_at')
     .$defaultFn(() => new Date())
     .notNull(),
+});
+
+// ============================================================
+// Faturas de cartão — PDF extraído por IA (itens categorizados)
+// ============================================================
+
+/** Uma fatura importada (um PDF). `total`/`itemCount` são derivados dos itens. */
+export const invoices = pgTable('invoices', {
+  id: text('id').primaryKey(),
+  filename: text('filename').notNull(),
+  reference: text('reference'),
+  total: doublePrecision('total').notNull(),
+  itemCount: integer('item_count').notNull(),
+  createdAt: timestamp('created_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
+/** Um lançamento da fatura (categorizado; `recurring` marca assinaturas). */
+export const invoiceItems = pgTable('invoice_items', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  invoiceId: text('invoice_id')
+    .notNull()
+    .references(() => invoices.id, { onDelete: 'cascade' }),
+  description: text('description').notNull(),
+  establishment: text('establishment'),
+  category: text('category').notNull(),
+  amount: doublePrecision('amount').notNull(),
+  purchaseDate: text('purchase_date'),
+  recurring: boolean('recurring').notNull(),
 });

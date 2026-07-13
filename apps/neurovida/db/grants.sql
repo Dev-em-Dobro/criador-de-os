@@ -28,6 +28,8 @@ REVOKE SELECT ON verification FROM PUBLIC;
 REVOKE SELECT ON app_settings FROM PUBLIC;
 REVOKE SELECT ON lead_source_rows FROM PUBLIC;
 REVOKE SELECT ON leads FROM PUBLIC;
+REVOKE SELECT ON invoices FROM PUBLIC;
+REVOKE SELECT ON invoice_items FROM PUBLIC;
 
 -- 4) USAGE no schema.
 GRANT USAGE ON SCHEMA public TO app_auth;
@@ -40,7 +42,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON verification  TO app_auth;
 GRANT SELECT, INSERT, UPDATE, DELETE ON app_settings  TO app_auth;
 GRANT SELECT, INSERT, UPDATE, DELETE ON lead_source_rows TO app_auth;
 GRANT SELECT, INSERT, UPDATE, DELETE ON leads           TO app_auth;
--- lead_source_rows.id é IDENTITY → app_auth precisa de USAGE na sequência implícita.
+GRANT SELECT, INSERT, UPDATE, DELETE ON invoices        TO app_auth;
+GRANT SELECT, INSERT, UPDATE, DELETE ON invoice_items   TO app_auth;
+-- Colunas IDENTITY (lead_source_rows.id, invoice_items.id) → USAGE nas sequências.
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_auth;
 
 -- 6) Permite ao owner (quem roda este script) assumir o role (SET ROLE) p/ testes.

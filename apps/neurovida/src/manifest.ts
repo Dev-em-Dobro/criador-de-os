@@ -70,8 +70,23 @@ export const neurovidaManifest: ClientManifest = {
         view: {
           block: 'custom:fatura-cartao',
           title: 'Fatura do cartão',
-          subtitle: 'Por mês, por categoria — marque o que cortar e veja quanto sobra',
+          subtitle: 'Suba os PDFs — a IA categoriza e soma; marque o que cortar e veja quanto sobra',
           config: {},
+          help: {
+            description:
+              'Suba o PDF da fatura do seu cartão (pode subir várias): a IA lê os lançamentos, categoriza cada um e soma tudo. Marque as assinaturas/ferramentas que quer cortar e veja quanto a conta fica — e quanto economiza no ano.',
+            tutorial: {
+              title: 'Como analisar suas faturas',
+              steps: [
+                'Baixe a fatura do cartão em PDF (no app ou site do banco — geralmente em "Faturas" → "Baixar PDF").',
+                'Configure a sua chave de API em Configurações (a leitura do PDF por IA usa a sua conta).',
+                'Clique em "Subir PDF(s) da fatura" e selecione um ou vários PDFs. A leitura leva alguns segundos por fatura.',
+                'Veja o resumo: total somado de todas as faturas, quanto é recorrente, e os custos por categoria.',
+                'Nas faturas, expanda para ver os itens. Marque a caixa "cortar" nas assinaturas que não valem a pena — o topo recalcula o total e a economia anual.',
+                'Se a categorização de algum item não ficou boa, você pode remover a fatura (✕) e subir de novo, ou ajustar depois.',
+              ],
+            },
+          },
         },
       },
 

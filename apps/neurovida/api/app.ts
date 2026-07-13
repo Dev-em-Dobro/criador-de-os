@@ -26,6 +26,8 @@ import {
 } from './settings';
 import { getLeadsSummary, importCsv, isKnownSource, listLeads, mergeLeads, scoreLeads } from './leads';
 import { isScoringSpec } from './scoring';
+import { extractInvoice } from './invoice-extract';
+import { deleteInvoice, getInvoices, saveInvoice } from './invoices';
 
 export const app = new Hono();
 
@@ -144,6 +146,51 @@ app.get('/api/leads/list', async (c) => {
     console.error('[leads/list] erro:', err instanceof Error ? err.message : err);
     return c.json({ error: 'Falha ao listar os leads.' }, 500);
   }
+});
+
+// --- Faturas de cartão: upload de PDF → extração por IA → categorizado + somado ---
+app.get('/api/invoices', async (c) => {
+  if (!(await requireSession(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
+  return c.json(await getInvoices());
+});
+
+app.post('/api/invoices/upload', async (c) => {
+  if (!(await requireSession(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
+
+  let body: { filename?: unknown; pdfBase64?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    return c.json({ error: 'JSON inválido no corpo' }, 400);
+  }
+  const filename = typeof body.filename === 'string' && body.filename.trim() ? body.filename.trim() : 'fatura.pdf';
+  const pdfBase64 = typeof body.pdfBase64 === 'string' ? body.pdfBase64 : '';
+  if (pdfBase64.length < 100) return c.json({ error: 'PDF ausente ou inválido.' }, 400);
+
+  // BYOK: usa a chave do cliente (Configurações); fallback DEV = chave da agência.
+  const apiKey = (await getSettingValue('anthropic_api_key')) ?? getAgencyAnthropicKey();
+  if (!apiKey) {
+    return c.json({ error: 'Nenhuma chave de API configurada. Adicione a sua em Configurações.' }, 400);
+  }
+
+  try {
+    const extracted = await extractInvoice(apiKey, pdfBase64);
+    if (extracted.items.length === 0) {
+      return c.json({ error: 'Não encontrei lançamentos neste PDF. Confira se é uma fatura de cartão.' }, 422);
+    }
+    const saved = await saveInvoice(filename, extracted);
+    return c.json(saved);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[invoices/upload] erro:', msg); // não vaza a key
+    return c.json({ error: msg }, 500);
+  }
+});
+
+app.delete('/api/invoices/:id', async (c) => {
+  if (!(await requireSession(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
+  await deleteInvoice(c.req.param('id'));
+  return c.json({ ok: true });
 });
 
 // --- Estúdio IA: gerador de carrossel (usa a chave BYOK do cliente) ---
