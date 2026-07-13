@@ -1,0 +1,20 @@
+{
+  "name": "@os/scaffolder",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Criador de OS (Fase 4) — gera apps/<cliente> (front + api + db) a partir de um manifesto inicial. Um comando + poucas respostas.",
+  "scripts": {
+    "create-client": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@os/core": "workspace:*",
+    "zod": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.23.0",
+    "typescript": "~5.9.3"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "slug": "cliente-exemplo",
+  "displayName": "Cliente Exemplo",
+  "preset": "full",
+  "theme": { "brand": "#2563eb", "signal": "#16a34a" },
+  "auth": true,
+  "allowedDomain": "clienteexemplo.com",
+  "period": { "enabled": true, "default": "monthly" },
+  "footerText": "Cliente Exemplo · gerado pelo criador de OS",
+  "menus": [
+    { "block": "kpi-dashboard", "label": "Vendas", "key": "vendas" },
+    { "block": "data-table", "label": "Clientes", "key": "clientes" },
+    { "block": "kanban-board", "label": "Tarefas", "key": "tarefas" },
+    { "block": "doc-viewer", "label": "Guia", "key": "guia" }
+  ]
+}
