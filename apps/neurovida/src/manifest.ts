@@ -168,13 +168,29 @@ export const neurovidaManifest: ClientManifest = {
           config: {},
         },
       },
+
+      // 6) CONFIGURAÇÕES — chaves/integrações do cliente (modelo BYOK). A chave da
+      //    API fica cifrada no Neon e alimenta o Estúdio IA (e futuras ações de IA).
+      {
+        key: 'configuracoes',
+        label: 'Configurações',
+        icon: 'Settings',
+        route: '/configuracoes',
+        view: {
+          block: 'custom:settings',
+          title: 'Configurações',
+          subtitle: 'Suas chaves e integrações — você usa a sua própria conta (BYOK)',
+          config: {},
+        },
+      },
     ],
   },
 
   settings: {
-    // Protótipo: sem login (auth desligada). Em produção, Better Auth entra aqui.
-    auth: { enabled: false, provider: 'better-auth' },
+    // Auth OBRIGATÓRIA (Better Auth): o cliente loga antes de operar o OS. Necessária
+    // para proteger as configurações BYOK (a chave de API cifrada é por cliente).
+    auth: { enabled: true, provider: 'better-auth' },
     period: { enabled: true, default: 'monthly', options: ['weekly', 'monthly', 'quarterly'] },
-    footerText: 'Neurovida · protótipo (dados de exemplo) · por Dev em Dobro',
+    footerText: 'Neurovida · por Dev em Dobro',
   },
 };

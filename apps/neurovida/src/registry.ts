@@ -11,6 +11,7 @@ import { carouselGenerator } from './blocks/CarouselGenerator';
 import { leadScore } from './blocks/LeadScore';
 import { simulador } from './blocks/Simulador';
 import { faturaCartao } from './blocks/FaturaCartao';
+import { settingsBlock } from './blocks/Settings';
 
 export const registry = createRegistry();
 registerDefaultBlocks(registry);
@@ -18,3 +19,4 @@ registry.register(carouselGenerator);
 registry.register(leadScore);
 registry.register(simulador);
 registry.register(faturaCartao);
+registry.register(settingsBlock);

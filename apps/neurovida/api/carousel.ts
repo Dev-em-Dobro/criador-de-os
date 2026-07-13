@@ -12,12 +12,12 @@
  *  - a tool `publish_carousel` FORÇA a saída estruturada (slides + fontes), então
  *    não dependemos de parsear texto solto.
  *
- * Modelo: claude-opus-4-8 (mais capaz) + adaptive thinking. A API key vive só no
- * servidor (env), nunca no bundle.
+ * Modelo: claude-opus-4-8 (mais capaz) + adaptive thinking. A API key (BYOK — a
+ * chave do próprio cliente, guardada cifrada em Configurações) chega por parâmetro
+ * e vive só no servidor; nunca no bundle.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { getAnthropicKey } from './env';
 
 export interface CarouselSlide {
   titulo: string;
@@ -99,8 +99,12 @@ function buildPrompt(tema: string, slides: number): string {
  * da Anthropic (pode gerar `pause_turn`, que apenas continuamos); quando o modelo
  * chama `publish_carousel`, capturamos o input estruturado e retornamos.
  */
-export async function generateCarousel(tema: string, slides = 6): Promise<CarouselResult> {
-  const client = new Anthropic({ apiKey: getAnthropicKey() });
+export async function generateCarousel(
+  tema: string,
+  slides = 6,
+  apiKey: string,
+): Promise<CarouselResult> {
+  const client = new Anthropic({ apiKey });
 
   const messages: Anthropic.MessageParam[] = [
     { role: 'user', content: buildPrompt(tema, slides) },
