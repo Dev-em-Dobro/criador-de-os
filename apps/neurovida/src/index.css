@@ -1,0 +1,19 @@
+/* Entrada de estilos do app Neurovida.
+   Ordem importa:
+   1) Fontes: Hanken Grotesk + JetBrains Mono (base do core) + Fraunces (serifa
+      editorial dos títulos, usada pelos skins claros).
+   2) Tailwind 4 (motor de utilities).
+   3) Tema base do @os/core (tokens @theme + defaults dark).
+   4) Skins de teste (cream/sand) — sobrescrevem os tokens por `data-skin`. */
+
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..800;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap');
+
+@import 'tailwindcss';
+
+@import '@os/core/theme/base.css';
+@import './skins.css';
+
+/* Scan determinístico do Tailwind sobre o código da fábrica (core + blocks). */
+@source '../../../packages/core/src';
+@source '../../../packages/blocks/src';

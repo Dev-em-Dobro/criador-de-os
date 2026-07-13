@@ -52,8 +52,8 @@ function MenuPill({ item }: { item: ShellNavItem }) {
       aria-current={item.active ? 'page' : undefined}
       className={`group px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
         item.active
-          ? 'bg-blue-500/15 text-white ring-1 ring-blue-500/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-          : 'text-gray-400 hover:text-gray-100 hover:bg-white/[0.05]'
+          ? 'bg-blue-500/15 text-(color:--os-active-text) ring-1 ring-blue-500/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+          : 'text-gray-400 hover:text-gray-100 hover:bg-(color:--os-hover)'
       }`}
     >
       {Icon && (
@@ -80,7 +80,7 @@ function SidebarItem({ item }: { item: ShellNavItem }) {
       className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-lg text-left transition-colors cursor-pointer border-l-2 ${
         item.active
           ? 'border-blue-400 text-blue-200 bg-blue-500/10 shadow-[inset_0_0_0_1px_rgba(101,40,211,0.18)]'
-          : 'border-transparent text-gray-400 hover:text-gray-100 hover:bg-white/[0.04]'
+          : 'border-transparent text-gray-400 hover:text-gray-100 hover:bg-(color:--os-hover)'
       }`}
     >
       {Icon && <Icon className="w-4 h-4 shrink-0" strokeWidth={1.75} />}
@@ -113,7 +113,7 @@ export function AppShell({
       {banner}
 
       {/* Topbar: wordmark (esquerda) | menus (direita) */}
-      <nav className="nav-glass border-b border-white/5 sticky top-0 z-40">
+      <nav className="nav-glass border-b border-(color:--os-hairline) sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between flex-wrap gap-x-6 gap-y-3">
             {/* Wordmark: logo do cliente (se houver) OU emblema genérico + nome + badge */}
@@ -124,7 +124,7 @@ export function AppShell({
                 <span className="brand-mark" aria-hidden="true" />
               )}
               <div className="flex items-baseline gap-1.5">
-                <span className="font-mono text-base font-bold tracking-[0.22em] text-gray-100 uppercase">
+                <span className="os-wordmark text-base font-bold tracking-[0.22em] text-gray-100 uppercase">
                   {productName}
                 </span>
                 {brandBadge && (
@@ -149,7 +149,7 @@ export function AppShell({
       {/* Conteúdo: sidebar vertical opcional + área principal */}
       <div className="flex flex-1 min-h-0">
         {hasSidebar && (
-          <aside className="w-52 shrink-0 nav-glass border-r border-white/5 py-5 sticky top-[57px] self-start max-h-[calc(100vh-57px)] overflow-y-auto">
+          <aside className="w-52 shrink-0 nav-glass border-r border-(color:--os-hairline) py-5 sticky top-[57px] self-start max-h-[calc(100vh-57px)] overflow-y-auto">
             <nav className="flex flex-col gap-0.5 px-3">
               {sidebar!.map((item) => (
                 <SidebarItem key={item.key} item={item} />
@@ -164,7 +164,7 @@ export function AppShell({
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-5 mt-4">
+      <footer className="border-t border-(color:--os-hairline) py-5 mt-4">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between flex-wrap gap-2 text-xs text-gray-500">
           <span className="flex items-center gap-2 font-mono tracking-wide uppercase">
             <span className="brand-mark" aria-hidden="true" />

@@ -1,0 +1,119 @@
+/* ============================================================
+   Neurovida — design system (par Claro/Escuro na linguagem orgânica).
+   Aplicado via `data-skin` no <html> (ver SkinSwitcher).
+
+   Cada skin só redefine TOKENS (a rampa de neutros, os tokens de cromo
+   os-*, cores semânticas e a fonte de display). NENHUM componente é
+   tocado — todos usam as escalas gray/blue e os tokens os-*, que
+   resolvem por estes valores.
+
+   A rampa gray é "invertida por uso": superfícies (gray-800/900) e
+   textos (gray-100/200) trocam de ponta conforme claro/escuro.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   CLARO — "Creme" (linha Anthropic, clean e arejado). PADRÃO.
+   ------------------------------------------------------------ */
+[data-skin='cream'] {
+  --color-gray-950: #ffffff;
+  --color-gray-900: #fbf9f3; /* superfície afundada / code / tooltip */
+  --color-gray-800: #ffffff; /* cards */
+  --color-gray-700: #e9e2d4; /* bordas */
+  --color-gray-600: #c9bda4; /* bordas fortes / texto subtle */
+  --color-gray-500: #877d6c; /* texto subtle (escurecido p/ contraste) */
+  --color-gray-400: #6f6656; /* texto muted */
+  --color-gray-300: #4b4536; /* texto médio */
+  --color-gray-200: #35302a; /* texto forte */
+  --color-gray-100: #2b2620; /* texto principal */
+  --color-gray-50: #211d18;
+
+  /* Cores semânticas — no claro, TODOS os tons usados como TEXTO/badge escurecem
+     para ter contraste de leitura sobre o creme (WCAG). No dark seguem claros.
+     Cobre marca (blue→brand), emerald, red, orange, amber, yellow, purple —
+     senão o pastel-sobre-pastel some (ex.: pill ativo, badges de tier/segmento). */
+  --color-blue-300: var(--color-brand-strong);
+  --color-blue-400: var(--color-brand);
+  --color-emerald-300: #047857;
+  --color-emerald-400: #047857;
+  --color-emerald-500: #059669;
+  --color-red-300: #b91c1c;
+  --color-red-400: #dc2626;
+  --color-red-500: #ef4444;
+  --color-orange-300: #9a3412;
+  --color-orange-400: #c2410c;
+  --color-orange-500: #ea580c;
+  --color-amber-300: #92400e;
+  --color-amber-400: #a16207;
+  --color-amber-500: #d97706;
+  --color-yellow-300: #854d0e;
+  --color-yellow-400: #a16207;
+  --color-yellow-500: #ca8a04;
+  --color-purple-300: #7e22ce;
+  --color-purple-400: #9333ea;
+  --color-purple-500: #a855f7;
+
+  --os-bg: #faf8f3;
+  --os-text: #2b2620;
+  --os-chrome: rgba(253, 251, 246, 0.8);
+  --os-chrome-edge: rgba(255, 255, 255, 0.9);
+  --os-hairline: rgba(43, 38, 32, 0.09);
+  --os-hover: rgba(43, 38, 32, 0.05);
+  --os-active-text: var(--color-brand-deep);
+  --os-grid: rgba(43, 38, 32, 0.028);
+  --os-scroll-thumb: #ddd3c1;
+  --os-scroll-thumb-hover: #c9bda4;
+  --os-selection-text: #2b2620;
+
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-wordmark: 'Fraunces', Georgia, serif;
+}
+
+[data-skin='cream'] body::before {
+  background:
+    radial-gradient(58% 42% at 50% -12%, color-mix(in srgb, var(--color-brand) 9%, transparent), transparent 70%),
+    var(--os-bg);
+}
+
+/* ------------------------------------------------------------
+   ESCURO — "Dusk" (o mesmo clima orgânico, em marrom-carvão quente).
+   Companheiro do Creme: serifa, superfícies suaves, tons terrosos —
+   NÃO é o dark/tech do core.
+   ------------------------------------------------------------ */
+[data-skin='dusk'] {
+  --color-gray-950: #100d08;
+  --color-gray-900: #1b160f; /* superfície afundada / code / tooltip */
+  --color-gray-800: #272016; /* cards (marrom escuro quente) */
+  --color-gray-700: #3a3120; /* bordas */
+  --color-gray-600: #4d4230; /* bordas fortes / texto subtle */
+  --color-gray-500: #746647; /* texto subtle */
+  --color-gray-400: #a99a7c; /* texto muted (bege quente) */
+  --color-gray-300: #cabda0; /* texto médio-claro */
+  --color-gray-200: #e3dac4; /* texto forte */
+  --color-gray-100: #f0e9d8; /* texto principal (creme) */
+  --color-gray-50: #f8f3e8;
+
+  /* Semânticas: tons claros (bons sobre fundo escuro) — deixa os defaults do
+     Tailwind, então NÃO redefinimos emerald/yellow/red aqui. */
+
+  --os-bg: #17130d;
+  --os-text: #f0e9d8;
+  --os-chrome: rgba(27, 22, 15, 0.72);
+  --os-chrome-edge: rgba(255, 249, 236, 0.05);
+  --os-hairline: rgba(240, 233, 216, 0.08);
+  --os-hover: rgba(240, 233, 216, 0.05);
+  --os-active-text: var(--color-brand-soft);
+  --os-grid: rgba(240, 233, 216, 0.02);
+  --os-scroll-thumb: #3a3120;
+  --os-scroll-thumb-hover: #4d4230;
+  --os-selection-text: #f0e9d8;
+
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-wordmark: 'Fraunces', Georgia, serif;
+}
+
+[data-skin='dusk'] body::before {
+  background:
+    radial-gradient(58% 44% at 50% -12%, color-mix(in srgb, var(--color-brand) 20%, transparent), transparent 70%),
+    radial-gradient(46% 40% at 100% 2%, color-mix(in srgb, #b5623c 10%, transparent), transparent 62%),
+    var(--os-bg);
+}

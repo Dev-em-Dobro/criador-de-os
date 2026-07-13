@@ -1,18 +1,20 @@
 /* ============================================================
-   @os/core — tema base do design system (dark / glass).
+   @os/core — tema base do design system.
    Genérico: NÃO contém nome, logo ou texto de cliente.
-   As cores de marca são tokens (CSS custom properties) e podem
-   ser sobrescritas em runtime pelo ThemeProvider por cliente.
+   As cores de marca e as superfícies são tokens (CSS custom
+   properties) e podem ser sobrescritas por SKIN (ver abaixo) ou
+   pelo ThemeProvider (cores de marca por cliente).
+
+   SKINS: o default é o tema DARK/GLASS (control-room). Um app pode
+   aplicar um skin claro definindo data-skin no <html> e redefinindo a
+   rampa de neutros mais os tokens de cromo (ver o skins.css do app).
+   Como os componentes usam as escalas gray/blue (que resolvem por
+   token) e os poucos pontos cromados usam os tokens os-x, trocar o skin
+   não exige tocar em nenhum componente.
    ============================================================ */
 
-/* IMPORTANTE (Tailwind 4 — scan de conteúdo):
-   O @os/core é consumido como SOURCE (entra no module graph do Vite),
-   então o plugin @tailwindcss/vite normalmente já detecta as classes
-   utilitárias usadas aqui. Como reforço determinístico, apontamos a
-   fonte de conteúdo do core explicitamente via @source (resolvido a
-   partir da localização deste arquivo). Assim, mesmo que o app importe
-   só o CSS, o Tailwind varre TODOS os componentes do core.
-   Caminho relativo: deste arquivo (src/theme/) para os componentes. */
+/* IMPORTANTE (Tailwind 4 — scan de conteúdo): o @os/core é consumido como
+   SOURCE. Reforço determinístico do scan das classes usadas nos componentes. */
 @source "../ui";
 @source "../shell";
 @source "../period";
@@ -27,7 +29,8 @@
   --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
-  /* Neutros "ink" com leve tom violeta (remapeia toda utility gray-*) */
+  /* Neutros "ink" com leve tom violeta (remapeia toda utility gray-*).
+     Um skin claro redefine estes valores (rampa invertida, terrosa). */
   --color-gray-950: #050507;
   --color-gray-900: #0b0b13;
   --color-gray-800: #13131f;
@@ -51,10 +54,8 @@
 }
 
 /* ------------------------------------------------------------
-   Tokens de marca (default NEUTRO). Paleta sóbria (azul/cinza)
-   propositalmente genérica: um cliente SEM tema não deve "parecer"
-   nenhum cliente específico. O ThemeProvider sobrescreve estes
-   valores em :root/wrapper para pintar o OS com a cor do cliente.
+   Tokens de marca + de "cromo" (superfícies/chrome do OS).
+   Default = tema DARK. Um skin claro sobrescreve `--os-*` e a rampa.
    ------------------------------------------------------------ */
 :root {
   --color-brand:        #3b6bd6;  /* azul sóbrio, neutro */
@@ -64,8 +65,23 @@
   --color-brand-deep:   #244488;
   --color-signal:       #22c55e;
 
-  /* Fundo do OS (usado pelo atmosphere glow atrás de tudo). Cinza-azulado neutro. */
-  --os-bg: #0a0c12;
+  /* Fontes de título/wordmark (CSS vars, não geram utilities). Default herda a
+     sans/mono; um skin pode trocar por uma serifa editorial (ex.: Fraunces). */
+  --font-display: var(--font-sans);
+  --font-wordmark: var(--font-mono);
+
+  /* --- Cromo do OS (tokens semânticos; os componentes/base referenciam) --- */
+  --os-bg: #0a0c12;                              /* fundo do OS */
+  --os-text: #f2f2f9;                            /* cor de texto do body */
+  --os-chrome: rgba(11, 11, 19, 0.7);            /* fundo do nav/sidebar (glass) */
+  --os-chrome-edge: rgba(255, 255, 255, 0.06);   /* highlight interno do glass */
+  --os-hairline: rgba(255, 255, 255, 0.05);      /* bordas finas (nav/footer) */
+  --os-hover: rgba(255, 255, 255, 0.05);         /* fundo de hover em itens de nav */
+  --os-active-text: #ffffff;                     /* texto do item de menu ativo */
+  --os-grid: rgba(255, 255, 255, 0.022);         /* linhas da textura de grade */
+  --os-scroll-thumb: #26263a;                    /* thumb da scrollbar */
+  --os-scroll-thumb-hover: #3a3a58;
+  --os-selection-text: #ffffff;                  /* cor do texto selecionado */
 }
 
 html {
@@ -77,10 +93,20 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: var(--os-bg);
-  color: #f2f2f9;
+  color: var(--os-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Títulos herdam a fonte de display (default = sans; skin pode = serifa). */
+h1, h2, h3 {
+  font-family: var(--font-display);
+}
+
+/* Wordmark do shell: fonte própria via token (default mono; skin pode = serifa). */
+.os-wordmark {
+  font-family: var(--font-wordmark);
 }
 
 /* Atmosfera: brilho radial duplo (marca no topo, sinal no canto) — fixo, atrás de tudo. */
@@ -103,8 +129,8 @@ body::after {
   inset: 0;
   z-index: -1;
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+    linear-gradient(to right, var(--os-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--os-grid) 1px, transparent 1px);
   background-size: 46px 46px;
   mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 35%, transparent 85%);
   pointer-events: none;
@@ -112,15 +138,13 @@ body::after {
 
 /* ---- Chrome fosco (nav + sidebar) ---- */
 .nav-glass {
-  background: rgba(11, 11, 19, 0.7);
+  background: var(--os-chrome);
   backdrop-filter: blur(18px) saturate(150%);
   -webkit-backdrop-filter: blur(18px) saturate(150%);
-  /* Borda de refração: 1px de destaque interno no topo, como vidro fosco real. */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 var(--os-chrome-edge);
 }
 
-/* ---- Emblema de marca genérico: dois quadrados sobrepostos ----
-   Genérico (sem semântica de cliente). Cores vêm dos tokens de marca. */
+/* ---- Emblema de marca genérico: dois quadrados sobrepostos ---- */
 .brand-mark {
   position: relative;
   width: 24px;
@@ -178,10 +202,10 @@ body::after {
   font-feature-settings: "tnum";
 }
 
-/* ---- Scrollbar customizada (tema ink) ---- */
+/* ---- Scrollbar customizada ---- */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2f2f46 transparent;
+  scrollbar-color: var(--os-scroll-thumb) transparent;
 }
 *::-webkit-scrollbar {
   width: 10px;
@@ -191,20 +215,20 @@ body::after {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background: #26263a;
+  background: var(--os-scroll-thumb);
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 9999px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: #3a3a58;
+  background: var(--os-scroll-thumb-hover);
   background-clip: padding-box;
 }
 
 /* Seleção na cor de marca. */
 ::selection {
   background: color-mix(in srgb, var(--color-brand) 40%, transparent);
-  color: #fff;
+  color: var(--os-selection-text);
 }
 
 /* Esconde a scrollbar em barras de abas mantendo o scroll. */
