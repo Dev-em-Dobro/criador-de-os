@@ -72,40 +72,60 @@ const PUBLISH_TOOL: Anthropic.Tool = {
 };
 
 const PROMPT = [
-  'Você recebeu o PDF de uma FATURA DE CARTÃO DE CRÉDITO de uma empresa.',
-  'Extraia TODOS os lançamentos de despesa: descrição, estabelecimento (se der), valor em reais, data (se houver).',
-  'Para cada item, escolha a categoria mais adequada e marque se é um gasto RECORRENTE',
-  '(assinatura/ferramenta/SaaS/plano mensal) ou pontual.',
+  'O PDF anexado é uma FATURA DE CARTÃO DE CRÉDITO (pode ter VÁRIAS páginas e mais de um cartão).',
+  'Percorra TODAS as páginas e extraia CADA lançamento de DESPESA/COMPRA (inclusive parcelas',
+  '"Parcela X de Y" e IOF), com descrição, estabelecimento (se der), valor em reais e data (se houver).',
+  'Para cada item, escolha a categoria mais adequada e marque se é RECORRENTE (assinatura/ferramenta/',
+  'SaaS/plano mensal) ou pontual.',
+  'IGNORE apenas pagamentos, estornos e créditos (linhas com valor a CRÉDITO, geralmente com "+").',
   'Identifique a referência (mês/período) da fatura.',
-  'NÃO invente lançamentos. Ignore pagamentos, estornos e créditos (valores negativos).',
-  'Se o PDF não for uma fatura de cartão, chame a ferramenta com items vazio.',
-  'Ao terminar, chame publish_invoice com a referência e os itens.',
+  'NÃO invente nem resuma: liste TODOS os lançamentos que você conseguir ler, sem omitir nenhum.',
+  'Só chame com items vazio se o PDF realmente não for uma fatura de cartão.',
+  'Ao terminar, chame publish_invoice com a referência e TODOS os itens.',
 ].join('\n');
 
-/** Extrai a fatura do PDF (base64) usando a chave BYOK do cliente. */
-export async function extractInvoice(apiKey: string, pdfBase64: string): Promise<ExtractedInvoice> {
-  const client = new Anthropic({ apiKey });
+/**
+ * Robustez: alguns downloads de fatura vêm com LIXO (bytes nulos/cabeçalho) antes
+ * do `%PDF` — a Anthropic recusa como "PDF inválido". Corta tudo antes do `%PDF`.
+ */
+function sanitizePdfBase64(pdfBase64: string): string {
+  const buf = Buffer.from(pdfBase64, 'base64');
+  const start = buf.indexOf('%PDF');
+  return start > 0 ? buf.subarray(start).toString('base64') : pdfBase64;
+}
 
-  const res = await client.messages.create({
-    model: 'claude-opus-4-8',
-    max_tokens: 8000,
-    tools: [PUBLISH_TOOL],
-    tool_choice: { type: 'tool', name: 'publish_invoice' },
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
-          { type: 'text', text: PROMPT },
-        ],
-      },
-    ],
-  });
+/** Extrai a fatura do PDF (base64) usando a chave BYOK do cliente. */
+export async function extractInvoice(apiKey: string, pdfBase64Raw: string): Promise<ExtractedInvoice> {
+  const client = new Anthropic({ apiKey });
+  const pdfBase64 = sanitizePdfBase64(pdfBase64Raw);
+
+  // Faturas com muitas páginas geram MUITOS itens → a saída estruturada pode ser
+  // grande. Streaming + max_tokens alto evitam truncar (e timeouts de HTTP).
+  const res = await client.messages
+    .stream({
+      model: 'claude-opus-4-8',
+      max_tokens: 32000,
+      tools: [PUBLISH_TOOL],
+      tool_choice: { type: 'tool', name: 'publish_invoice' },
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 } },
+            { type: 'text', text: PROMPT },
+          ],
+        },
+      ],
+    })
+    .finalMessage();
 
   const publish = res.content.find(
     (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use' && b.name === 'publish_invoice',
   );
   if (!publish) {
+    if (res.stop_reason === 'max_tokens') {
+      throw new Error('A fatura é muito grande e a leitura foi cortada. Tente uma fatura por vez.');
+    }
     throw new Error('A IA não retornou a fatura estruturada. Tente novamente.');
   }
 
