@@ -75,6 +75,7 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
   const [busy, setBusy] = useState(false);
   const [cortes, setCortes] = useState<Set<number>>(() => loadCortes());
   const [abertas, setAbertas] = useState<Set<string>>(() => new Set());
+  const [catAberta, setCatAberta] = useState<Set<string>>(() => new Set());
 
   async function load(): Promise<void> {
     try {
@@ -149,6 +150,14 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
       return next;
     });
   }
+  function toggleCat(cat: string): void {
+    setCatAberta((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  }
 
   const resumo = useMemo(() => {
     const allItems = (data?.invoices ?? []).flatMap((inv) => inv.items);
@@ -164,6 +173,16 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
     const keys = [...CAT_ORDER.filter((c) => by[c]), ...Object.keys(by).filter((c) => !CAT_ORDER.includes(c))];
     const max = Math.max(1, ...keys.map((k) => by[k] ?? 0));
     return keys.map((cat) => ({ cat, total: by[cat] ?? 0, pct: Math.round(((by[cat] ?? 0) / max) * 100) }));
+  }, [data]);
+
+  // Itens de cada categoria somando TODAS as faturas (para a lista expansível).
+  const itemsByCat = useMemo(() => {
+    const map: Record<string, Item[]> = {};
+    for (const inv of data?.invoices ?? []) {
+      for (const it of inv.items) (map[it.category] ??= []).push(it);
+    }
+    for (const cat of Object.keys(map)) map[cat].sort((a, b) => b.amount - a.amount);
+    return map;
   }, [data]);
 
   const temFaturas = (data?.invoices.length ?? 0) > 0;
@@ -235,20 +254,67 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
             </div>
           </div>
 
-          {/* Custos por categoria (somados) */}
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Custos por categoria (todas juntas)</h3>
-          <div className="mb-6 space-y-2 rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 backdrop-blur-sm">
-            {categorias.map((g) => (
-              <div key={g.cat}>
-                <div className="mb-1 flex items-baseline justify-between text-sm">
-                  <span className={`font-medium ${CAT_ACCENT[g.cat] ?? 'text-gray-300'}`}>{g.cat}</span>
-                  <span className="font-mono tnum text-gray-200">{fmtBRL(g.total)}</span>
+          {/* Custos por categoria (somados) — clique numa categoria para ver os itens */}
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">
+            Custos por categoria (todas juntas) <span className="font-normal normal-case text-gray-500">· clique para ver os itens</span>
+          </h3>
+          <div className="mb-6 space-y-1 rounded-2xl border border-gray-700/50 bg-gray-800/60 p-3 backdrop-blur-sm">
+            {categorias.map((g) => {
+              const aberta = catAberta.has(g.cat);
+              const itens = itemsByCat[g.cat] ?? [];
+              const cortadoCat = itens.filter((i) => cortes.has(i.id)).reduce((s, i) => s + i.amount, 0);
+              return (
+                <div key={g.cat} className="rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => toggleCat(g.cat)}
+                    aria-expanded={aberta}
+                    className="w-full rounded-lg px-2 py-2 text-left transition-colors hover:bg-gray-700/20"
+                  >
+                    <div className="flex items-baseline justify-between text-sm">
+                      <span className="flex items-center gap-2">
+                        <span className="text-gray-500">{aberta ? '▾' : '▸'}</span>
+                        <span className={`font-medium ${CAT_ACCENT[g.cat] ?? 'text-gray-300'}`}>{g.cat}</span>
+                        <span className="text-xs text-gray-500">· {itens.length} {itens.length === 1 ? 'item' : 'itens'}</span>
+                        {cortadoCat > 0 && (
+                          <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-400">−{fmtBRL(cortadoCat)}</span>
+                        )}
+                      </span>
+                      <span className="font-mono tnum text-gray-200">{fmtBRL(g.total)}</span>
+                    </div>
+                    <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-gray-700/50">
+                      <div className="h-full rounded-full bg-blue-500/70" style={{ width: `${g.pct}%` }} />
+                    </div>
+                  </button>
+
+                  {aberta && (
+                    <div className="mt-1 border-t border-gray-700/40 pt-1">
+                      {itens.map((item) => {
+                        const cortado = cortes.has(item.id);
+                        return (
+                          <label
+                            key={item.id}
+                            className={`flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-gray-700/10 ${cortado ? 'opacity-50' : ''}`}
+                          >
+                            <input type="checkbox" checked={cortado} onChange={() => toggleCorte(item.id)} className="h-4 w-4 shrink-0 accent-red-500" />
+                            <div className="min-w-0 flex-1">
+                              <div className={`truncate text-sm font-medium text-gray-100 ${cortado ? 'line-through' : ''}`}>
+                                {item.description}
+                                {item.recurring && (
+                                  <span className="ml-2 inline-flex items-center rounded-full border border-gray-600/50 bg-gray-700/40 px-1.5 py-0.5 text-[10px] font-normal text-gray-400">recorrente</span>
+                                )}
+                              </div>
+                              {item.establishment && <div className="truncate text-xs text-gray-500">{item.establishment}</div>}
+                            </div>
+                            <span className={`shrink-0 font-mono tnum text-sm font-semibold ${cortado ? 'text-gray-500 line-through' : 'text-gray-100'}`}>{fmtBRL(item.amount)}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-gray-700/50">
-                  <div className="h-full rounded-full bg-blue-500/70" style={{ width: `${g.pct}%` }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Faturas (expansíveis) */}
