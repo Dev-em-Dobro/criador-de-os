@@ -129,6 +129,10 @@ export const leads = pgTable('leads', {
   hasEmail: boolean('has_email').notNull(),
   hasPhone: boolean('has_phone').notNull(),
   recordCount: integer('record_count').notNull(),
+  // Preenchidos pelo passo de pontuação (config-driven). Nulos até pontuar.
+  score: integer('score'),
+  tier: text('tier'),
+  segment: text('segment'),
   createdAt: timestamp('created_at')
     .$defaultFn(() => new Date())
     .notNull(),

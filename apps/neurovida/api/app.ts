@@ -24,7 +24,8 @@ import {
   getSettingsStatus,
   setSetting,
 } from './settings';
-import { getLeadsSummary, importCsv, isKnownSource, mergeLeads } from './leads';
+import { getLeadsSummary, importCsv, isKnownSource, listLeads, mergeLeads, scoreLeads } from './leads';
+import { isScoringSpec } from './scoring';
 
 export const app = new Hono();
 
@@ -111,6 +112,37 @@ app.post('/api/leads/merge', async (c) => {
   } catch (err) {
     console.error('[leads/merge] erro:', err instanceof Error ? err.message : err);
     return c.json({ error: 'Falha ao consolidar os leads.' }, 500);
+  }
+});
+
+app.post('/api/leads/score', async (c) => {
+  if (!(await requireSession(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
+  let body: { scoring?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    return c.json({ error: 'JSON inválido no corpo' }, 400);
+  }
+  if (!isScoringSpec(body.scoring)) {
+    return c.json({ error: 'Régua de pontuação (scoring) ausente ou inválida no manifesto.' }, 400);
+  }
+  try {
+    return c.json(await scoreLeads(body.scoring));
+  } catch (err) {
+    console.error('[leads/score] erro:', err instanceof Error ? err.message : err);
+    return c.json({ error: 'Falha ao pontuar os leads.' }, 500);
+  }
+});
+
+app.get('/api/leads/list', async (c) => {
+  if (!(await requireSession(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
+  const segment = c.req.query('segment') || null;
+  const limit = Number(c.req.query('limit')) || 100;
+  try {
+    return c.json({ leads: await listLeads(segment, limit) });
+  } catch (err) {
+    console.error('[leads/list] erro:', err instanceof Error ? err.message : err);
+    return c.json({ error: 'Falha ao listar os leads.' }, 500);
   }
 });
 

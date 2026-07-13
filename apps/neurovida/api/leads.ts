@@ -14,6 +14,7 @@
 import { eq } from 'drizzle-orm';
 import { dbAuth, schema } from '../db/client';
 import { canonicalPhone, findEmailColumn, findNameColumn, findPhoneColumn, normalizeEmail, parseCsv } from './csv';
+import { computeScore, tierOf, type ScoringSpec } from './scoring';
 
 /** As 6 fontes suportadas (mesma lista do Dobro OS). Registro FECHADO. */
 export const LEAD_SOURCES = [
@@ -226,4 +227,112 @@ export async function getLeadsSummary(): Promise<LeadsSummary> {
     totalRows: srcRows.length,
     consolidated: leadRows.length,
   };
+}
+
+// ============================================================
+// Pontuação (config-driven) + segmentação + listagem
+// ============================================================
+
+/**
+ * Deriva o segmento de ação a partir de aluno/pesquisa/tier (mesma estrutura de
+ * 6 segmentos do Dobro OS). "alto" = tier S/A; "médio" = B; "baixo" = C.
+ */
+function segmentOf(isAluno: boolean, respondeu: boolean, tier: string): string {
+  const alto = tier === 'S' || tier === 'A';
+  const medio = tier === 'B';
+  if (isAluno) return respondeu ? 'cliente-upsell' : 'cliente-sem-perfil';
+  if (!respondeu) return 'sem-perfil';
+  if (alto) return 'icp-alto';
+  if (medio) return 'icp-medio';
+  return 'icp-baixo';
+}
+
+export interface ScoreReport {
+  scored: number;
+  bySegment: Record<string, number>;
+  byTier: Record<string, number>;
+}
+
+/**
+ * Pontua todos os leads consolidados aplicando a régua `spec` (do manifesto) às
+ * respostas da pesquisa (casadas por email/telefone). Recomputa por inteiro
+ * (delete+insert) gravando score/tier/segment. Retorna a distribuição.
+ */
+export async function scoreLeads(spec: ScoringSpec): Promise<ScoreReport> {
+  const leadRows = await dbAuth.select().from(schema.leads);
+  const pesquisa = (await dbAuth
+    .select({
+      email: schema.leadSourceRows.email,
+      phone: schema.leadSourceRows.phone,
+      raw: schema.leadSourceRows.raw,
+    })
+    .from(schema.leadSourceRows)
+    .where(eq(schema.leadSourceRows.source, 'pesquisa'))) as Array<{
+    email: string | null;
+    phone: string | null;
+    raw: Record<string, string>;
+  }>;
+
+  const byEmail = new Map<string, Record<string, string>>();
+  const byPhone = new Map<string, Record<string, string>>();
+  for (const p of pesquisa) {
+    if (p.email && !byEmail.has(p.email)) byEmail.set(p.email, p.raw);
+    if (p.phone && !byPhone.has(p.phone)) byPhone.set(p.phone, p.raw);
+  }
+
+  const bySegment: Record<string, number> = {};
+  const byTier: Record<string, number> = {};
+  const updated = leadRows.map((l) => {
+    const survey = (l.email ? byEmail.get(l.email) : undefined) ?? (l.phone ? byPhone.get(l.phone) : undefined) ?? null;
+    const score = computeScore(survey, spec);
+    const tier = tierOf(score, spec);
+    const segment = segmentOf(l.isAluno, l.respondeuPesquisa, tier);
+    bySegment[segment] = (bySegment[segment] ?? 0) + 1;
+    byTier[tier] = (byTier[tier] ?? 0) + 1;
+    return { ...l, score, tier, segment };
+  });
+
+  await dbAuth.delete(schema.leads);
+  for (let i = 0; i < updated.length; i += CHUNK) {
+    await dbAuth.insert(schema.leads).values(updated.slice(i, i + CHUNK));
+  }
+
+  return { scored: updated.length, bySegment, byTier };
+}
+
+export interface LeadListItem {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  sources: string[];
+  isAluno: boolean;
+  respondeuPesquisa: boolean;
+  hasEmail: boolean;
+  hasPhone: boolean;
+  score: number | null;
+  tier: string | null;
+  segment: string | null;
+}
+
+/** Lista leads (opcionalmente filtrados por segmento), ordenados por score desc. */
+export async function listLeads(segment: string | null, limit: number): Promise<LeadListItem[]> {
+  const rows = await dbAuth.select().from(schema.leads);
+  const filtered = (segment ? rows.filter((r) => r.segment === segment) : rows)
+    .sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
+    .slice(0, Math.max(1, Math.min(limit, 500)));
+  return filtered.map((r) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    phone: r.phone,
+    sources: r.sources,
+    isAluno: r.isAluno,
+    respondeuPesquisa: r.respondeuPesquisa,
+    hasEmail: r.hasEmail,
+    hasPhone: r.hasPhone,
+    score: r.score,
+    tier: r.tier,
+    segment: r.segment,
+  }));
 }

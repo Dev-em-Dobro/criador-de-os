@@ -137,7 +137,96 @@ export const neurovidaManifest: ClientManifest = {
           block: 'custom:lead-score',
           title: 'Análise de Leads quentes',
           subtitle: 'Temperatura da base, segmentos de ação e leads pontuados',
-          config: {},
+          config: {
+            // Régua de ICP CONFIG-DRIVEN (do negócio, não chumbada no código). A
+            // máquina (parse/dedup/merge/tiers) é genérica; estes pesos definem o
+            // cliente ideal da NEUROVIDA (saúde/suplementos). AJUSTE os nomes dos
+            // campos para casar as colunas do SEU CSV de pesquisa e os pesos.
+            // `field` casa a coluna por "contém" (tolera cabeçalhos longos).
+            scoring: {
+              rules: [
+                {
+                  field: 'idade',
+                  label: 'Faixa etária',
+                  match: [
+                    { contains: '35 a 44', points: 12 },
+                    { contains: '45 a 54', points: 12 },
+                    { contains: '25 a 34', points: 9 },
+                    { contains: '55', points: 8 },
+                    { contains: '18 a 24', points: 5 },
+                  ],
+                  default: 3,
+                },
+                {
+                  field: 'suplemento',
+                  label: 'Já usa suplementos',
+                  match: [
+                    { contains: 'uso diar', points: 20 },
+                    { contains: 'sim', points: 15 },
+                    { contains: 'já usei', points: 8 },
+                  ],
+                  default: 0,
+                },
+                {
+                  field: 'renda',
+                  label: 'Renda mensal',
+                  match: [
+                    { contains: 'acima', points: 15 },
+                    { contains: '5.001', points: 13 },
+                    { contains: '2.501', points: 9 },
+                    { contains: '1.501', points: 5 },
+                  ],
+                  default: 2,
+                },
+                {
+                  field: 'objetivo',
+                  label: 'Objetivo de saúde',
+                  match: [
+                    { contains: 'imunidade', points: 10 },
+                    { contains: 'energia', points: 10 },
+                    { contains: 'sono', points: 9 },
+                    { contains: 'memória', points: 9 },
+                    { contains: 'estética', points: 6 },
+                  ],
+                  default: 4,
+                },
+                {
+                  field: 'recomend',
+                  label: 'Recomendação médica',
+                  match: [{ contains: 'sim', points: 12 }],
+                  default: 0,
+                },
+                {
+                  field: 'cartão',
+                  label: 'Tem cartão de crédito',
+                  match: [{ contains: 'sim', points: 8 }],
+                  default: 2,
+                },
+              ],
+              tiers: [
+                { tier: 'S', min: 60 },
+                { tier: 'A', min: 40 },
+                { tier: 'B', min: 20 },
+                { tier: 'C', min: 0 },
+              ],
+              maxScore: 100,
+            },
+          },
+          help: {
+            description:
+              'Junte seus contatos de várias origens num só lugar: suba o CSV de cada fonte, o sistema deduplica (mesma pessoa por email OU telefone) e pontua o interesse (ICP) para você agir por segmento.',
+            tutorial: {
+              title: 'Como cadastrar e analisar seus leads',
+              steps: [
+                'Exporte um CSV de cada fonte que você usa (ActiveCampaign, Clint, Curseduca, ManyChat, Unnichat) e da sua pesquisa de perfil. Não precisa formatar: o sistema detecta as colunas de email/telefone/nome sozinho.',
+                'Em "Fontes de dados", clique em "Subir CSV" na fonte correspondente. Reenviar um CSV substitui os dados daquela fonte.',
+                'Clique em "1. Consolidar": o sistema une os contatos e mostra quantos leads únicos existem (quantos duplicados foram fundidos).',
+                'Clique em "2. Pontuar": aplica a régua de ICP (configurável) usando as respostas da pesquisa e classifica cada lead em tiers S/A/B/C.',
+                'Use os cartões de "Segmentos de ação" para filtrar (ex.: ICP Alto = ofereça direto; Sem Perfil = peça para responder a pesquisa).',
+                'A pontuação vem da pesquisa: leads sem pesquisa respondida caem em "Sem Perfil". Quanto mais gente responder, mais preciso fica o score.',
+              ],
+            },
+          },
         },
       },
 
@@ -181,6 +270,20 @@ export const neurovidaManifest: ClientManifest = {
           title: 'Configurações',
           subtitle: 'Suas chaves e integrações — você usa a sua própria conta (BYOK)',
           config: {},
+          help: {
+            description:
+              'Aqui você conecta a sua própria conta (modelo BYOK): cole a chave de API do Claude para liberar as ações de IA (como o Estúdio de conteúdo). A chave fica cifrada e nunca é exibida de volta.',
+            tutorial: {
+              title: 'Como configurar sua chave de API',
+              steps: [
+                'Acesse console.anthropic.com e faça login (ou crie uma conta).',
+                'No menu, vá em "API Keys" → "Create Key". Dê um nome (ex.: Neurovida OS).',
+                'Copie a chave gerada — ela começa com "sk-ant-". Guarde: ela só aparece uma vez.',
+                'Volte aqui, cole a chave no campo e clique em Salvar. O Estúdio IA passa a usar a sua conta.',
+                'Cada uso consome créditos da SUA conta Anthropic. Você pode trocar ou remover a chave quando quiser.',
+              ],
+            },
+          },
         },
       },
     ],
