@@ -1,16 +1,14 @@
 /**
- * apps/neurovida — bloco CUSTOM: Fatura do cartão (dados REAIS, PDF por IA).
+ * @os/blocks — componente do `invoice-console`, carregado sob demanda.
  *
- * Fluxo: o cliente SOBE o(s) PDF(s) da fatura → a IA (chave BYOK) extrai os
- * itens, categoriza e detecta recorrentes → o Neon guarda → esta tela mostra os
- * custos SOMADOS (todas as faturas juntas), por categoria, e o controle de
- * cortes (marque itens pra cortar e veja quanto a conta fica DEPOIS + economia
- * anual das assinaturas cortadas). Cortes persistem em localStorage.
+ * Sobe PDF(s) → a IA (backend @os/server, chave BYOK) extrai/categoriza → mostra
+ * custos SOMADOS por categoria + cortes (marque assinaturas → total após cortes +
+ * economia anual, em localStorage). Renderiza com o design system (herda o skin).
  */
 
 import { useEffect, useMemo, useState } from 'react';
 import { SectionHeader } from '@os/core';
-import type { BlockDefinition, BlockProps } from '@os/core';
+import type { BlockProps } from '@os/core';
 
 interface Item {
   id: number;
@@ -45,7 +43,7 @@ const CAT_ACCENT: Record<string, string> = {
   Outros: 'text-gray-400',
 };
 
-const STORAGE_KEY = 'neurovida-fatura-cortes';
+const STORAGE_KEY = 'os-invoice-cuts';
 const fmtBRL = (n: number): string => `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 function loadCortes(): Set<number> {
@@ -70,7 +68,7 @@ function readBase64(file: File): Promise<string> {
   });
 }
 
-function FaturaCartaoBlock({ title, subtitle }: BlockProps) {
+export default function InvoiceConsole({ title, subtitle }: BlockProps) {
   const [data, setData] = useState<Data | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -175,13 +173,15 @@ function FaturaCartaoBlock({ title, subtitle }: BlockProps) {
       <SectionHeader title={title ?? 'Fatura do cartão'} subtitle={subtitle} icon="💳" />
 
       {erro && (
-        <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{erro}</div>
+        <div role="alert" className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {erro}
+        </div>
       )}
 
       {/* Upload */}
       <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 backdrop-blur-sm">
         <label
-          className={`inline-flex cursor-pointer items-center rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 ${
+          className={`inline-flex cursor-pointer items-center rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 focus-within:ring-2 focus-within:ring-white/80 ${
             busy ? 'pointer-events-none opacity-50' : ''
           }`}
         >
@@ -190,7 +190,7 @@ function FaturaCartaoBlock({ title, subtitle }: BlockProps) {
             type="file"
             accept="application/pdf,.pdf"
             multiple
-            className="hidden"
+            className="sr-only"
             onChange={(e) => {
               if (e.target.files && e.target.files.length) void onFiles(e.target.files);
               e.target.value = '';
@@ -319,10 +319,3 @@ function FaturaCartaoBlock({ title, subtitle }: BlockProps) {
     </div>
   );
 }
-
-/** Definição registrável do bloco custom "Fatura do cartão". */
-export const faturaCartao: BlockDefinition = {
-  type: 'custom:fatura-cartao',
-  component: FaturaCartaoBlock,
-  defaultDataShape: 'raw',
-};

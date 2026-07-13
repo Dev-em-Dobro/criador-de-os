@@ -1,15 +1,14 @@
 /**
- * apps/neurovida — bloco CUSTOM: Configurações (modelo BYOK).
+ * @os/blocks — componente do `settings-panel` (BYOK), carregado sob demanda.
  *
- * Tela onde o CLIENTE cola a própria chave de API (ex.: Anthropic/Claude). A
- * chave é enviada ao backend e guardada CIFRADA no Neon do cliente — nunca volta
- * ao browser (só um hint mascarado). Renderiza com o design system do @os/core,
- * então herda o skin (creme/dusk).
+ * O cliente cola a própria chave de API; ela vai ao backend (@os/server) e é
+ * guardada CIFRADA no Neon do cliente — nunca volta ao browser (só um hint).
+ * Renderiza com o design system do @os/core (herda o skin).
  */
 
 import { useEffect, useState } from 'react';
 import { SectionHeader } from '@os/core';
-import type { BlockDefinition, BlockProps } from '@os/core';
+import type { BlockProps } from '@os/core';
 
 interface SettingStatus {
   key: string;
@@ -19,7 +18,7 @@ interface SettingStatus {
   hint: string | null;
 }
 
-function SettingsBlock({ title, subtitle }: BlockProps) {
+export default function SettingsPanel({ title, subtitle }: BlockProps) {
   const [items, setItems] = useState<SettingStatus[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -93,15 +92,13 @@ function SettingsBlock({ title, subtitle }: BlockProps) {
       />
 
       {loadError && (
-        <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div role="alert" className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {loadError}
         </div>
       )}
 
       {!items && !loadError && (
-        <div className="rounded-2xl border border-gray-700/50 bg-gray-800/40 p-8 text-center text-sm text-gray-400">
-          Carregando…
-        </div>
+        <div className="rounded-2xl border border-gray-700/50 bg-gray-800/40 p-8 text-center text-sm text-gray-400">Carregando…</div>
       )}
 
       <div className="space-y-4">
@@ -129,7 +126,7 @@ function SettingsBlock({ title, subtitle }: BlockProps) {
                 onChange={(e) => setDrafts((d) => ({ ...d, [s.key]: e.target.value }))}
                 placeholder={s.configured ? 'Colar nova chave para substituir…' : 'Colar a sua chave…'}
                 disabled={busyKey === s.key}
-                className="min-w-[280px] flex-1 rounded-xl border border-gray-600 bg-gray-900/40 px-4 py-2.5 text-sm text-gray-100 placeholder:text-gray-500 focus:border-blue-500/60 focus:outline-none disabled:opacity-50"
+                className="min-w-[280px] flex-1 rounded-xl border border-gray-600 bg-gray-900/40 px-4 py-2.5 text-sm text-gray-100 placeholder:text-gray-500 focus:border-blue-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 disabled:opacity-50"
               />
               <button
                 type="button"
@@ -152,7 +149,7 @@ function SettingsBlock({ title, subtitle }: BlockProps) {
             </div>
 
             {feedback?.key === s.key && (
-              <p className={`mt-2 text-xs ${feedback.kind === 'ok' ? 'text-green-400' : 'text-red-400'}`}>
+              <p role="status" aria-live="polite" className={`mt-2 text-xs ${feedback.kind === 'ok' ? 'text-green-400' : 'text-red-400'}`}>
                 {feedback.msg}
               </p>
             )}
@@ -161,16 +158,8 @@ function SettingsBlock({ title, subtitle }: BlockProps) {
       </div>
 
       <p className="mt-6 text-xs leading-relaxed text-gray-500">
-        Suas chaves ficam cifradas no seu banco e são usadas apenas pelo servidor do seu OS
-        (ex.: para gerar conteúdo no Estúdio IA). Nunca são exibidas de volta nem enviadas ao navegador.
+        Suas chaves ficam cifradas no seu banco e são usadas apenas pelo servidor do seu OS. Nunca são exibidas de volta nem enviadas ao navegador.
       </p>
     </div>
   );
 }
-
-/** Definição registrável do bloco de Configurações da Neurovida. */
-export const settingsBlock: BlockDefinition = {
-  type: 'custom:settings',
-  component: SettingsBlock,
-  defaultDataShape: 'raw',
-};

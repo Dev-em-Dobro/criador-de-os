@@ -1,10 +1,8 @@
 /**
- * apps/neurovida — parser CSV (RFC 4180) + normalizadores de contato.
+ * @os/server — parser CSV (RFC 4180) + normalizadores de contato (genéricos).
  *
- * Portado da lógica do Dobro OS (parser próprio, sem PapaParse): auto-detecta o
- * separador (`;` ou `,`), respeita campos entre aspas com separador/quebra de
- * linha embutidos e escapes `""`. Normaliza email (lowercase) e telefone
- * (canônico BR `55DDD9XXXXXXXX`) para servir de chave de deduplicação no merge.
+ * Auto-detecta separador (`;`/`,`), respeita aspas/quebras embutidas e `""`.
+ * Normaliza email (lowercase) e telefone (canônico BR) para chave de dedupe.
  */
 
 export interface ParsedCsv {
@@ -12,12 +10,10 @@ export interface ParsedCsv {
   rows: Array<Record<string, string>>;
 }
 
-/** Detecta o separador pela primeira linha (`;` tem precedência, padrão BR). */
 function detectSeparator(firstLine: string): ',' | ';' {
   return firstLine.includes(';') ? ';' : ',';
 }
 
-/** Parser RFC 4180: lida com aspas, separador/quebra embutidos e `""`. */
 export function parseCsv(text: string): ParsedCsv {
   const clean = text.replace(/^﻿/, ''); // remove BOM
   const firstNl = clean.indexOf('\n');
@@ -59,7 +55,6 @@ export function parseCsv(text: string): ParsedCsv {
       field += ch;
     }
   }
-  // Último campo/registro (arquivo sem newline final).
   if (field !== '' || record.length > 0) {
     record.push(field);
     if (record.some((f) => f.trim() !== '')) records.push(record);
@@ -78,7 +73,6 @@ export function parseCsv(text: string): ParsedCsv {
   return { headers, rows };
 }
 
-/** Índice da 1ª coluna que parece ser de email (ou -1). */
 export function findEmailColumn(headers: string[]): number {
   return headers.findIndex((h) => {
     const l = h.toLowerCase();
@@ -86,7 +80,6 @@ export function findEmailColumn(headers: string[]): number {
   });
 }
 
-/** Índice da 1ª coluna que parece ser de telefone (ou -1). */
 export function findPhoneColumn(headers: string[]): number {
   return headers.findIndex((h) => {
     const l = h.toLowerCase();
@@ -102,7 +95,6 @@ export function findPhoneColumn(headers: string[]): number {
   });
 }
 
-/** Índice da 1ª coluna que parece ser de nome (ou -1). */
 export function findNameColumn(headers: string[]): number {
   return headers.findIndex((h) => {
     const l = h.toLowerCase();
@@ -110,17 +102,13 @@ export function findNameColumn(headers: string[]): number {
   });
 }
 
-/** Normaliza email: trim + lowercase; retorna null se vazio/sem @. */
 export function normalizeEmail(raw: string | undefined): string | null {
   if (!raw) return null;
   const e = raw.trim().toLowerCase();
   return e.includes('@') && e.length >= 5 ? e : null;
 }
 
-/**
- * Telefone canônico BR (mesma regra do Dobro OS): só dígitos → `55DDD9XXXXXXXX`.
- * Retorna null se não der para canonicalizar (menos de 10 dígitos).
- */
+/** Telefone canônico BR: só dígitos → `55DDD9XXXXXXXX`. Null se < 10 dígitos. */
 export function canonicalPhone(raw: string | undefined): string | null {
   if (!raw) return null;
   const digits = raw.replace(/\D/g, '');

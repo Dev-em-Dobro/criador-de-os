@@ -1,16 +1,13 @@
 /**
- * apps/neurovida — extração de itens de fatura de cartão (PDF) por IA.
+ * @os/server — extração de itens de fatura de cartão (PDF) por IA (genérico).
  *
- * Recebe o PDF em base64 + a chave BYOK do cliente e usa a Claude API (bloco
- * `document` + `tool_choice` forçado) para extrair CADA item: descrição, valor,
- * categoria e se é recorrente. Saída estruturada garantida pela tool — nada de
- * parsear texto solto. Não inventa itens: se o PDF não for uma fatura, retorna
- * `items` vazio. A chave vive só no servidor; nunca no bundle.
+ * Recebe PDF em base64 + a chave BYOK do cliente e usa a Claude API (bloco
+ * `document` + `tool_choice` forçado) para extrair CADA item categorizado. Saída
+ * estruturada garantida pela tool. Não inventa: `items` vazio se não for fatura.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 
-/** Categorias FECHADAS (mesmas do bloco de Financeiro). */
 export const INVOICE_CATEGORIES = [
   'Ferramentas',
   'Tráfego',
@@ -29,7 +26,6 @@ export interface ExtractedItem {
   category: string;
   recurring: boolean;
 }
-
 export interface ExtractedInvoice {
   reference: string;
   items: ExtractedItem[];
@@ -76,7 +72,7 @@ const PUBLISH_TOOL: Anthropic.Tool = {
 };
 
 const PROMPT = [
-  'Você recebeu o PDF de uma FATURA DE CARTÃO DE CRÉDITO (empresa de suplementos/saúde).',
+  'Você recebeu o PDF de uma FATURA DE CARTÃO DE CRÉDITO de uma empresa.',
   'Extraia TODOS os lançamentos de despesa: descrição, estabelecimento (se der), valor em reais, data (se houver).',
   'Para cada item, escolha a categoria mais adequada e marque se é um gasto RECORRENTE',
   '(assinatura/ferramenta/SaaS/plano mensal) ou pontual.',
@@ -114,7 +110,6 @@ export async function extractInvoice(apiKey: string, pdfBase64: string): Promise
   }
 
   const out = publish.input as ExtractedInvoice;
-  // Saneamento leve: garante números positivos e categoria conhecida.
   const known = new Set<string>(INVOICE_CATEGORIES);
   const items = (out.items ?? [])
     .map((it) => ({

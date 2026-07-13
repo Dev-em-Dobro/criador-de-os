@@ -160,6 +160,9 @@ const blockTypeSchema = z
         'timeline',
         'doc-viewer',
         'metric-comparison',
+        'settings-panel',
+        'lead-console',
+        'invoice-console',
       ].includes(v) || v.startsWith('custom:'),
     { message: 'block deve ser um tipo conhecido ou começar com "custom:"' },
   );

@@ -277,6 +277,10 @@ export type BlockType =
   | 'timeline'
   | 'doc-viewer'
   | 'metric-comparison'
+  // Blocos "console" (gerenciam estado próprio + falam com o backend da fábrica @os/server)
+  | 'settings-panel'
+  | 'lead-console'
+  | 'invoice-console'
   | `custom:${string}`;
 
 /** Nome de ícone do set do lucide-react (validado contra o set em runtime pelo app). */

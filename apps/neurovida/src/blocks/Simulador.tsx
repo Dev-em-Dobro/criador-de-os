@@ -174,7 +174,7 @@ function calcDireto(e: Escada, invest: number) {
 // ============================================================
 
 const inputCls =
-  'w-full rounded-lg border border-gray-600 bg-gray-900/40 px-3 py-2 text-sm text-gray-100 focus:border-blue-500/60 focus:outline-none';
+  'w-full rounded-lg border border-gray-600 bg-gray-900/40 px-3 py-2 text-sm text-gray-100 focus:border-blue-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50';
 
 function MoneyField({ label, value, onChange, hint }: { label: string; value: number; onChange: (v: number) => void; hint?: string }) {
   return (
@@ -443,11 +443,13 @@ function SimuladorBlock({ title, subtitle }: BlockProps) {
       </SectionHeader>
 
       {/* Abas */}
-      <div className="mb-6 flex gap-1 border-b border-gray-700/60">
+      <div role="tablist" aria-label="Seções do simulador" className="mb-6 flex gap-1 border-b border-gray-700/60">
         {ABAS.map((a) => (
           <button
             key={a.id}
             type="button"
+            role="tab"
+            aria-selected={aba === a.id}
             onClick={() => setAba(a.id)}
             className={`border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               aba === a.id ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-gray-200'
@@ -458,7 +460,9 @@ function SimuladorBlock({ title, subtitle }: BlockProps) {
         ))}
       </div>
 
-      {aba === 'premissas' ? <PremissasTab state={state} set={set} /> : <EscadaTab escada={state.escada} set={setEscada} />}
+      <div role="tabpanel">
+        {aba === 'premissas' ? <PremissasTab state={state} set={set} /> : <EscadaTab escada={state.escada} set={setEscada} />}
+      </div>
     </div>
   );
 }

@@ -17,6 +17,9 @@ import { dataTable } from './data-table';
 import { kanbanBoard } from './kanban-board';
 import { docViewer } from './doc-viewer';
 import { metricComparison } from './metric-comparison';
+import { settingsPanel } from './settings-panel';
+import { leadConsole } from './lead-console';
+import { invoiceConsole } from './invoice-console';
 
 // ============================================================
 // Blocos (definições registráveis)
@@ -27,6 +30,11 @@ export { dataTable } from './data-table';
 export { kanbanBoard } from './kanban-board';
 export { docViewer } from './doc-viewer';
 export { metricComparison } from './metric-comparison';
+
+// Blocos "console" (gerenciam estado próprio + falam com o backend @os/server).
+export { settingsPanel } from './settings-panel';
+export { leadConsole } from './lead-console';
+export { invoiceConsole } from './invoice-console';
 
 // ============================================================
 // Tipos de config (por bloco) + schemas zod
@@ -58,6 +66,9 @@ export const defaultBlocks: readonly AnyBlockDefinition[] = [
   kanbanBoard,
   docViewer,
   metricComparison,
+  settingsPanel,
+  leadConsole,
+  invoiceConsole,
 ];
 
 /**

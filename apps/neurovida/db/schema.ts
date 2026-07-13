@@ -1,169 +1,20 @@
 /**
- * apps/neurovida — Schema Drizzle do Neon do cliente.
+ * apps/neurovida — schema Drizzle.
  *
- *  1) Better Auth (user/session/account/verification) — o cliente loga no OS.
- *  2) app_settings — chave→valor CIFRADO das configurações do cliente (BYOK).
- *     A API NUNCA devolve o valor cru ao browser; só um "hint" mascarado.
- *
- * Blocos de dados de negócio (fatura, leads) virão em fases seguintes, com suas
- * tabelas + views read-only na allowlist do /api/query.
+ * As tabelas são as COMPARTILHADAS da fábrica (@os/server/schema): Better Auth +
+ * app_settings (BYOK) + leads + faturas. Um Neon por cliente. Se o neurovida
+ * precisar de tabelas de negócio PRÓPRIAS no futuro, defina-as aqui além do
+ * re-export. (As migrations 0000–0003 já materializaram estas tabelas na Neon.)
  */
 
-import { pgTable, text, timestamp, boolean, integer, jsonb, doublePrecision } from 'drizzle-orm/pg-core';
-
-// ============================================================
-// Better Auth — tabelas de autenticação
-// ============================================================
-
-export const user = pgTable('user', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull().unique(),
-  emailVerified: boolean('email_verified')
-    .$defaultFn(() => false)
-    .notNull(),
-  image: text('image'),
-  createdAt: timestamp('created_at')
-    .$defaultFn(() => new Date())
-    .notNull(),
-  updatedAt: timestamp('updated_at')
-    .$defaultFn(() => new Date())
-    .notNull(),
-});
-
-export const session = pgTable('session', {
-  id: text('id').primaryKey(),
-  expiresAt: timestamp('expires_at').notNull(),
-  token: text('token').notNull().unique(),
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at').notNull(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-});
-
-export const account = pgTable('account', {
-  id: text('id').primaryKey(),
-  accountId: text('account_id').notNull(),
-  providerId: text('provider_id').notNull(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  accessToken: text('access_token'),
-  refreshToken: text('refresh_token'),
-  idToken: text('id_token'),
-  accessTokenExpiresAt: timestamp('access_token_expires_at'),
-  refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
-  scope: text('scope'),
-  password: text('password'),
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at').notNull(),
-});
-
-export const verification = pgTable('verification', {
-  id: text('id').primaryKey(),
-  identifier: text('identifier').notNull(),
-  value: text('value').notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at').$defaultFn(() => new Date()),
-  updatedAt: timestamp('updated_at').$defaultFn(() => new Date()),
-});
-
-// ============================================================
-// Configurações do cliente (BYOK) — valor CIFRADO em repouso
-// ============================================================
-
-/**
- * Um par chave→segredo por linha (ex.: `anthropic_api_key`). `valueEncrypted`
- * guarda AES-256-GCM (iv+tag+ciphertext, base64) — nunca o texto puro. `hint` é
- * um resumo mascarado (ex.: `••••Xy4Z`) seguro para exibir no painel.
- */
-export const appSettings = pgTable('app_settings', {
-  key: text('key').primaryKey(),
-  valueEncrypted: text('value_encrypted').notNull(),
-  hint: text('hint'),
-  updatedAt: timestamp('updated_at')
-    .$defaultFn(() => new Date())
-    .notNull(),
-});
-
-// ============================================================
-// Leads — ingestão (registros brutos por fonte) + consolidação
-// ============================================================
-
-/**
- * Cada linha importada de um CSV de qualquer das 6 fontes. `raw` guarda a linha
- * original inteira (jsonb); `email`/`phone` são as chaves normalizadas (lowercase
- * / telefone canônico BR) usadas na deduplicação do merge. Reimportar uma fonte
- * substitui as linhas daquela fonte (delete+insert).
- */
-export const leadSourceRows = pgTable('lead_source_rows', {
-  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  source: text('source').notNull(),
-  email: text('email'),
-  phone: text('phone'),
-  name: text('name'),
-  raw: jsonb('raw').$type<Record<string, string>>().notNull(),
-  importedAt: timestamp('imported_at')
-    .$defaultFn(() => new Date())
-    .notNull(),
-});
-
-/**
- * Lead consolidado: uma pessoa = uma linha, deduplicada por email OU telefone
- * canônico. `sources` lista as fontes que a mencionam (merge lossless). Flags de
- * negócio (`isAluno` da Curseduca, `respondeuPesquisa`) e alcançabilidade por
- * canal. Score/tier/segmento entram na Fatia 2 (config-driven). Recomputado por
- * inteiro a cada merge (delete+insert).
- */
-export const leads = pgTable('leads', {
-  id: text('id').primaryKey(),
-  email: text('email'),
-  phone: text('phone'),
-  name: text('name'),
-  sources: jsonb('sources').$type<string[]>().notNull(),
-  isAluno: boolean('is_aluno').notNull(),
-  respondeuPesquisa: boolean('respondeu_pesquisa').notNull(),
-  hasEmail: boolean('has_email').notNull(),
-  hasPhone: boolean('has_phone').notNull(),
-  recordCount: integer('record_count').notNull(),
-  // Preenchidos pelo passo de pontuação (config-driven). Nulos até pontuar.
-  score: integer('score'),
-  tier: text('tier'),
-  segment: text('segment'),
-  createdAt: timestamp('created_at')
-    .$defaultFn(() => new Date())
-    .notNull(),
-});
-
-// ============================================================
-// Faturas de cartão — PDF extraído por IA (itens categorizados)
-// ============================================================
-
-/** Uma fatura importada (um PDF). `total`/`itemCount` são derivados dos itens. */
-export const invoices = pgTable('invoices', {
-  id: text('id').primaryKey(),
-  filename: text('filename').notNull(),
-  reference: text('reference'),
-  total: doublePrecision('total').notNull(),
-  itemCount: integer('item_count').notNull(),
-  createdAt: timestamp('created_at')
-    .$defaultFn(() => new Date())
-    .notNull(),
-});
-
-/** Um lançamento da fatura (categorizado; `recurring` marca assinaturas). */
-export const invoiceItems = pgTable('invoice_items', {
-  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-  invoiceId: text('invoice_id')
-    .notNull()
-    .references(() => invoices.id, { onDelete: 'cascade' }),
-  description: text('description').notNull(),
-  establishment: text('establishment'),
-  category: text('category').notNull(),
-  amount: doublePrecision('amount').notNull(),
-  purchaseDate: text('purchase_date'),
-  recurring: boolean('recurring').notNull(),
-});
+export {
+  user,
+  session,
+  account,
+  verification,
+  appSettings,
+  leadSourceRows,
+  leads,
+  invoices,
+  invoiceItems,
+} from '@os/server/schema';

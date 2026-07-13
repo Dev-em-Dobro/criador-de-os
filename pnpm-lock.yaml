@@ -105,6 +105,9 @@ importers:
       '@os/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@os/server':
+        specifier: workspace:*
+        version: link:../../packages/server
       better-auth:
         specifier: ^1.6.23
         version: 1.6.23(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@neondatabase/serverless@1.1.0)(kysely@0.29.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -229,6 +232,25 @@ importers:
       tsx:
         specifier: ^4.23.0
         version: 4.23.0
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+
+  packages/server:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.111.0
+        version: 0.111.0(zod@4.4.3)
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@neondatabase/serverless@1.1.0)(kysely@0.29.3)
+      hono:
+        specifier: ^4.12.29
+        version: 4.12.29
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
       typescript:
         specifier: ~5.9.3
         version: 5.9.3

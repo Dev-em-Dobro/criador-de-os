@@ -68,7 +68,7 @@ export const neurovidaManifest: ClientManifest = {
         icon: 'Wallet',
         route: '/financeiro',
         view: {
-          block: 'custom:fatura-cartao',
+          block: 'invoice-console',
           title: 'Fatura do cartão',
           subtitle: 'Suba os PDFs — a IA categoriza e soma; marque o que cortar e veja quanto sobra',
           config: {},
@@ -149,7 +149,7 @@ export const neurovidaManifest: ClientManifest = {
         icon: 'Target',
         route: '/leads',
         view: {
-          block: 'custom:lead-score',
+          block: 'lead-console',
           title: 'Análise de Leads quentes',
           subtitle: 'Temperatura da base, segmentos de ação e leads pontuados',
           config: {
@@ -281,7 +281,7 @@ export const neurovidaManifest: ClientManifest = {
         icon: 'Settings',
         route: '/configuracoes',
         view: {
-          block: 'custom:settings',
+          block: 'settings-panel',
           title: 'Configurações',
           subtitle: 'Suas chaves e integrações — você usa a sua própria conta (BYOK)',
           config: {},

@@ -1,19 +1,14 @@
 /**
- * apps/neurovida — bloco CUSTOM: Análise de Leads quentes (Fatia 2, dados REAIS).
+ * @os/blocks — componente do `lead-console`, carregado sob demanda.
  *
- * Fluxo operacional completo (portado do Lead Score do Dobro OS, ligado ao Neon):
- *  1) subir o CSV de cada uma das 6 fontes (POST /api/leads/import/:source);
- *  2) Consolidar (merge/dedup por email OU telefone) → relatório;
- *  3) Pontuar aplicando a RÉGUA do manifesto (config.scoring) → tiers/segmentos;
- *  4) navegar os leads por segmento (GET /api/leads/list).
- *
- * A régua de ICP é config-driven (vem do manifesto), então a máquina é genérica
- * e a pontuação é do negócio. Renderiza com o design system (herda o skin).
+ * Fluxo: subir CSV por fonte → Consolidar (merge/dedup) → Pontuar (régua de ICP
+ * do manifesto, `config.scoring`) → segmentos + tabela. Fala com /api/leads/*
+ * (@os/server). A máquina é genérica; a pontuação é do negócio (config).
  */
 
 import { useEffect, useMemo, useState } from 'react';
 import { SectionHeader, EmptyState } from '@os/core';
-import type { BlockDefinition, BlockProps } from '@os/core';
+import type { BlockProps } from '@os/core';
 
 interface SourceSummary {
   id: string;
@@ -77,7 +72,7 @@ async function api<T>(method: string, path: string, body?: unknown): Promise<T> 
   return data;
 }
 
-function LeadScoreBlock({ title, subtitle, config }: BlockProps) {
+export default function LeadConsole({ title, subtitle, config }: BlockProps) {
   const scoring = (config as { scoring?: unknown }).scoring;
 
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -167,15 +162,13 @@ function LeadScoreBlock({ title, subtitle, config }: BlockProps) {
       <SectionHeader title={title ?? 'Análise de Leads quentes'} subtitle={subtitle} icon="🔥" />
 
       {erro && (
-        <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div role="alert" className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {erro}
         </div>
       )}
 
       {/* 1) Fontes — upload de CSV */}
-      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">
-        Fontes de dados (subir CSV)
-      </h3>
+      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Fontes de dados (subir CSV)</h3>
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {(summary?.sources ?? []).map((s) => (
           <div key={s.id} className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-4 backdrop-blur-sm">
@@ -185,7 +178,7 @@ function LeadScoreBlock({ title, subtitle, config }: BlockProps) {
             </div>
             <p className="mt-0.5 mb-3 text-xs text-gray-500">{s.hint}</p>
             <label
-              className={`inline-flex cursor-pointer items-center rounded-lg border border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-blue-500/40 hover:text-gray-100 ${
+              className={`inline-flex cursor-pointer items-center rounded-lg border border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-blue-500/40 hover:text-gray-100 focus-within:ring-2 focus-within:ring-blue-500/50 ${
                 busy === `up:${s.id}` ? 'pointer-events-none opacity-50' : ''
               }`}
             >
@@ -193,7 +186,7 @@ function LeadScoreBlock({ title, subtitle, config }: BlockProps) {
               <input
                 type="file"
                 accept=".csv,text/csv"
-                className="hidden"
+                className="sr-only"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) void upload(s.id, f);
@@ -243,14 +236,13 @@ function LeadScoreBlock({ title, subtitle, config }: BlockProps) {
         </p>
       )}
 
-      {/* Termômetro (por tier) — só após pontuar */}
       {score && (
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {(
             [
               { key: 'quente', label: 'Quente (S/A)', n: tierTotals.quente, barra: 'bg-red-500', texto: 'text-red-400' },
               { key: 'morno', label: 'Morno (B)', n: tierTotals.morno, barra: 'bg-amber-500', texto: 'text-amber-400' },
-              { key: 'frio', label: 'Frio (C)', n: tierTotals.frio, barra: 'bg-gray-400', texto: 'text-gray-400' },
+              { key: 'frio', label: 'Frio (C)', n: tierTotals.frio, barra: 'bg-blue-500', texto: 'text-blue-400' },
             ] as const
           ).map((t) => {
             const pct = tierTotals.total > 0 ? Math.round((t.n / tierTotals.total) * 100) : 0;
@@ -270,7 +262,6 @@ function LeadScoreBlock({ title, subtitle, config }: BlockProps) {
         </div>
       )}
 
-      {/* Segmentos de ação (clicáveis) — só após pontuar */}
       {score && (
         <>
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Segmentos de ação</h3>
@@ -298,7 +289,6 @@ function LeadScoreBlock({ title, subtitle, config }: BlockProps) {
         </>
       )}
 
-      {/* Tabela de leads */}
       {score && (
         <>
           <div className="mb-3 flex items-center justify-between">
@@ -343,10 +333,7 @@ function LeadScoreBlock({ title, subtitle, config }: BlockProps) {
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-1">
                             {l.sources.map((c) => (
-                              <span
-                                key={c}
-                                className="inline-flex items-center rounded-full border border-gray-600/50 bg-gray-700/40 px-2 py-0.5 text-[11px] text-gray-400"
-                              >
+                              <span key={c} className="inline-flex items-center rounded-full border border-gray-600/50 bg-gray-700/40 px-2 py-0.5 text-[11px] text-gray-400">
                                 {c}
                               </span>
                             ))}
@@ -355,11 +342,7 @@ function LeadScoreBlock({ title, subtitle, config }: BlockProps) {
                         <td className="px-4 py-3 text-right font-mono tnum font-semibold text-gray-100">{l.score ?? '—'}</td>
                         <td className="px-4 py-3">
                           {l.tier && (
-                            <span
-                              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
-                                TIER_BADGE[l.tier] ?? 'border-gray-600/50 text-gray-400'
-                              }`}
-                            >
+                            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${TIER_BADGE[l.tier] ?? 'border-gray-600/50 text-gray-400'}`}>
                               Tier {l.tier}
                             </span>
                           )}
@@ -375,19 +358,8 @@ function LeadScoreBlock({ title, subtitle, config }: BlockProps) {
       )}
 
       {!score && summary && summary.consolidated === 0 && (
-        <EmptyState
-          icon="📥"
-          message="Suba os CSVs das fontes acima e clique em Consolidar."
-          hint="Depois, Pontuar aplica a régua de ICP e mostra os segmentos."
-        />
+        <EmptyState icon="📥" message="Suba os CSVs das fontes acima e clique em Consolidar." hint="Depois, Pontuar aplica a régua de ICP e mostra os segmentos." />
       )}
     </div>
   );
 }
-
-/** Definição registrável do bloco custom "Análise de Leads quentes". */
-export const leadScore: BlockDefinition = {
-  type: 'custom:lead-score',
-  component: LeadScoreBlock,
-  defaultDataShape: 'raw',
-};

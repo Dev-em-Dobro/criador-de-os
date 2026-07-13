@@ -84,7 +84,7 @@ function CarouselGeneratorBlock({ title, subtitle }: BlockProps) {
             }}
             placeholder="ex.: Ômega 3 e saúde do coração"
             disabled={loading}
-            className="min-w-[260px] flex-1 rounded-xl border border-gray-600 bg-gray-900/40 px-4 py-2.5 text-sm text-gray-100 placeholder:text-gray-500 focus:border-blue-500/60 focus:outline-none disabled:opacity-50"
+            className="min-w-[260px] flex-1 rounded-xl border border-gray-600 bg-gray-900/40 px-4 py-2.5 text-sm text-gray-100 placeholder:text-gray-500 focus:border-blue-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 disabled:opacity-50"
           />
           <button
             type="button"
@@ -123,7 +123,7 @@ function CarouselGeneratorBlock({ title, subtitle }: BlockProps) {
 
       {/* Estados */}
       {loading && (
-        <div className="rounded-2xl border border-gray-700/50 bg-gray-800/40 p-10 text-center">
+        <div role="status" aria-live="polite" className="rounded-2xl border border-gray-700/50 bg-gray-800/40 p-10 text-center">
           <div className="mb-3 text-3xl">🔎</div>
           <p className="text-sm font-medium text-gray-300">Pesquisando evidências e escrevendo…</p>
           <p className="mt-1 text-xs text-gray-500">Buscando fontes confiáveis e revisando as citações.</p>
@@ -131,7 +131,7 @@ function CarouselGeneratorBlock({ title, subtitle }: BlockProps) {
       )}
 
       {erro && !loading && (
-        <EmptyState icon="⚠️" message={`Erro ao gerar: ${erro}`} hint="Verifique a ANTHROPIC_API_KEY no .env e tente de novo." />
+        <EmptyState icon="⚠️" message={`Erro ao gerar: ${erro}`} hint="Confira se você adicionou a sua chave em Configurações e tente de novo." />
       )}
 
       {result && !loading && (
