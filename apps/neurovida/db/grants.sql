@@ -26,6 +26,8 @@ REVOKE SELECT ON "session" FROM PUBLIC;
 REVOKE SELECT ON account FROM PUBLIC;
 REVOKE SELECT ON verification FROM PUBLIC;
 REVOKE SELECT ON app_settings FROM PUBLIC;
+REVOKE SELECT ON lead_source_rows FROM PUBLIC;
+REVOKE SELECT ON leads FROM PUBLIC;
 
 -- 4) USAGE no schema.
 GRANT USAGE ON SCHEMA public TO app_auth;
@@ -36,6 +38,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON "session"     TO app_auth;
 GRANT SELECT, INSERT, UPDATE, DELETE ON account       TO app_auth;
 GRANT SELECT, INSERT, UPDATE, DELETE ON verification  TO app_auth;
 GRANT SELECT, INSERT, UPDATE, DELETE ON app_settings  TO app_auth;
+GRANT SELECT, INSERT, UPDATE, DELETE ON lead_source_rows TO app_auth;
+GRANT SELECT, INSERT, UPDATE, DELETE ON leads           TO app_auth;
+-- lead_source_rows.id é IDENTITY → app_auth precisa de USAGE na sequência implícita.
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_auth;
 
 -- 6) Permite ao owner (quem roda este script) assumir o role (SET ROLE) p/ testes.
 --    CURRENT_USER em vez de nome fixo → funciona em qualquer projeto Neon.

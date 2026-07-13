@@ -24,6 +24,7 @@ import {
   getSettingsStatus,
   setSetting,
 } from './settings';
+import { getLeadsSummary, importCsv, isKnownSource, mergeLeads } from './leads';
 
 export const app = new Hono();
 
@@ -72,6 +73,45 @@ app.delete('/api/settings/:key', async (c) => {
   if (!KNOWN_SETTINGS[key]) return c.json({ error: 'Configuração desconhecida' }, 404);
   await deleteSetting(key);
   return c.json({ configured: false });
+});
+
+// --- Leads: ingestão (CSV por fonte) + consolidação (merge/dedup) ---
+app.get('/api/leads/summary', async (c) => {
+  if (!(await requireSession(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
+  return c.json(await getLeadsSummary());
+});
+
+app.post('/api/leads/import/:source', async (c) => {
+  if (!(await requireSession(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
+  const source = c.req.param('source');
+  if (!isKnownSource(source)) return c.json({ error: 'Fonte desconhecida' }, 404);
+
+  let body: { csv?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    return c.json({ error: 'JSON inválido no corpo' }, 400);
+  }
+  const csv = typeof body.csv === 'string' ? body.csv : '';
+  if (csv.trim().length === 0) return c.json({ error: 'CSV vazio.' }, 400);
+
+  try {
+    const result = await importCsv(source, csv);
+    return c.json(result);
+  } catch (err) {
+    console.error('[leads/import] erro:', err instanceof Error ? err.message : err);
+    return c.json({ error: 'Falha ao importar o CSV.' }, 500);
+  }
+});
+
+app.post('/api/leads/merge', async (c) => {
+  if (!(await requireSession(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
+  try {
+    return c.json(await mergeLeads());
+  } catch (err) {
+    console.error('[leads/merge] erro:', err instanceof Error ? err.message : err);
+    return c.json({ error: 'Falha ao consolidar os leads.' }, 500);
+  }
 });
 
 // --- Estúdio IA: gerador de carrossel (usa a chave BYOK do cliente) ---

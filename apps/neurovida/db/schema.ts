@@ -9,7 +9,7 @@
  * tabelas + views read-only na allowlist do /api/query.
  */
 
-import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, integer, jsonb } from 'drizzle-orm/pg-core';
 
 // ============================================================
 // Better Auth — tabelas de autenticação
@@ -85,6 +85,51 @@ export const appSettings = pgTable('app_settings', {
   valueEncrypted: text('value_encrypted').notNull(),
   hint: text('hint'),
   updatedAt: timestamp('updated_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
+// ============================================================
+// Leads — ingestão (registros brutos por fonte) + consolidação
+// ============================================================
+
+/**
+ * Cada linha importada de um CSV de qualquer das 6 fontes. `raw` guarda a linha
+ * original inteira (jsonb); `email`/`phone` são as chaves normalizadas (lowercase
+ * / telefone canônico BR) usadas na deduplicação do merge. Reimportar uma fonte
+ * substitui as linhas daquela fonte (delete+insert).
+ */
+export const leadSourceRows = pgTable('lead_source_rows', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  source: text('source').notNull(),
+  email: text('email'),
+  phone: text('phone'),
+  name: text('name'),
+  raw: jsonb('raw').$type<Record<string, string>>().notNull(),
+  importedAt: timestamp('imported_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
+/**
+ * Lead consolidado: uma pessoa = uma linha, deduplicada por email OU telefone
+ * canônico. `sources` lista as fontes que a mencionam (merge lossless). Flags de
+ * negócio (`isAluno` da Curseduca, `respondeuPesquisa`) e alcançabilidade por
+ * canal. Score/tier/segmento entram na Fatia 2 (config-driven). Recomputado por
+ * inteiro a cada merge (delete+insert).
+ */
+export const leads = pgTable('leads', {
+  id: text('id').primaryKey(),
+  email: text('email'),
+  phone: text('phone'),
+  name: text('name'),
+  sources: jsonb('sources').$type<string[]>().notNull(),
+  isAluno: boolean('is_aluno').notNull(),
+  respondeuPesquisa: boolean('respondeu_pesquisa').notNull(),
+  hasEmail: boolean('has_email').notNull(),
+  hasPhone: boolean('has_phone').notNull(),
+  recordCount: integer('record_count').notNull(),
+  createdAt: timestamp('created_at')
     .$defaultFn(() => new Date())
     .notNull(),
 });
