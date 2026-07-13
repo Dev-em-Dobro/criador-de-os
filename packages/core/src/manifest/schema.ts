@@ -164,6 +164,19 @@ const blockTypeSchema = z
     { message: 'block deve ser um tipo conhecido ou começar com "custom:"' },
   );
 
+const sectionHelpSchema = z
+  .object({
+    description: z.string().optional(),
+    tutorial: z
+      .object({
+        title: z.string().optional(),
+        steps: z.array(z.string()).min(1, 'tutorial precisa de ao menos 1 passo'),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
 const blockBindingSchema = z
   .object({
     block: blockTypeSchema,
@@ -171,6 +184,7 @@ const blockBindingSchema = z
     subtitle: z.string().optional(),
     config: z.record(z.string(), z.unknown()),
     dataSource: dataSourceSchema.optional(),
+    help: sectionHelpSchema.optional(),
   })
   .strict();
 

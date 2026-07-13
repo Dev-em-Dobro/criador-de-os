@@ -107,6 +107,26 @@ export interface BlockBinding {
   config: Record<string, unknown>;
   /** De onde vêm os dados (opcional: telas puramente estáticas de config). */
   dataSource?: DataSourceBinding;
+  /**
+   * Ajuda da seção (opcional): uma breve descrição de "como funciona" + um
+   * tutorial passo-a-passo (abre num modal ao clicar "Ver tutorial"). Renderizado
+   * genericamente pelo ManifestRouter acima do bloco — serve para orientar o
+   * operador/cliente a cadastrar os dados e configurar. Config-driven (por cliente).
+   */
+  help?: SectionHelp;
+}
+
+/** Ajuda de uma seção: descrição curta + tutorial opcional (config no manifesto). */
+export interface SectionHelp {
+  /** Descrição curta de como a seção funciona (1-2 frases). */
+  description?: string;
+  /** Tutorial passo-a-passo, exibido num modal ao clicar "Ver tutorial". */
+  tutorial?: {
+    /** Título do modal (default: "Como usar esta seção"). */
+    title?: string;
+    /** Passos (cada item = um passo; markdown simples/texto). */
+    steps: string[];
+  };
 }
 
 // ============================================================

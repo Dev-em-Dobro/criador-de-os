@@ -19,6 +19,7 @@ import { AppShell } from '../shell/AppShell';
 import type { ShellNavItem } from '../shell/AppShell';
 import { EmptyState } from '../ui/EmptyState';
 import { SectionHeader } from '../ui/SectionHeader';
+import { SectionIntro } from '../ui/SectionIntro';
 import { SkeletonCards } from '../ui/Skeleton';
 import { useDataSource } from '../data/DataAdapter';
 import type { OsClient } from '../data/DataAdapter';
@@ -72,9 +73,14 @@ function BindingView({
   const resolved = useDataSource(binding.dataSource, { period, clientId, client });
   const def = registry.resolve(binding.block);
 
+  // Ajuda da seção (genérica, config-driven): renderizada acima do bloco quando
+  // o binding declara `help` — nenhum bloco precisa saber disso.
+  const intro = binding.help ? <SectionIntro help={binding.help} /> : null;
+
   if (!def) {
     return (
       <>
+        {intro}
         <SectionHeader
           title={binding.title ?? binding.block}
           subtitle="Bloco não registrado"
@@ -102,14 +108,17 @@ function BindingView({
   // não piscar a tela enquanto o chunk do bloco carrega.
   const Block = def.component;
   return (
-    <Suspense fallback={<BlockLoading title={binding.title ?? binding.block} subtitle={binding.subtitle} />}>
-      <Block
-        title={binding.title}
-        subtitle={binding.subtitle}
-        config={binding.config}
-        ctx={ctx}
-      />
-    </Suspense>
+    <>
+      {intro}
+      <Suspense fallback={<BlockLoading title={binding.title ?? binding.block} subtitle={binding.subtitle} />}>
+        <Block
+          title={binding.title}
+          subtitle={binding.subtitle}
+          config={binding.config}
+          ctx={ctx}
+        />
+      </Suspense>
+    </>
   );
 }
 

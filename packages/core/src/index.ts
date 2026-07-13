@@ -17,6 +17,7 @@ export type {
   MenuItem,
   SubTab,
   BlockBinding,
+  SectionHelp,
   DataSourceBinding,
   FilterClause,
   FilterOp,
@@ -81,6 +82,8 @@ export type { AppShellProps, ShellNavItem } from './shell/AppShell';
 /* UI — componentes */
 export { KpiCard } from './ui/KpiCard';
 export { SectionHeader } from './ui/SectionHeader';
+export { SectionIntro } from './ui/SectionIntro';
+export type { SectionIntroProps } from './ui/SectionIntro';
 export { EmptyState } from './ui/EmptyState';
 export { TrendChart } from './ui/TrendChart';
 export { SkeletonCard, SkeletonCards } from './ui/Skeleton';
