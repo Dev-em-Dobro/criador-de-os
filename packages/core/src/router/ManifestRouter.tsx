@@ -12,13 +12,14 @@
  * navegação inteira agora é DADO (o manifesto), não código.
  */
 
-import { Fragment } from 'react';
+import { Fragment, Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AppShell } from '../shell/AppShell';
 import type { ShellNavItem } from '../shell/AppShell';
 import { EmptyState } from '../ui/EmptyState';
 import { SectionHeader } from '../ui/SectionHeader';
+import { SkeletonCards } from '../ui/Skeleton';
 import { useDataSource } from '../data/DataAdapter';
 import type { OsClient } from '../data/DataAdapter';
 import type { BlockRegistry } from '../registry/registry';
@@ -96,14 +97,29 @@ function BindingView({
     actions: resolved.actions,
   };
 
+  // O bloco pode ser `React.lazy` (code-split por bloco): renderizamos dentro de
+  // um <Suspense> cujo fallback reproduz o cabeçalho do binding + skeleton, para
+  // não piscar a tela enquanto o chunk do bloco carrega.
   const Block = def.component;
   return (
-    <Block
-      title={binding.title}
-      subtitle={binding.subtitle}
-      config={binding.config}
-      ctx={ctx}
-    />
+    <Suspense fallback={<BlockLoading title={binding.title ?? binding.block} subtitle={binding.subtitle} />}>
+      <Block
+        title={binding.title}
+        subtitle={binding.subtitle}
+        config={binding.config}
+        ctx={ctx}
+      />
+    </Suspense>
+  );
+}
+
+/** Fallback do <Suspense> enquanto o chunk de um bloco lazy carrega. */
+function BlockLoading({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div>
+      <SectionHeader title={title} subtitle={subtitle} />
+      <SkeletonCards count={4} columns={4} />
+    </div>
   );
 }
 

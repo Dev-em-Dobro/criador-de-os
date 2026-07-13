@@ -11,7 +11,7 @@
  * os blocos no registry), preservando a dependência unidirecional apps → blocks → core.
  */
 
-import type { ReactElement } from 'react';
+import type { ComponentType, ReactElement } from 'react';
 import type { BlockType } from '../manifest/types';
 import type { Period } from '../ui/types';
 
@@ -62,9 +62,26 @@ export type Block<TConfig = Record<string, unknown>> = (
 export interface BlockDefinition<TConfig = Record<string, unknown>> {
   /** Ex.: "kpi-dashboard", "custom:scudo-students". */
   type: BlockType;
-  component: Block<TConfig>;
+  /**
+   * Implementação do bloco. `ComponentType` (não `Block`) para aceitar tanto um
+   * function component escrito à mão quanto um `React.lazy(() => import(...))` —
+   * este último permite code-split por bloco (o chunk só carrega quando a rota o
+   * usa). O core renderiza dentro de um `<Suspense>`, então lazy é transparente.
+   */
+  component: ComponentType<BlockProps<TConfig>>;
   /** ZodSchema<TConfig> (opcional) para validar o config no load. */
   configSchema?: unknown;
   /** Forma default esperada dos dados por este bloco. */
   defaultDataShape?: 'collection' | 'doc' | 'raw';
 }
+
+/**
+ * Definição de bloco com a config "apagada" (`any`), para COLEÇÕES heterogêneas
+ * de blocos (catálogos, arrays para registro em lote via `register`). Um
+ * `BlockDefinition<TConfig>` concreto NÃO é assignable ao `BlockDefinition` base
+ * porque `component` é contravariante no config; o `any` neutraliza essa variância
+ * na fronteira. A validação da forma do config continua sendo do próprio bloco
+ * (via `configSchema`), nunca do container que o guarda.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyBlockDefinition = BlockDefinition<any>;

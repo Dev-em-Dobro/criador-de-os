@@ -40,6 +40,7 @@ export type { BlockRegistry } from './registry/registry';
 export type {
   Block,
   BlockDefinition,
+  AnyBlockDefinition,
   BlockProps,
   BlockContext,
   BlockActions,
