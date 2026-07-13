@@ -32,16 +32,35 @@ interface Data {
   totals: { grand: number; recurring: number; byCategory: Record<string, number> };
 }
 
-const CAT_ORDER = ['Ferramentas', 'Tráfego', 'Fornecedores', 'Logística', 'Serviços', 'Impostos', 'Outros'];
-const CAT_ACCENT: Record<string, string> = {
-  Ferramentas: 'text-amber-400',
-  Tráfego: 'text-blue-300',
-  Fornecedores: 'text-emerald-400',
-  Logística: 'text-purple-300',
-  Serviços: 'text-gray-300',
-  Impostos: 'text-red-400',
-  Outros: 'text-gray-400',
+const CAT_ORDER = [
+  'Marketing / CRM',
+  'IA',
+  'Infra / Dev',
+  'Produtividade',
+  'Tráfego pago',
+  'Educação',
+  'Financiamento',
+  'Viagem',
+  'Fiscal',
+  'Telefonia',
+  'Impostos (IOF)',
+  'Outros',
+];
+const CAT_META: Record<string, { emoji: string; accent: string }> = {
+  'Marketing / CRM': { emoji: '📣', accent: 'text-purple-300' },
+  IA: { emoji: '🤖', accent: 'text-emerald-400' },
+  'Infra / Dev': { emoji: '☁️', accent: 'text-blue-300' },
+  Produtividade: { emoji: '🧩', accent: 'text-amber-400' },
+  'Tráfego pago': { emoji: '🎯', accent: 'text-red-400' },
+  Educação: { emoji: '🎓', accent: 'text-yellow-300' },
+  Financiamento: { emoji: '💳', accent: 'text-orange-400' },
+  Viagem: { emoji: '✈️', accent: 'text-blue-400' },
+  Fiscal: { emoji: '🧾', accent: 'text-emerald-300' },
+  Telefonia: { emoji: '☎️', accent: 'text-purple-400' },
+  'Impostos (IOF)': { emoji: '🏛️', accent: 'text-red-300' },
+  Outros: { emoji: '📦', accent: 'text-gray-400' },
 };
+const catMeta = (cat: string) => CAT_META[cat] ?? { emoji: '•', accent: 'text-gray-400' };
 
 const STORAGE_KEY = 'os-invoice-cuts';
 const fmtBRL = (n: number): string => `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -274,7 +293,9 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
                     <div className="flex items-baseline justify-between text-sm">
                       <span className="flex items-center gap-2">
                         <span className="text-gray-500">{aberta ? '▾' : '▸'}</span>
-                        <span className={`font-medium ${CAT_ACCENT[g.cat] ?? 'text-gray-300'}`}>{g.cat}</span>
+                        <span className={`font-medium ${catMeta(g.cat).accent}`}>
+                          <span aria-hidden>{catMeta(g.cat).emoji}</span> {g.cat}
+                        </span>
                         <span className="text-xs text-gray-500">· {itens.length} {itens.length === 1 ? 'item' : 'itens'}</span>
                         {cortadoCat > 0 && (
                           <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-400">−{fmtBRL(cortadoCat)}</span>
@@ -361,8 +382,8 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
                             <div className="min-w-0 flex-1">
                               <div className={`text-sm font-medium text-gray-100 ${cortado ? 'line-through' : ''}`}>
                                 {item.description}
-                                <span className={`ml-2 inline-flex items-center rounded-full border border-gray-600/50 bg-gray-700/40 px-1.5 py-0.5 text-[10px] font-normal ${CAT_ACCENT[item.category] ?? 'text-gray-400'}`}>
-                                  {item.category}
+                                <span className={`ml-2 inline-flex items-center rounded-full border border-gray-600/50 bg-gray-700/40 px-1.5 py-0.5 text-[10px] font-normal ${catMeta(item.category).accent}`}>
+                                  {catMeta(item.category).emoji} {item.category}
                                 </span>
                                 {item.recurring && (
                                   <span className="ml-1 inline-flex items-center rounded-full border border-gray-600/50 bg-gray-700/40 px-1.5 py-0.5 text-[10px] font-normal text-gray-400">recorrente</span>
