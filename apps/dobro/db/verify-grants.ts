@@ -1,13 +1,24 @@
 /**
- * apps/dobro — prova a Defesa 2 no NÍVEL DO BANCO (doc 05, §4).
+ * apps/dobro — prova a defesa de LEAST PRIVILEGE no nível do BANCO (doc 05, §4/§6).
  *
- * Assume o role `app_readonly` (SET ROLE) e verifica que:
- *   - SELECT na view `v_visao_geral` → OK (é o contrato de exposição);
- *   - SELECT na tabela crua `metricas_visao_geral` → NEGADO (permission denied);
- *   - SELECT na tabela `user` (Better Auth) → NEGADO.
+ * Assume cada role (SET ROLE) a partir do owner e verifica o isolamento por
+ * caminho da Fase 3:
  *
- * Isto demonstra que, se a API conectar com `app_readonly` (produção), o banco
- * bloqueia leitura de tabela crua mesmo que a allowlist da aplicação falhasse.
+ *   app_query (endpoint /api/query — só views):
+ *     - SELECT view `v_visao_geral`        → PERMITIDO (é o contrato de exposição)
+ *     - SELECT tabela crua `metricas_...`   → NEGADO
+ *     - SELECT tabela `user` (auth)         → NEGADO
+ *
+ *   app_auth (Better Auth — só tabelas de auth):
+ *     - SELECT tabela `user` (auth)         → PERMITIDO (escreve/lê sessão)
+ *     - SELECT tabela crua `metricas_...`   → NEGADO
+ *     - SELECT view `v_visao_geral` (negócio) → NEGADO
+ *
+ * Se a API conectar com esses roles (produção), o banco reforça a allowlist da
+ * aplicação: um caminho jamais alcança os dados do outro nem a tabela crua.
+ *
+ * Roda como OWNER + SET ROLE, então NÃO exige que as connection strings dos
+ * roles (AUTH/QUERY_DATABASE_URL) já estejam provisionadas — testa os GRANTs.
  */
 
 import { neon } from '@neondatabase/serverless';
@@ -31,22 +42,34 @@ async function tryAs(role: string, query: string): Promise<{ ok: boolean; detail
   }
 }
 
+/** Formata uma expectativa: `expected` = o role DEVERIA conseguir? */
+function line(label: string, r: { ok: boolean; detail: string }, expected: boolean): boolean {
+  const pass = r.ok === expected;
+  const verdict = r.ok ? 'PERMITIDO' : 'NEGADO';
+  const mark = pass ? '✓' : '(!)';
+  console.log(`  ${label.padEnd(30)} → ${verdict} ${mark} (${r.detail})`);
+  return pass;
+}
+
 async function main(): Promise<void> {
-  console.log('[verify-grants] como app_readonly:');
+  console.log('[verify-grants] Fase 3 — least privilege por caminho\n');
 
-  const view = await tryAs('app_readonly', 'SELECT * FROM v_visao_geral LIMIT 1');
-  console.log(`  view v_visao_geral      → ${view.ok ? 'PERMITIDO ✓' : 'NEGADO'} (${view.detail})`);
+  console.log('app_query (endpoint /api/query — só views):');
+  const qView = line('view v_visao_geral', await tryAs('app_query', 'SELECT * FROM v_visao_geral LIMIT 1'), true);
+  const qTable = line('tabela crua metricas_...', await tryAs('app_query', 'SELECT * FROM metricas_visao_geral LIMIT 1'), false);
+  const qUser = line('tabela user (auth)', await tryAs('app_query', 'SELECT * FROM "user" LIMIT 1'), false);
 
-  const table = await tryAs('app_readonly', 'SELECT * FROM metricas_visao_geral LIMIT 1');
+  console.log('\napp_auth (Better Auth — só tabelas de auth):');
+  const aUser = line('tabela user (auth)', await tryAs('app_auth', 'SELECT * FROM "user" LIMIT 1'), true);
+  const aTable = line('tabela crua metricas_...', await tryAs('app_auth', 'SELECT * FROM metricas_visao_geral LIMIT 1'), false);
+  const aView = line('view v_visao_geral (negócio)', await tryAs('app_auth', 'SELECT * FROM v_visao_geral LIMIT 1'), false);
+
+  const pass = qView && qTable && qUser && aUser && aTable && aView;
   console.log(
-    `  tabela metricas_visao_geral → ${table.ok ? 'PERMITIDO (!)' : 'NEGADO ✓'} (${table.detail})`,
+    pass
+      ? '\n[verify-grants] OK — isolamento por caminho reforçado no banco.'
+      : '\n[verify-grants] FALHOU — algum grant não está como esperado.',
   );
-
-  const userTbl = await tryAs('app_readonly', 'SELECT * FROM "user" LIMIT 1');
-  console.log(`  tabela user (auth)      → ${userTbl.ok ? 'PERMITIDO (!)' : 'NEGADO ✓'} (${userTbl.detail})`);
-
-  const pass = view.ok && !table.ok && !userTbl.ok;
-  console.log(pass ? '[verify-grants] OK — DB reforça a allowlist.' : '[verify-grants] FALHOU.');
   if (!pass) process.exit(1);
 }
 

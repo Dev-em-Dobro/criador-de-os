@@ -14,7 +14,10 @@
     "db:migrate": "tsx db/migrate.ts",
     "db:seed": "tsx db/seed.ts",
     "db:verify": "tsx db/verify.ts",
+    "db:verify-grants": "tsx db/verify-grants.ts",
+    "db:provision-roles": "tsx db/provision-roles.ts",
     "db:setup": "pnpm db:generate && pnpm db:migrate && pnpm db:seed",
+    "test:smoke": "tsx api/scripts/smoke-e2e.ts",
     "auth:create-user": "tsx api/scripts/create-user.ts"
   },
   "dependencies": {

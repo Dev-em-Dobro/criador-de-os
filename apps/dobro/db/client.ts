@@ -8,11 +8,30 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { getDatabaseUrl } from '../api/env';
+import { getDatabaseUrl, getAuthDatabaseUrl, getQueryDatabaseUrl } from '../api/env';
 import * as schema from './schema';
 
-/** Instância Drizzle compartilhada pela API e pelos scripts (migrate/seed). */
+// `neon(url)` só monta o client HTTP (não abre conexão até a 1ª query), então
+// manter três instâncias por papel é barato. Cada uma carrega o privilégio da
+// sua connection string (Fase 3 — least privilege por caminho, doc 05, §4/§6).
+
+/**
+ * Client OWNER — privilégio total (lê/escreve/DROP). Usado SÓ por scripts admin
+ * (migrate/seed/grants). NUNCA pelo runtime da API exposta à internet.
+ */
 export const db = drizzle(neon(getDatabaseUrl()), { schema });
+
+/**
+ * Client do Better Auth — role `app_auth` (R/W só nas tabelas de auth). É o que
+ * o handler `/api/auth/*` usa. Fallback DEV: owner (com WARN em env.ts).
+ */
+export const dbAuth = drizzle(neon(getAuthDatabaseUrl()), { schema });
+
+/**
+ * Client do endpoint `/api/query` — role `app_query` (SELECT só nas views `v_*`).
+ * Fallback DEV: owner (com WARN em env.ts).
+ */
+export const dbQuery = drizzle(neon(getQueryDatabaseUrl()), { schema });
 
 export type Db = typeof db;
 export { schema };

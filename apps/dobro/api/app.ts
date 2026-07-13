@@ -15,7 +15,7 @@
 
 import { Hono } from 'hono';
 import { auth } from './auth';
-import { db } from '../db/client';
+import { dbQuery } from '../db/client';
 import {
   buildSecureQuery,
   QueryValidationError,
@@ -65,8 +65,10 @@ app.post('/api/query', async (c) => {
 
   try {
     // DEFESAS 2 + 3 — allowlist de views + SQL parametrizado (bind).
+    // Executa como `app_query` (SELECT só nas views): mesmo que a allowlist
+    // falhasse, o banco nega tabela crua/auth (defesa em profundidade).
     const query = buildSecureQuery(body, vars);
-    const rows = await db.execute(query);
+    const rows = await dbQuery.execute(query);
     // `db.execute` (neon-http) devolve { rows } ou um array conforme a versão;
     // normalizamos para sempre entregar um array ao core.
     const data = Array.isArray(rows) ? rows : (rows as { rows?: unknown[] }).rows ?? [];

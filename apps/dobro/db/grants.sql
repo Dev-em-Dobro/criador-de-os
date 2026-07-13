@@ -1,47 +1,71 @@
--- apps/dobro — role de LEITURA restrita para a API (doc 05, §4, Defesa 2 no DB).
+-- apps/dobro — roles de MENOR PRIVILÉGIO para a API (doc 05, §4/§6 — Fase 3 hardening).
 --
--- Reforço no nível do BANCO da allowlist de views: um role `app_readonly` que
--- só pode SELECT nas views `v_*` (o contrato de exposição) e NUNCA nas tabelas
--- base (metricas_visao_geral, user, session, ...). Se a API conectar com este
--- role, mesmo um bug na allowlist da aplicação não expõe tabela crua.
+-- A API NÃO deve conectar como owner (neondb_owner lê/escreve/DROP tudo). Dois
+-- caminhos, dois roles (least privilege por caminho):
+--   • app_auth  → Better Auth (/api/auth/*): R/W SÓ nas tabelas de auth.
+--   • app_query → /api/query: SELECT SÓ nas views v_* (nunca tabela crua/auth).
 --
--- NOTA DE HONESTIDADE (Fase 1C): a connection string atual (NEON_DATABASE_URL)
--- usa o role OWNER (neondb_owner), que lê tudo. Para ATIVAR esta defesa em
--- produção, provisione uma connection string separada para `app_readonly` e
--- aponte a API a ela. Enquanto isso, a defesa ENFORCED é a allowlist na
--- aplicação (query-allowlist.ts). Este arquivo deixa o DB pronto para a troca.
+-- Se a API conectar com esses roles, mesmo um bug na allowlist da aplicação
+-- (query-allowlist.ts) não expõe tabela crua, e o caminho de auth jamais lê
+-- dados de negócio. É a defesa em profundidade no nível do BANCO.
 --
--- Idempotente: pode rodar múltiplas vezes.
+-- ATIVAÇÃO: este arquivo cuida só dos PRIVILÉGIOS (versionável, não-secreto). O
+-- LOGIN/senha de cada role e as connection strings (AUTH_DATABASE_URL /
+-- QUERY_DATABASE_URL) são provisionados FORA daqui — no Console Neon, ou via
+-- `ALTER ROLE app_auth LOGIN PASSWORD '...'` com a senha escolhida pelo dono.
+-- Ver apps/dobro/.env.example e doc 05, §6. Enquanto não provisionados, a API
+-- cai no fallback OWNER (com WARN) e esta defesa fica pronta mas inativa.
+--
+-- Idempotente: pode rodar múltiplas vezes (aplicado por db/migrate.ts).
 
--- Cria o role sem login por padrão (a senha/login é adicionada no provisioning).
+-- 1) Garante que os roles existem. NOLOGIN aqui: o login/senha é adicionado no
+--    provisioning sem tocar neste arquivo versionado. Se o role já existir
+--    (criado com LOGIN no Console Neon), o CREATE é pulado — nada muda.
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_readonly') THEN
-    CREATE ROLE app_readonly NOLOGIN;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_auth') THEN
+    CREATE ROLE app_auth NOLOGIN;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_query') THEN
+    CREATE ROLE app_query NOLOGIN;
   END IF;
 END
 $$;
 
--- Sem privilégios herdados amplos: revoga tudo no schema public primeiro.
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM app_readonly;
-REVOKE ALL ON SCHEMA public FROM app_readonly;
+-- 2) Zera privilégios herdados amplos de ambos os roles no schema public.
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM app_auth;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM app_query;
+REVOKE ALL ON SCHEMA public FROM app_auth;
+REVOKE ALL ON SCHEMA public FROM app_query;
 
--- CRÍTICO: o Neon concede SELECT ao pseudo-role PUBLIC nas tabelas por padrão,
--- então QUALQUER role (inclusive app_readonly) leria as tabelas base a menos que
--- revoguemos de PUBLIC. Revogamos das TABELAS BASE (não das views) — assim a
--- tabela crua fica inacessível por qualquer role não-owner, e a view (que é o
--- contrato) continua legível via o GRANT explícito abaixo.
+-- 3) O Neon concede SELECT ao pseudo-role PUBLIC nas tabelas/views por padrão.
+--    Revogamos de PUBLIC para que só os GRANTs explícitos abaixo valham — senão
+--    QUALQUER role leria tudo. Cobre tabelas base (auth + negócio) E a view.
 REVOKE SELECT ON metricas_visao_geral FROM PUBLIC;
 REVOKE SELECT ON "user" FROM PUBLIC;
 REVOKE SELECT ON "session" FROM PUBLIC;
 REVOKE SELECT ON account FROM PUBLIC;
 REVOKE SELECT ON verification FROM PUBLIC;
+REVOKE SELECT ON v_visao_geral FROM PUBLIC;
 
--- Concede só o mínimo: USAGE no schema + SELECT SÓ nas views de exposição.
-GRANT USAGE ON SCHEMA public TO app_readonly;
-GRANT SELECT ON v_visao_geral TO app_readonly;
+-- 4) USAGE no schema para ambos (sem isto não enxergam nenhum objeto).
+GRANT USAGE ON SCHEMA public TO app_auth;
+GRANT USAGE ON SCHEMA public TO app_query;
 
--- Permite ao owner assumir o role (SET ROLE) — necessário para TESTAR a defesa
--- com `db/verify-grants.ts`. Em produção, a API usaria uma connection string
--- própria do `app_readonly`, não o SET ROLE.
-GRANT app_readonly TO neondb_owner;
+-- 5) app_auth: CRUD SÓ nas tabelas do Better Auth (login escreve sessão/conta).
+--    Sem acesso a v_* nem à tabela de negócio.
+GRANT SELECT, INSERT, UPDATE, DELETE ON "user"       TO app_auth;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "session"    TO app_auth;
+GRANT SELECT, INSERT, UPDATE, DELETE ON account      TO app_auth;
+GRANT SELECT, INSERT, UPDATE, DELETE ON verification TO app_auth;
+
+-- 6) app_query: SELECT SÓ nas views de exposição (o contrato da allowlist).
+--    A view roda com o privilégio do OWNER dela para ler a tabela base, então
+--    app_query lê a view SEM ter acesso à tabela crua `metricas_visao_geral`.
+GRANT SELECT ON v_visao_geral TO app_query;
+
+-- 7) Permite ao owner assumir cada role (SET ROLE) — necessário para TESTAR a
+--    defesa com db/verify-grants.ts. Em produção, a API usa a connection string
+--    própria de cada role (não SET ROLE).
+GRANT app_auth  TO neondb_owner;
+GRANT app_query TO neondb_owner;

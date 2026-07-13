@@ -177,10 +177,16 @@ SELECT
 FROM pedidos
 GROUP BY 1;
 
-GRANT SELECT ON v_vendas_kpi TO app_readonly;   -- o role do DATABASE_URL da API
+GRANT SELECT ON v_vendas_kpi TO app_query;   -- role SELECT-only do /api/query
 ```
 
 O manifesto referencia `v_vendas_kpi`; o KPI chega pronto e barato. Views mais pesadas podem virar **materialized views** com refresh agendado se a latência exigir (evolução, não requisito inicial).
+
+> **Implementação concreta (Fase 3 — hardening de least privilege).** A API **não** conecta como owner. São **dois roles**, um por caminho, cada um com sua connection string server-side:
+> - **`app_auth`** (`AUTH_DATABASE_URL`) — usado pelo Better Auth (`/api/auth/*`): `SELECT/INSERT/UPDATE/DELETE` **só** nas tabelas de auth (`user`, `session`, `account`, `verification`). Sem acesso a views nem a dados de negócio.
+> - **`app_query`** (`QUERY_DATABASE_URL`) — usado pelo `/api/query`: `SELECT` **só** nas views `v_*`. A view roda com o privilégio do owner dela, então `app_query` lê o KPI **sem** ter acesso à tabela crua.
+>
+> Os privilégios são versionados e idempotentes em `apps/<cliente>/db/grants.sql` (aplicado por `db/migrate.ts`); o login/senha de cada role e as connection strings são provisionados fora do git (Console Neon / `.env`). `db/verify-grants.ts` prova o isolamento por caminho (`pnpm db:verify-grants`). Fallback de DEV: sem as vars dos roles, a API usa o owner e **avisa** que a defesa não está ativa.
 
 ---
 
@@ -211,7 +217,9 @@ O manifesto referencia `v_vendas_kpi`; o KPI chega pronto e barato. Views mais p
 
 | Segredo | Onde fica | Vai para o bundle? |
 |---|---|---|
-| **`DATABASE_URL`** (connection string Neon) | `apps/<cliente>/.env`, lida **só server-side** pelas funções em `api/` | **NUNCA** |
+| **`DATABASE_URL`** / `NEON_DATABASE_URL` (Neon **owner**) | `.env` server-side — usada **só por scripts admin** (migrate/seed/grants), nunca pelo runtime da API | **NUNCA** |
+| **`AUTH_DATABASE_URL`** (role `app_auth` — R/W só nas tabelas de auth) | `apps/<cliente>/.env`, server-side; usada pelo handler `/api/auth/*` | **NUNCA** |
+| **`QUERY_DATABASE_URL`** (role `app_query` — SELECT só nas views) | `apps/<cliente>/.env`, server-side; usada pelo endpoint `/api/query` | **NUNCA** |
 | **`BETTER_AUTH_SECRET`** (assina sessões) | `apps/<cliente>/.env`, server-side | **NUNCA** |
 | **`BETTER_AUTH_URL`** / base URL da API | `.env` (server) + config pública da SPA (base URL da API é pública, ok) | base URL sim; segredos não |
 | Tokens de APIs próprias (Scudo/Curseduca) | `.env` server-side, atrás das rotas `api/` | **NUNCA** |

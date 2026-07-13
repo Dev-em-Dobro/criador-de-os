@@ -43,12 +43,56 @@ function requireEnv(name: string): string {
 }
 
 /**
- * Connection string da Neon. Segredo REAL — só server-side.
+ * Connection string da Neon com privilégio de OWNER. Segredo REAL — só server-side.
  * Neste projeto a chave canônica é `NEON_DATABASE_URL` (no .env da raiz);
  * aceitamos também `DATABASE_URL` como alias por app (doc 05 usa esse nome).
+ *
+ * ⚠️ OWNER lê/escreve/DROP tudo — use SÓ em scripts admin (migrate/seed/grants).
+ * O RUNTIME da API exposta usa os roles de menor privilégio abaixo.
  */
 export function getDatabaseUrl(): string {
   return process.env.NEON_DATABASE_URL?.trim() || requireEnv('DATABASE_URL');
+}
+
+// Fase 3 — hardening (doc 05, §4/§6): a API não conecta como owner. Dois
+// caminhos, dois roles de menor privilégio, cada um com sua connection string.
+// FALLBACK de DEV: sem a var do papel, cai no owner e AVISA (uma vez) que a
+// defesa no nível do banco não está ativa. Em produção, defina ambas.
+let warnedAuthUrl = false;
+let warnedQueryUrl = false;
+
+/**
+ * Connection string do role `app_auth` (R/W só nas tabelas do Better Auth).
+ * Usada pelo handler `/api/auth/*`. Fallback DEV: owner (com WARN único).
+ */
+export function getAuthDatabaseUrl(): string {
+  const url = process.env.AUTH_DATABASE_URL?.trim();
+  if (url) return url;
+  if (!warnedAuthUrl) {
+    console.warn(
+      '[env] AUTH_DATABASE_URL ausente — Better Auth usará a connection string OWNER ' +
+        '(fallback de DEV). A defesa de role (app_auth) NÃO está ativa; defina AUTH_DATABASE_URL em produção.',
+    );
+    warnedAuthUrl = true;
+  }
+  return getDatabaseUrl();
+}
+
+/**
+ * Connection string do role `app_query` (SELECT só nas views `v_*`).
+ * Usada pelo endpoint `/api/query`. Fallback DEV: owner (com WARN único).
+ */
+export function getQueryDatabaseUrl(): string {
+  const url = process.env.QUERY_DATABASE_URL?.trim();
+  if (url) return url;
+  if (!warnedQueryUrl) {
+    console.warn(
+      '[env] QUERY_DATABASE_URL ausente — /api/query usará a connection string OWNER ' +
+        '(fallback de DEV). A defesa de role (app_query) NÃO está ativa; defina QUERY_DATABASE_URL em produção.',
+    );
+    warnedQueryUrl = true;
+  }
+  return getDatabaseUrl();
 }
 
 /** Segredo que assina as sessões do Better Auth. Server-side. */

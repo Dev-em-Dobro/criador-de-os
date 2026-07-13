@@ -9,7 +9,7 @@
 
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { db, schema } from '../db/client';
+import { dbAuth, schema } from '../db/client';
 import { getAuthSecret, getAuthUrl } from './env';
 
 export const auth = betterAuth({
@@ -17,7 +17,8 @@ export const auth = betterAuth({
   baseURL: getAuthUrl(),
   // A API vive atrás do proxy do Vite em /api/auth (basePath do handler abaixo).
   basePath: '/api/auth',
-  database: drizzleAdapter(db, {
+  // `dbAuth` = role `app_auth` (R/W só nas tabelas de auth) — nunca lê negócio.
+  database: drizzleAdapter(dbAuth, {
     provider: 'pg',
     schema: {
       user: schema.user,
