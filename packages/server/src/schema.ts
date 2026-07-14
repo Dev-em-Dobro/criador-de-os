@@ -112,7 +112,6 @@ export const leads = pgTable('leads', {
   phone: text('phone'),
   name: text('name'),
   sources: jsonb('sources').$type<string[]>().notNull(),
-  isAluno: boolean('is_aluno').notNull(),
   respondeuPesquisa: boolean('respondeu_pesquisa').notNull(),
   hasEmail: boolean('has_email').notNull(),
   hasPhone: boolean('has_phone').notNull(),

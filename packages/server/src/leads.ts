@@ -3,7 +3,7 @@
  *
  * `makeLeads(db)` devolve as operações ligadas ao banco do app. Dedup por email
  * OU telefone canônico (union-find); score config-driven (régua do manifesto).
- * As 6 fontes são o stack padrão do Dev em Dobro (um app que não usa uma fonte
+ * As 5 fontes são o stack padrão do Dev em Dobro (um app que não usa uma fonte
  * simplesmente não sobe o CSV dela).
  */
 
@@ -13,13 +13,14 @@ import type { ServerDb } from './db';
 import { canonicalPhone, findEmailColumn, findNameColumn, findPhoneColumn, normalizeEmail, parseCsv } from './csv';
 import { computeScore, tierOf, type ScoringSpec } from './scoring';
 
+// Cada fonte é rotulada pelo TIPO de lista (genérico); o hint cita ferramentas
+// de exemplo. O `id` é interno (rótulo de origem no merge) e não muda com o label.
 export const LEAD_SOURCES = [
-  { id: 'activecampaign', label: 'ActiveCampaign', hint: 'Listas de email (leads + alunos)' },
-  { id: 'clint', label: 'Clint', hint: 'Contatos do CRM (email + telefone)' },
-  { id: 'pesquisa', label: 'Pesquisa', hint: 'Formulários de pesquisa (perfil ICP)' },
-  { id: 'curseduca', label: 'Curseduca', hint: 'Lista de alunos (flag is_aluno)' },
-  { id: 'manychat', label: 'ManyChat', hint: 'Contatos Instagram/WhatsApp' },
-  { id: 'unnichat', label: 'Unnichat', hint: 'Contatos WhatsApp' },
+  { id: 'activecampaign', label: 'Listas de e-mail', hint: 'leads + alunos · ex.: ActiveCampaign, Mailchimp' },
+  { id: 'clint', label: 'CRM (contatos)', hint: 'email + telefone · ex.: Clint, RD, Pipedrive' },
+  { id: 'pesquisa', label: 'Pesquisa de perfil', hint: 'formulário ICP · ex.: Typeform, Google Forms' },
+  { id: 'hotmart', label: 'Compras', hint: 'compradores · ex.: Hotmart, Kiwify, Eduzz' },
+  { id: 'manychat', label: 'Chat / social', hint: 'Instagram/WhatsApp · ex.: ManyChat' },
 ] as const;
 
 export type LeadSourceId = (typeof LEAD_SOURCES)[number]['id'];
@@ -59,7 +60,6 @@ export interface LeadListItem {
   email: string | null;
   phone: string | null;
   sources: string[];
-  isAluno: boolean;
   respondeuPesquisa: boolean;
   hasEmail: boolean;
   hasPhone: boolean;
@@ -75,11 +75,10 @@ interface SrcRow {
   name: string | null;
 }
 
-/** "alto" = tier S/A; "médio" = B; "baixo" = C. 6 segmentos (estrutura do Dobro). */
-function segmentOf(isAluno: boolean, respondeu: boolean, tier: string): string {
+/** "alto" = tier S/A; "médio" = B; "baixo" = C. 4 segmentos (estrutura do Dobro). */
+function segmentOf(respondeu: boolean, tier: string): string {
   const alto = tier === 'S' || tier === 'A';
   const medio = tier === 'B';
-  if (isAluno) return respondeu ? 'cliente-upsell' : 'cliente-sem-perfil';
   if (!respondeu) return 'sem-perfil';
   if (alto) return 'icp-alto';
   if (medio) return 'icp-medio';
@@ -194,7 +193,6 @@ export function makeLeads(db: ServerDb): LeadsApi {
           if (!phone && r.phone) phone = r.phone;
           if (!name && r.name) name = r.name;
         }
-        const isAluno = src.has('curseduca');
         const respondeuPesquisa = src.has('pesquisa');
         const hasEmail = email !== null;
         const hasPhone = phone !== null;
@@ -208,7 +206,6 @@ export function makeLeads(db: ServerDb): LeadsApi {
           phone,
           name,
           sources: [...src].sort(),
-          isAluno,
           respondeuPesquisa,
           hasEmail,
           hasPhone,
@@ -259,7 +256,7 @@ export function makeLeads(db: ServerDb): LeadsApi {
         const survey = (l.email ? byEmail.get(l.email) : undefined) ?? (l.phone ? byPhone.get(l.phone) : undefined) ?? null;
         const score = computeScore(survey, spec);
         const tier = tierOf(score, spec);
-        const segment = segmentOf(l.isAluno, l.respondeuPesquisa, tier);
+        const segment = segmentOf(l.respondeuPesquisa, tier);
         bySegment[segment] = (bySegment[segment] ?? 0) + 1;
         byTier[tier] = (byTier[tier] ?? 0) + 1;
         return { ...l, score, tier, segment };
@@ -295,7 +292,6 @@ export function makeLeads(db: ServerDb): LeadsApi {
         email: r.email,
         phone: r.phone,
         sources: r.sources,
-        isAluno: r.isAluno,
         respondeuPesquisa: r.respondeuPesquisa,
         hasEmail: r.hasEmail,
         hasPhone: r.hasPhone,
