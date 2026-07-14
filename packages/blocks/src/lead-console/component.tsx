@@ -39,7 +39,6 @@ interface Lead {
   email: string | null;
   phone: string | null;
   sources: string[];
-  isAluno: boolean;
   score: number | null;
   tier: string | null;
   segment: string | null;
@@ -50,8 +49,6 @@ const SEGMENTS = [
   { id: 'icp-medio', label: 'ICP Médio', desc: 'Não-cliente — aquecimento', accent: 'text-blue-300' },
   { id: 'icp-baixo', label: 'ICP Baixo', desc: 'Não-cliente — nutrição', accent: 'text-gray-300' },
   { id: 'sem-perfil', label: 'Sem Perfil', desc: 'Sem pesquisa respondida', accent: 'text-yellow-300' },
-  { id: 'cliente-upsell', label: 'Cliente · Upsell', desc: 'Cliente com perfil — cross-sell', accent: 'text-purple-300' },
-  { id: 'cliente-sem-perfil', label: 'Cliente · Sem Perfil', desc: 'Cliente sem pesquisa', accent: 'text-gray-400' },
 ];
 
 const TIER_BADGE: Record<string, string> = {
@@ -60,6 +57,41 @@ const TIER_BADGE: Record<string, string> = {
   B: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   C: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
 };
+
+// Modelo da pesquisa de perfil (config-driven, do manifesto). O bloco gera um CSV
+// para o cliente baixar, preencher e subir de volta na fonte de pesquisa.
+interface SurveyQuestion {
+  column: string;
+  options: string[];
+}
+interface SurveyTemplate {
+  sourceId?: string;
+  filename?: string;
+  identity: string[];
+  questions: SurveyQuestion[];
+  samples?: string[][];
+}
+
+function csvCell(v: string): string {
+  return /[",;\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+}
+function buildSurveyCsv(t: SurveyTemplate): string {
+  const header = [...t.identity, ...t.questions.map((q) => q.column)];
+  const rows = [header, ...(t.samples ?? [])];
+  return rows.map((r) => r.map(csvCell).join(',')).join('\r\n');
+}
+function downloadCsv(filename: string, csv: string): void {
+  // BOM (﻿) para o Excel abrir os acentos em UTF-8 corretamente.
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 async function api<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
@@ -74,6 +106,7 @@ async function api<T>(method: string, path: string, body?: unknown): Promise<T> 
 
 export default function LeadConsole({ title, subtitle, config }: BlockProps) {
   const scoring = (config as { scoring?: unknown }).scoring;
+  const survey = (config as { surveyTemplate?: SurveyTemplate }).surveyTemplate;
 
   const [summary, setSummary] = useState<Summary | null>(null);
   const [merge, setMerge] = useState<MergeReport | null>(null);
@@ -82,6 +115,7 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
   const [segment, setSegment] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [modeloAberto, setModeloAberto] = useState(false);
 
   async function loadSummary(): Promise<void> {
     try {
@@ -197,6 +231,63 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
           </div>
         ))}
       </div>
+
+      {/* Modelo de pesquisa de perfil (ICP) — baixar CSV, coletar, subir de volta */}
+      {survey && (
+        <div className="mb-6 rounded-2xl border border-gray-700/50 bg-gray-800/40 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="max-w-2xl">
+              <h3 className="text-sm font-semibold text-gray-100">📋 Modelo de pesquisa de perfil (ICP)</h3>
+              <p className="mt-1 text-xs text-gray-400">
+                Baixe o modelo, colete as respostas dos seus leads (ex.: monte um formulário com estas mesmas
+                perguntas) e suba o CSV preenchido na fonte{' '}
+                <span className="text-gray-200">"Pesquisa de perfil"</span> acima — fica guardado no sistema e
+                alimenta a Pontuação. As respostas definem o ICP de cada lead.
+              </p>
+            </div>
+            <div className="flex flex-shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => downloadCsv(survey.filename ?? 'pesquisa-perfil.csv', buildSurveyCsv(survey))}
+                className="rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              >
+                ⬇ Baixar modelo (CSV)
+              </button>
+              <button
+                type="button"
+                onClick={() => setModeloAberto((v) => !v)}
+                className="rounded-xl border border-gray-600 px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:border-blue-500/40"
+              >
+                {modeloAberto ? 'Ocultar perguntas' : 'Ver perguntas'}
+              </button>
+            </div>
+          </div>
+          {modeloAberto && (
+            <ol className="mt-4 space-y-3 border-t border-gray-700/50 pt-4">
+              {survey.questions.map((q, i) => (
+                <li key={q.column} className="text-sm">
+                  <div className="font-medium text-gray-200">
+                    {i + 1}. {q.column}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {q.options.map((opt) => (
+                      <span
+                        key={opt}
+                        className="inline-flex items-center rounded-full border border-gray-600/50 bg-gray-700/40 px-2 py-0.5 text-[11px] text-gray-400"
+                      >
+                        {opt}
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              ))}
+              <li className="pt-1 text-xs text-gray-500">
+                + colunas de identificação: {survey.identity.join(' · ')} — usadas para deduplicar por e-mail/telefone.
+              </li>
+            </ol>
+          )}
+        </div>
+      )}
 
       {/* 2/3) Ações: consolidar + pontuar */}
       <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-gray-700/50 bg-gray-800/40 p-4">
@@ -322,11 +413,6 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
                         <td className="px-4 py-3">
                           <div className="font-medium text-gray-100">
                             {l.name || l.email || l.phone || '(sem nome)'}
-                            {l.isAluno && (
-                              <span className="ml-2 inline-flex items-center rounded-full bg-purple-500/15 px-2 py-0.5 text-[11px] font-medium text-purple-300">
-                                aluno
-                              </span>
-                            )}
                           </div>
                           <div className="text-xs text-gray-500">{[l.email, l.phone].filter(Boolean).join(' · ') || '—'}</div>
                         </td>

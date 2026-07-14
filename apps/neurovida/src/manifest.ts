@@ -155,13 +155,13 @@ export const neurovidaManifest: ClientManifest = {
           config: {
             // Régua de ICP CONFIG-DRIVEN (do negócio, não chumbada no código). A
             // máquina (parse/dedup/merge/tiers) é genérica; estes pesos definem o
-            // cliente ideal da NEUROVIDA (saúde/suplementos). AJUSTE os nomes dos
-            // campos para casar as colunas do SEU CSV de pesquisa e os pesos.
-            // `field` casa a coluna por "contém" (tolera cabeçalhos longos).
+            // cliente ideal da NEUROVIDA (saúde/suplementos). Os `field` casam a
+            // coluna do CSV por "contém" — por isso batem com as PERGUNTAS do
+            // `surveyTemplate` abaixo (baixe o modelo → colete → suba de volta).
             scoring: {
               rules: [
                 {
-                  field: 'idade',
+                  field: 'etária',
                   label: 'Faixa etária',
                   match: [
                     { contains: '35 a 44', points: 12 },
@@ -173,18 +173,18 @@ export const neurovidaManifest: ClientManifest = {
                   default: 3,
                 },
                 {
-                  field: 'suplemento',
+                  field: 'suplementos',
                   label: 'Já usa suplementos',
                   match: [
-                    { contains: 'uso diar', points: 20 },
-                    { contains: 'sim', points: 15 },
-                    { contains: 'já usei', points: 8 },
+                    { contains: 'diariamente', points: 20 },
+                    { contains: 'vez em quando', points: 12 },
+                    { contains: 'parei', points: 8 },
                   ],
                   default: 0,
                 },
                 {
                   field: 'renda',
-                  label: 'Renda mensal',
+                  label: 'Renda mensal familiar',
                   match: [
                     { contains: 'acima', points: 15 },
                     { contains: '5.001', points: 13 },
@@ -197,25 +197,37 @@ export const neurovidaManifest: ClientManifest = {
                   field: 'objetivo',
                   label: 'Objetivo de saúde',
                   match: [
-                    { contains: 'imunidade', points: 10 },
                     { contains: 'energia', points: 10 },
-                    { contains: 'sono', points: 9 },
+                    { contains: 'imunidade', points: 10 },
+                    { contains: 'dormir', points: 9 },
                     { contains: 'memória', points: 9 },
                     { contains: 'estética', points: 6 },
                   ],
                   default: 4,
                 },
                 {
-                  field: 'recomend',
-                  label: 'Recomendação médica',
+                  field: 'recomendou',
+                  label: 'Recomendação profissional',
                   match: [{ contains: 'sim', points: 12 }],
                   default: 0,
                 },
                 {
-                  field: 'cartão',
-                  label: 'Tem cartão de crédito',
-                  match: [{ contains: 'sim', points: 8 }],
-                  default: 2,
+                  field: 'internet',
+                  label: 'Compra online de saúde',
+                  match: [
+                    { contains: 'frequência', points: 10 },
+                    { contains: 'algumas vezes', points: 6 },
+                  ],
+                  default: 0,
+                },
+                {
+                  field: 'rapidez',
+                  label: 'Urgência de compra',
+                  match: [
+                    { contains: 'agora', points: 13 },
+                    { contains: '30 dias', points: 8 },
+                  ],
+                  default: 0,
                 },
               ],
               tiers: [
@@ -226,6 +238,49 @@ export const neurovidaManifest: ClientManifest = {
               ],
               maxScore: 100,
             },
+            // Modelo da pesquisa de perfil (ICP). O bloco gera um CSV para baixar
+            // (identificação + perguntas) e mostra as opções na tela; ao subir o CSV
+            // preenchido na fonte "Pesquisa de perfil", fica guardado no Neon e
+            // alimenta a Pontuação. As colunas casam com os `field` do scoring acima.
+            surveyTemplate: {
+              sourceId: 'pesquisa',
+              filename: 'pesquisa-perfil-neurovida.csv',
+              identity: ['Nome', 'E-mail', 'WhatsApp'],
+              questions: [
+                {
+                  column: 'Faixa etária',
+                  options: ['18 a 24 anos', '25 a 34 anos', '35 a 44 anos', '45 a 54 anos', '55 anos ou mais'],
+                },
+                {
+                  column: 'Você já usa suplementos alimentares?',
+                  options: ['Uso diariamente', 'Uso de vez em quando', 'Já usei, mas parei', 'Nunca usei'],
+                },
+                {
+                  column: 'Renda mensal familiar',
+                  options: ['Até R$ 1.500', 'R$ 1.501 a R$ 2.500', 'R$ 2.501 a R$ 5.000', 'R$ 5.001 a R$ 10.000', 'Acima de R$ 10.000'],
+                },
+                {
+                  column: 'Qual seu principal objetivo com a saúde hoje?',
+                  options: ['Mais energia e disposição', 'Fortalecer a imunidade', 'Dormir melhor', 'Memória e foco', 'Estética e bem-estar'],
+                },
+                {
+                  column: 'Algum profissional já recomendou suplementação para você?',
+                  options: ['Sim, tenho recomendação', 'Não, seria por conta própria'],
+                },
+                {
+                  column: 'Você já comprou produtos de saúde pela internet?',
+                  options: ['Compro com frequência', 'Já comprei algumas vezes', 'Nunca comprei'],
+                },
+                {
+                  column: 'Com que rapidez pretende cuidar disso?',
+                  options: ['Quero começar agora', 'Nos próximos 30 dias', 'Só estou pesquisando'],
+                },
+              ],
+              samples: [
+                ['Ana Exemplo — apague esta linha', 'ana@exemplo.com', '(11) 98888-0001', '35 a 44 anos', 'Uso diariamente', 'Acima de R$ 10.000', 'Mais energia e disposição', 'Sim, tenho recomendação', 'Compro com frequência', 'Quero começar agora'],
+                ['Bruno Exemplo — apague esta linha', 'bruno@exemplo.com', '(11) 98888-0002', '25 a 34 anos', 'Uso de vez em quando', 'R$ 2.501 a R$ 5.000', 'Dormir melhor', 'Não, seria por conta própria', 'Já comprei algumas vezes', 'Nos próximos 30 dias'],
+              ],
+            },
           },
           help: {
             description:
@@ -233,7 +288,7 @@ export const neurovidaManifest: ClientManifest = {
             tutorial: {
               title: 'Como cadastrar e analisar seus leads',
               steps: [
-                'Exporte um CSV de cada fonte que você usa (ActiveCampaign, Clint, Curseduca, ManyChat, Unnichat) e da sua pesquisa de perfil. Não precisa formatar: o sistema detecta as colunas de email/telefone/nome sozinho.',
+                'Exporte um CSV de cada fonte que você usa (ActiveCampaign, Clint, Hotmart, ManyChat) e da sua pesquisa de perfil. Não precisa formatar: o sistema detecta as colunas de email/telefone/nome sozinho.',
                 'Em "Fontes de dados", clique em "Subir CSV" na fonte correspondente. Reenviar um CSV substitui os dados daquela fonte.',
                 'Clique em "1. Consolidar": o sistema une os contatos e mostra quantos leads únicos existem (quantos duplicados foram fundidos).',
                 'Clique em "2. Pontuar": aplica a régua de ICP (configurável) usando as respostas da pesquisa e classifica cada lead em tiers S/A/B/C.',
