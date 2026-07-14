@@ -208,6 +208,7 @@ const menuItemSchema = z
     route: z.string().min(1),
     view: blockBindingSchema.optional(),
     tabs: z.array(subTabSchema).optional(),
+    hidden: z.boolean().optional(),
   })
   .strict()
   // Um menu é OU folha (`view`) OU grupo (`tabs`), nunca ambos nem nenhum.

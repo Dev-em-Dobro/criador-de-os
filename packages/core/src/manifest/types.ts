@@ -79,6 +79,9 @@ export interface MenuItem {
   view?: BlockBinding;
   /** Se grupo (com sub-abas): sidebar de sub-abas. */
   tabs?: SubTab[];
+  /** Se `true`, some da navegação (pills, sidebar e rotas). Reversível — para
+   *  ocultar uma seção temporariamente sem apagar sua config. */
+  hidden?: boolean;
 }
 
 export interface SubTab {

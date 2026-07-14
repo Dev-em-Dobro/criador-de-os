@@ -107,8 +107,12 @@ function BindingView({
   // um <Suspense> cujo fallback reproduz o cabeçalho do binding + skeleton, para
   // não piscar a tela enquanto o chunk do bloco carrega.
   const Block = def.component;
+  // Wrapper com `data-block` (display:contents — não cria caixa nem afeta o
+  // layout): expõe um gancho de estilo por TIPO de bloco. Um app pode escopar
+  // tokens de tema a um bloco específico (ex.: acento diferente numa página) só
+  // via CSS (`[data-block='...']`), sem tocar em nenhum componente.
   return (
-    <>
+    <div className="contents" data-block={binding.block}>
       {intro}
       <Suspense fallback={<BlockLoading title={binding.title ?? binding.block} subtitle={binding.subtitle} />}>
         <Block
@@ -118,7 +122,7 @@ function BindingView({
           ctx={ctx}
         />
       </Suspense>
-    </>
+    </div>
   );
 }
 
@@ -157,7 +161,9 @@ export function ManifestRouter({
   const effectivePeriod: Period =
     period ?? manifest.settings.period?.default ?? 'monthly';
 
-  const { menus, redirectRoot } = manifest.navigation;
+  const { redirectRoot } = manifest.navigation;
+  // Menus com `hidden: true` somem da navegação e das rotas (ocultação reversível).
+  const menus = manifest.navigation.menus.filter((m) => !m.hidden);
   const activeMenu = findActiveMenu(menus, location.pathname);
 
   // Menus principais (pills da topbar). Um menu-grupo navega para sua primeira aba.

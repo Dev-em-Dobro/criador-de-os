@@ -96,6 +96,7 @@ export const neurovidaManifest: ClientManifest = {
         label: 'Clube',
         icon: 'Heart',
         route: '/clube',
+        hidden: true, // oculto temporariamente — foco em Financeiro/Leads/Simulador
         tabs: [
           {
             id: 'membros',
@@ -320,6 +321,7 @@ export const neurovidaManifest: ClientManifest = {
         label: 'Estúdio IA',
         icon: 'Dna',
         route: '/conteudo',
+        hidden: true, // oculto temporariamente — foco em Financeiro/Leads/Simulador
         view: {
           block: 'custom:carousel-generator',
           title: 'Estúdio de conteúdo',
