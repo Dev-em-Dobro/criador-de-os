@@ -15,6 +15,8 @@ import { makeInvoices } from './invoices';
 import { extractInvoice } from './invoice-extract';
 import { isScoringSpec } from './scoring';
 import { makeHotmart } from './hotmart';
+import type { HotmartMetricsResponse } from './hotmart';
+import { computeFinanceOverview, type FinancePremissas } from './finance-overview';
 
 /** Forma mínima do Better Auth que usamos (evita depender do pacote nos tipos). */
 export interface AuthLike {
@@ -210,6 +212,40 @@ export function mountApi(app: Hono, deps: ServerDeps): MountedApi {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('[hotmart/sync] erro:', msg); // não vaza credencial
       return c.json({ error: msg }, 400);
+    }
+  });
+
+  // ---- Resultado & Caixa (painel do dono) — determinístico ----
+  app.post('/api/finance/overview', async (c) => {
+    if (!(await uid(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
+
+    const nonNeg = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : 0);
+    let premissas: FinancePremissas = { saldoInicial: 0, custosForaCartao: 0 };
+    try {
+      const body = (await c.req.json()) as { premissas?: Partial<FinancePremissas> };
+      const p = body.premissas ?? {};
+      const receita = nonNeg(p.receitaManual);
+      premissas = {
+        saldoInicial: nonNeg(p.saldoInicial),
+        custosForaCartao: nonNeg(p.custosForaCartao),
+        receitaManual: receita > 0 ? receita : undefined,
+      };
+    } catch {
+      /* corpo opcional — usa premissas zeradas */
+    }
+
+    try {
+      const inv = await invoices.getInvoices();
+      let hm: HotmartMetricsResponse | null = null;
+      try {
+        hm = await hotmart.getMetrics();
+      } catch {
+        hm = null; // Hotmart não conectada — cai na receita manual.
+      }
+      return c.json(computeFinanceOverview({ invoices: inv, hotmart: hm, premissas }));
+    } catch (err) {
+      console.error('[finance/overview] erro:', err instanceof Error ? err.message : err);
+      return c.json({ error: 'Falha ao calcular o resultado.' }, 500);
     }
   });
 

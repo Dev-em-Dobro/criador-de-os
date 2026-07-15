@@ -50,3 +50,7 @@ export { makeFinanceAssistant, buildFinanceSummary, FINANCE_PERSONA } from './fi
 
 /* Assistente de leads pronto (analista de growth/leads quentes) */
 export { makeLeadsAssistant, LEADS_PERSONA } from './leads-assistant';
+
+/* Resultado & Caixa — motor determinístico do painel do dono (lucro/projeção) */
+export { computeFinanceOverview, financeOverviewToContext } from './finance-overview';
+export type { FinanceOverview, FinancePremissas, ProjecaoMes } from './finance-overview';
