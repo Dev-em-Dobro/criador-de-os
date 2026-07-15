@@ -8,7 +8,7 @@
  */
 
 import { Hono } from 'hono';
-import { mountApi, type ServerDb } from '@os/server';
+import { mountApi, mountAssistant, makeFinanceAssistant, type ServerDb } from '@os/server';
 import { auth } from './auth';
 import { dbAuth } from '../db/client';
 import { generateCarousel } from './carousel';
@@ -27,6 +27,22 @@ const api = mountApi(app, {
   db: dbAuth as unknown as ServerDb,
   settingsEncKey: getSettingsEncKey,
   agencyAnthropicKey: getAgencyAnthropicKey,
+});
+
+/** Resolve a chave BYOK do cliente (Configurações) com fallback DEV da agência. */
+async function resolveAnthropicKey(): Promise<string | null> {
+  return (await api.getSettingValue('anthropic_api_key')) ?? getAgencyAnthropicKey();
+}
+
+// Copilotos flutuantes (assistentes de IA por seção) — /api/assistant/:key/*.
+// O analista financeiro vem PRONTO da fábrica (@os/server); o front só declara
+// `assistant` no menu Financeiro com contextKey: 'financas'. Auth-first + BYOK.
+mountAssistant(app, {
+  auth,
+  resolveApiKey: resolveAnthropicKey,
+  providers: {
+    financas: makeFinanceAssistant(dbAuth as unknown as ServerDb),
+  },
 });
 
 // --- Estúdio IA (carrossel) — específico da neurovida; usa a chave BYOK ---

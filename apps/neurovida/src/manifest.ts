@@ -67,6 +67,28 @@ export const neurovidaManifest: ClientManifest = {
         label: 'Financeiro',
         icon: 'Wallet',
         route: '/financeiro',
+        // Copiloto flutuante desta seção (FAB estilo WhatsApp). Config-driven: a
+        // persona/prompt vive no backend (@os/server → makeFinanceAssistant, montado
+        // com contextKey 'financas'); aqui só o que pode ir ao browser.
+        assistant: {
+          contextKey: 'financas',
+          title: 'Analista financeiro',
+          subtitle: 'Lê suas faturas e sugere onde cortar',
+          icon: 'Sparkles',
+          starters: [
+            'O que dá pra cortar sem doer?',
+            'Qual categoria pesa mais?',
+            'Minha estrutura de custos está saudável?',
+          ],
+          inputs: [
+            {
+              key: 'receitaMensal',
+              label: 'Seu faturamento mensal',
+              placeholder: 'ex.: 15.000',
+              hint: 'opcional — libera a leitura de margem',
+            },
+          ],
+        },
         view: {
           block: 'invoice-console',
           title: 'Fatura do cartão',

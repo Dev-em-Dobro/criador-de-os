@@ -33,3 +33,17 @@ export type { ScoringSpec, ScoreRule, ScoreMatch, TierCut } from './scoring';
 /* Faturamento (Hotmart) — só agregados */
 export { makeHotmart, parseHotmartSummary, HOTMART_SETTING_KEYS } from './hotmart';
 export type { HotmartApi, HotmartMetricsResponse, HotmartMetricRow, MonthAggregate, SyncReport } from './hotmart';
+
+/* Copiloto flutuante (assistente de IA por seção) — primitivo da fábrica */
+export { mountAssistant, runAssistantAnalysis, runAssistantChat } from './assistant';
+export type {
+  AssistantDeps,
+  AssistantProvider,
+  AssistantAnalysis,
+  AssistantSection,
+  AssistantAction,
+  AssistantChatTurn,
+} from './assistant';
+
+/* Assistente de finanças pronto (analista da fatura do cartão) */
+export { makeFinanceAssistant, buildFinanceSummary, FINANCE_PERSONA } from './finance-assistant';

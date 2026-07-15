@@ -18,6 +18,8 @@ export type {
   SubTab,
   BlockBinding,
   SectionHelp,
+  AssistantConfig,
+  AssistantInput,
   DataSourceBinding,
   FilterClause,
   FilterOp,
@@ -78,6 +80,11 @@ export { THEME_CSS_VARS } from './theme/types';
 /* Shell */
 export { AppShell } from './shell/AppShell';
 export type { AppShellProps, ShellNavItem } from './shell/AppShell';
+
+/* Copiloto flutuante (assistente de IA por seção) — primitivo da fábrica */
+export { FloatingAgent } from './assistant/FloatingAgent';
+export type { FloatingAgentProps } from './assistant/FloatingAgent';
+export type { AssistantAnalysis, AssistantSection, AssistantAction } from './assistant/types';
 
 /* UI — componentes */
 export { KpiCard } from './ui/KpiCard';

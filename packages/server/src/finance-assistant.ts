@@ -1,0 +1,165 @@
+/**
+ * @os/server — assistente de FINANÇAS pronto (analista da fatura do cartão).
+ *
+ * Um `AssistantProvider` de fábrica: qualquer cliente com o módulo de faturas
+ * ganha um copiloto financeiro registrando `makeFinanceAssistant(db)` em
+ * `mountAssistant` (+ um `assistant` no manifesto com `contextKey: 'financas'`).
+ *
+ * A persona (consultor sênior + método) e o resumo REAL das faturas (deduplicando
+ * assinaturas mensais e, se o cliente informar `receitaMensal`, lendo margem) vivem
+ * aqui. O formato de saída (resumo/secoes/acoes) é imposto pelo `mountAssistant`.
+ */
+
+import { makeInvoices } from './invoices';
+import type { ServerDb } from './db';
+import type { AssistantProvider } from './assistant';
+import type { InvoicesResponse } from './invoices';
+
+/** Persona/método do consultor financeiro (instruções de domínio). */
+export const FINANCE_PERSONA = [
+  'Você é um consultor financeiro sênior de pequenos negócios — direto, honesto e prático.',
+  'Ajude o dono a entender e controlar os gastos do cartão e, quando houver receita informada,',
+  'a ler a saúde financeira.',
+  '',
+  '## Método',
+  '- Classifique cada gasto em 3 eixos: fixo×variável, essencial×discricionário, custo×investimento.',
+  '- Diagnostique a estrutura: onde o dinheiro se concentra? qual o peso fixo mensal? se houver',
+  '  receita, quanto dela (%) vai para custos?',
+  '- Priorize cortes por IMPACTO e RISCO: comece pelo discricionário e recorrente que rende pouco.',
+  '  NUNCA sugira cortar cegamente o que GERA RECEITA (tráfego/anúncios) — meça o retorno antes.',
+  '',
+  '## Regras (inegociáveis)',
+  '- Assinatura recorrente é MENSAL: a mesma em várias faturas = o MESMO serviço cobrado todo mês,',
+  '  NUNCA duplicidade. Use a lista "ASSINATURAS RECORRENTES" (já contadas 1x).',
+  '- "TOTAL DO PERÍODO" soma N meses; "CUSTO RECORRENTE MENSAL" é por mês — não confunda.',
+  '- Corte = escolher da lista "ASSINATURAS RECORRENTES"; economia anual = valor mensal × 12.',
+  '',
+  '## Como mapear na análise',
+  '- resumo: retrato geral (e leitura de margem/saúde se houver receita).',
+  '- secoes: use para "Destaques" (números que importam, incl. custos vs receita), "Saúde',
+  '  financeira" (só com receita) e "Alertas" (categoria dominando, custo alto vs receita).',
+  '- acoes: os cortes sugeridos — titulo = o que cortar; detalhe = "Economia ~R$X/ano — <justificativa/trade-off>".',
+].join('\n');
+
+/** Formata reais para o texto do resumo. */
+function brl(n: number): string {
+  return `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** Lê o faturamento informado (aceita "15000", "15.000", "R$ 15.000,00") → número. */
+function parseReceita(s?: string): number | undefined {
+  if (!s) return undefined;
+  const limpo = s.trim().replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.');
+  const n = Number(limpo);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+/**
+ * Monta o resumo REAL das faturas. Deduplica assinaturas recorrentes (mostra o
+ * valor MENSAL uma vez) e, com `receitaMensal`, calcula custos como % da receita.
+ */
+export function buildFinanceSummary(data: InvoicesResponse, receitaMensal?: number): string {
+  const { invoices, totals } = data;
+  const nFaturas = invoices.length;
+  const categorias = Object.entries(totals.byCategory).sort((a, b) => b[1] - a[1]);
+  const itens = invoices.flatMap((inv) => inv.items);
+  const maiores = [...itens].sort((a, b) => b.amount - a.amount).slice(0, 40);
+
+  const recMap = new Map<
+    string,
+    { description: string; establishment: string | null; category: string; monthly: number; meses: number }
+  >();
+  for (const it of itens) {
+    if (!it.recurring) continue;
+    const key = `${it.description}|${it.establishment ?? ''}`;
+    const cur = recMap.get(key);
+    if (cur) {
+      cur.meses += 1;
+      cur.monthly = Math.max(cur.monthly, it.amount);
+    } else {
+      recMap.set(key, {
+        description: it.description,
+        establishment: it.establishment,
+        category: it.category,
+        monthly: it.amount,
+        meses: 1,
+      });
+    }
+  }
+  const recorrentes = [...recMap.values()].sort((a, b) => b.monthly - a.monthly).slice(0, 30);
+  const mensalRecorrente = recorrentes.reduce((s, r) => s + r.monthly, 0);
+
+  const referencias = invoices.map((i) => i.reference).filter(Boolean);
+  const linhas: string[] = [];
+
+  linhas.push(`PERÍODO: ${nFaturas} fatura(s)/mês(es)` + (referencias.length ? ` — ${referencias.join(', ')}` : '') + '.');
+  linhas.push(`TOTAL DO PERÍODO (todas as faturas somadas): ${brl(totals.grand)}.`);
+  linhas.push(`CUSTO RECORRENTE MENSAL (assinaturas contadas UMA vez): ${brl(mensalRecorrente)}/mês — repete todo mês.`);
+  linhas.push(
+    'NOTA IMPORTANTE: uma assinatura que aparece em várias faturas é o MESMO serviço cobrado ' +
+      'mensalmente, NÃO é cobrança duplicada.',
+  );
+
+  if (receitaMensal && receitaMensal > 0) {
+    const gastoMensalCartao = totals.grand / nFaturas;
+    const pctRecorrente = (mensalRecorrente / receitaMensal) * 100;
+    const pctCartao = (gastoMensalCartao / receitaMensal) * 100;
+    linhas.push('');
+    linhas.push(`RECEITA INFORMADA PELO CLIENTE: ${brl(receitaMensal)}/mês.`);
+    linhas.push(`- Custo recorrente mensal (${brl(mensalRecorrente)}) = ${pctRecorrente.toFixed(0)}% da receita.`);
+    linhas.push(`- Gasto médio do cartão por mês (${brl(gastoMensalCartao)}) = ${pctCartao.toFixed(0)}% da receita.`);
+    linhas.push('- OBS: estes são só os custos que passam no CARTÃO; pode haver outros custos fora do cartão.');
+  } else {
+    linhas.push('');
+    linhas.push(
+      'RECEITA: não informada — a análise fica limitada aos CUSTOS do cartão (sem leitura de margem/' +
+        'saúde). Convide o cliente a informar o faturamento mensal para uma análise completa.',
+    );
+  }
+
+  linhas.push('');
+  linhas.push('CUSTOS POR CATEGORIA (somando o período):');
+  for (const [cat, val] of categorias) linhas.push(`- ${cat}: ${brl(val)}`);
+
+  linhas.push('');
+  linhas.push(`MAIORES LANÇAMENTOS INDIVIDUAIS do período (top ${maiores.length}):`);
+  for (const it of maiores) {
+    linhas.push(
+      `- ${brl(it.amount)} · ${it.description}` +
+        (it.establishment ? ` (${it.establishment})` : '') +
+        ` · ${it.category}` +
+        (it.recurring ? ' · assinatura mensal' : ''),
+    );
+  }
+
+  if (recorrentes.length) {
+    linhas.push('');
+    linhas.push('ASSINATURAS RECORRENTES (candidatas a corte — VALOR MENSAL, cada uma contada 1x):');
+    for (const r of recorrentes) {
+      linhas.push(
+        `- ${brl(r.monthly)}/mês · ${r.description}` +
+          (r.establishment ? ` (${r.establishment})` : '') +
+          ` · ${r.category}`,
+      );
+    }
+  }
+
+  return linhas.join('\n');
+}
+
+/**
+ * Provedor de fábrica: lê as faturas do Neon e monta o contexto. Recebe
+ * `inputs.receitaMensal` (opcional) do balão. Devolve `null` (estado vazio) quando
+ * ainda não há faturas — sem gastar IA.
+ */
+export function makeFinanceAssistant(db: ServerDb): AssistantProvider {
+  const invoices = makeInvoices(db);
+  return {
+    persona: FINANCE_PERSONA,
+    async provide({ inputs }) {
+      const data = await invoices.getInvoices();
+      if (data.invoices.length === 0 || data.totals.grand <= 0) return null;
+      return buildFinanceSummary(data, parseReceita(inputs.receitaMensal));
+    },
+  };
+}

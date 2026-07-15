@@ -18,4 +18,7 @@ Blueprint de arquitetura (design, sem código de produção) para transformar o 
 | 06 | [`06-scaffolder.md`](./06-scaffolder.md) | Design do gerador de clientes: o que gera, o que pede, fluxo do operador. |
 | 07 | [`07-plano-migracao.md`](./07-plano-migracao.md) | Plano faseado (Fase 0 → 4) com objetivo, entregáveis, critério de "pronto" e esforço relativo. |
 | 08 | [`08-riscos-decisoes.md`](./08-riscos-decisoes.md) | Riscos técnicos com mitigação e decisões em aberto para o dono. |
+| 09 | [`09-copiloto-flutuante.md`](./09-copiloto-flutuante.md) | **Primitivo de fábrica (2026-07-14):** copiloto de IA flutuante por seção (FAB estilo WhatsApp). Contrato no manifesto (`assistant`), `FloatingAgent` no core, `mountAssistant`+provedores no `@os/server`. Como adicionar um copiloto novo. |
+
+> **Overview consolidado de tudo que foi construído:** [`../ESTADO-DO-PROJETO.md`](../ESTADO-DO-PROJETO.md).
 ```

@@ -39,9 +39,15 @@ export interface OsAppProps {
    * app escolher a fonte (ex.: <img src={manifest.identity.logoUrl} />).
    */
   logo?: ReactNode;
+  /**
+   * Camada flutuante opcional (copiloto/agente de IA ancorado a uma seção).
+   * O app passa o componente (ex.: <FinanceAgent />); ele é renderizado dentro
+   * do router e pode se auto-escopar por rota. Slot genérico da fábrica.
+   */
+  floating?: ReactNode;
 }
 
-export function OsApp({ manifest, registry, client, period, logo }: OsAppProps) {
+export function OsApp({ manifest, registry, client, period, logo, floating }: OsAppProps) {
   // Fail-fast: valida antes de renderizar qualquer coisa. Se o manifesto for
   // inválido, a exceção sobe com a lista de campos problemáticos (path legível).
   const validated = validateManifest(manifest);
@@ -61,6 +67,7 @@ export function OsApp({ manifest, registry, client, period, logo }: OsAppProps) 
             client={client}
             period={period}
             logo={logo}
+            floating={floating}
           />
         </BrowserRouter>
       </AuthGate>

@@ -82,6 +82,46 @@ export interface MenuItem {
   /** Se `true`, some da navegação (pills, sidebar e rotas). Reversível — para
    *  ocultar uma seção temporariamente sem apagar sua config. */
   hidden?: boolean;
+  /**
+   * Copiloto de IA flutuante ancorado a ESTA seção (FAB estilo WhatsApp). Quando
+   * presente, o `ManifestRouter` renderiza um `<FloatingAgent>` genérico enquanto
+   * o menu está ativo. Config-driven: a PERSONA/prompt do agente NÃO fica aqui
+   * (vive server-side, registrada por `contextKey` no backend) — o manifesto só
+   * declara o que é seguro expor ao browser (título, campos, sugestões).
+   */
+  assistant?: AssistantConfig;
+}
+
+/** Um campo opcional que o usuário informa ao copiloto (ex.: faturamento). */
+export interface AssistantInput {
+  /** Chave enviada ao backend, ex.: "receitaMensal". */
+  key: string;
+  /** Rótulo exibido. */
+  label: string;
+  /** Placeholder do campo. */
+  placeholder?: string;
+  /** Dica curta ao lado do rótulo (ex.: "opcional — libera a leitura de margem"). */
+  hint?: string;
+}
+
+/**
+ * Configuração de um copiloto flutuante (assistente de IA de uma seção).
+ * Só contém o que pode ir ao browser — a persona/prompt e o acesso a dados vivem
+ * no backend, referenciados por `contextKey` (ver `@os/server` → `mountAssistant`).
+ */
+export interface AssistantConfig {
+  /** Chave do provedor de contexto registrado no backend, ex.: "financas". */
+  contextKey: string;
+  /** Título no cabeçalho do painel, ex.: "Analista financeiro". */
+  title: string;
+  /** Subtítulo curto sob o título. */
+  subtitle?: string;
+  /** Ícone lucide do FAB (default: "Sparkles"). */
+  icon?: IconName;
+  /** Sugestões de pergunta iniciais no chat. */
+  starters?: string[];
+  /** Campos opcionais que o usuário informa (persistidos localmente, enviados ao backend). */
+  inputs?: AssistantInput[];
 }
 
 export interface SubTab {

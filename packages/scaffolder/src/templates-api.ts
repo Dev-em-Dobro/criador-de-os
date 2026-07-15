@@ -332,7 +332,7 @@ export function apiApp(slug: string): string {
  */
 
 import { Hono } from 'hono';
-import { mountApi, type ServerDb } from '@os/server';
+import { mountApi, mountAssistant, makeFinanceAssistant, type ServerDb } from '@os/server';
 import { auth } from './auth';
 import { dbAuth, dbQuery } from '../db/client';
 import { getAgencyAnthropicKey, getSettingsEncKey } from './env';
@@ -345,11 +345,23 @@ app.get('/api/health', (c) => c.json({ ok: true }));
 app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
 
 // Capacidades de fábrica: /api/settings, /api/leads/*, /api/invoices/* (@os/server).
-mountApi(app, {
+const api = mountApi(app, {
   auth,
   db: dbAuth as unknown as ServerDb,
   settingsEncKey: getSettingsEncKey,
   agencyAnthropicKey: getAgencyAnthropicKey,
+});
+
+// Copilotos flutuantes por seção (/api/assistant/:key/*). O analista financeiro
+// vem PRONTO da fábrica (finanças da fatura do cartão). Para exibi-lo, declare um
+// \`assistant\` no menu de faturas do manifesto (contextKey: 'financas') — o core
+// monta o FAB. Auth-first + BYOK. Registre outros provedores aqui por chave.
+mountAssistant(app, {
+  auth,
+  resolveApiKey: async () => (await api.getSettingValue('anthropic_api_key')) ?? getAgencyAnthropicKey(),
+  providers: {
+    financas: makeFinanceAssistant(dbAuth as unknown as ServerDb),
+  },
 });
 
 app.post('/api/query', async (c) => {

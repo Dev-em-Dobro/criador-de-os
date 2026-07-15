@@ -17,6 +17,7 @@ import type { ReactNode } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AppShell } from '../shell/AppShell';
 import type { ShellNavItem } from '../shell/AppShell';
+import { FloatingAgent } from '../assistant/FloatingAgent';
 import { EmptyState } from '../ui/EmptyState';
 import { SectionHeader } from '../ui/SectionHeader';
 import { SectionIntro } from '../ui/SectionIntro';
@@ -43,6 +44,12 @@ export interface ManifestRouterProps {
   period?: Period;
   /** Logo opcional exibido no shell (topbar/footer). */
   logo?: ReactNode;
+  /**
+   * Camada flutuante opcional (copiloto/agente de IA ancorado a uma seção).
+   * Renderizada dentro do shell E do BrowserRouter — portanto pode usar
+   * `useLocation` para se auto-escopar a certas rotas. Repassada ao AppShell.
+   */
+  floating?: ReactNode;
 }
 
 /** Rota efetiva de uma sub-aba: `${menu.route}/${tab.id}`. */
@@ -153,6 +160,7 @@ export function ManifestRouter({
   client,
   period,
   logo,
+  floating,
 }: ManifestRouterProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -165,6 +173,16 @@ export function ManifestRouter({
   // Menus com `hidden: true` somem da navegação e das rotas (ocultação reversível).
   const menus = manifest.navigation.menus.filter((m) => !m.hidden);
   const activeMenu = findActiveMenu(menus, location.pathname);
+
+  // Copiloto flutuante: a prop `floating` (escape hatch do app) tem prioridade;
+  // senão, se o menu ATIVO declara um `assistant`, montamos o <FloatingAgent>
+  // genérico (escopo por seção — some ao navegar para outra seção). `key` força
+  // remontar ao trocar de assistente entre seções.
+  const floatingNode: ReactNode =
+    floating ??
+    (activeMenu?.assistant ? (
+      <FloatingAgent key={activeMenu.key} config={activeMenu.assistant} />
+    ) : undefined);
 
   // Menus principais (pills da topbar). Um menu-grupo navega para sua primeira aba.
   const shellMenus: ShellNavItem[] = menus.map((menu) => {
@@ -202,6 +220,7 @@ export function ManifestRouter({
       sidebar={sidebar}
       footerText={manifest.settings.footerText}
       logo={logo}
+      floating={floatingNode}
     >
       <Routes>
         {/* "/" → redirect declarado no manifesto. */}

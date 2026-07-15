@@ -201,6 +201,26 @@ const subTabSchema = z
   })
   .strict();
 
+const assistantInputSchema = z
+  .object({
+    key: z.string().min(1),
+    label: z.string().min(1),
+    placeholder: z.string().optional(),
+    hint: z.string().optional(),
+  })
+  .strict();
+
+const assistantConfigSchema = z
+  .object({
+    contextKey: z.string().min(1, 'assistant.contextKey não pode ser vazio'),
+    title: z.string().min(1),
+    subtitle: z.string().optional(),
+    icon: z.string().optional(),
+    starters: z.array(z.string()).optional(),
+    inputs: z.array(assistantInputSchema).optional(),
+  })
+  .strict();
+
 const menuItemSchema = z
   .object({
     key: z.string().min(1),
@@ -210,6 +230,7 @@ const menuItemSchema = z
     view: blockBindingSchema.optional(),
     tabs: z.array(subTabSchema).optional(),
     hidden: z.boolean().optional(),
+    assistant: assistantConfigSchema.optional(),
   })
   .strict()
   // Um menu é OU folha (`view`) OU grupo (`tabs`), nunca ambos nem nenhum.

@@ -21,6 +21,8 @@ const client = createOsClient(neurovidaManifest.dataApi);
 
 createRoot(root).render(
   <StrictMode>
+    {/* O copiloto financeiro flutuante agora é config-driven: declarado no menu
+        Financeiro (manifest.assistant) e montado pelo core (FloatingAgent). */}
     <OsApp manifest={neurovidaManifest} registry={registry} client={client} />
     <SkinSwitcher />
   </StrictMode>,

@@ -38,6 +38,13 @@ export interface AppShellProps {
   footerText?: string;
   /** Faixa de aviso opcional no topo (ex.: <ErrorBanner />). */
   banner?: ReactNode;
+  /**
+   * Camada flutuante opcional, renderizada por cima de todo o OS (posição fixa,
+   * fora do fluxo). Slot genérico do chassi para copilotos/agentes de IA
+   * ancorados numa seção (FAB estilo WhatsApp) — o app decide o conteúdo e o
+   * escopo (ex.: mostrar só em certas rotas). O shell só reserva o lugar.
+   */
+  floating?: ReactNode;
   /** Conteúdo principal. */
   children: ReactNode;
 }
@@ -104,6 +111,7 @@ export function AppShell({
   sidebar,
   footerText,
   banner,
+  floating,
   children,
 }: AppShellProps) {
   const hasSidebar = Boolean(sidebar && sidebar.length > 0);
@@ -181,6 +189,9 @@ export function AppShell({
           </span>
         </div>
       </footer>
+
+      {/* Camada flutuante (copiloto/agente ancorado). Posição fixa: fora do fluxo. */}
+      {floating}
     </div>
   );
 }
