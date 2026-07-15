@@ -326,6 +326,7 @@ export type BlockType =
   | 'invoice-console'
   | 'hotmart-console'
   | 'agent-gallery'
+  | 'finance-overview'
   | `custom:${string}`;
 
 /** Nome de ícone do set do lucide-react (validado contra o set em runtime pelo app). */

@@ -90,27 +90,60 @@ export const neurovidaManifest: ClientManifest = {
             },
           ],
         },
-        view: {
-          block: 'invoice-console',
-          title: 'Fatura do cartão',
-          subtitle: 'Suba os PDFs — a IA categoriza e soma; marque o que cortar e veja quanto sobra',
-          config: {},
-          help: {
-            description:
-              'Suba o PDF da fatura do seu cartão (pode subir várias): a IA lê os lançamentos, categoriza cada um e soma tudo. Marque as assinaturas/ferramentas que quer cortar e veja quanto a conta fica — e quanto economiza no ano.',
-            tutorial: {
-              title: 'Como analisar suas faturas',
-              steps: [
-                'Baixe a fatura do cartão em PDF (no app ou site do banco — geralmente em "Faturas" → "Baixar PDF").',
-                'Configure a sua chave de API em Configurações (a leitura do PDF por IA usa a sua conta).',
-                'Clique em "Subir PDF(s) da fatura" e selecione um ou vários PDFs. A leitura leva alguns segundos por fatura.',
-                'Veja o resumo: total somado de todas as faturas, quanto é recorrente, e os custos por categoria.',
-                'Nas faturas, expanda para ver os itens. Marque a caixa "cortar" nas assinaturas que não valem a pena — o topo recalcula o total e a economia anual.',
-                'Se a categorização de algum item não ficou boa, você pode remover a fatura (✕) e subir de novo, ou ajustar depois.',
-              ],
+        // Grupo com abas: a fatura do cartão (despesas) + o painel do dono (resultado).
+        tabs: [
+          {
+            id: 'fatura',
+            label: 'Fatura do cartão',
+            icon: 'CreditCard',
+            view: {
+              block: 'invoice-console',
+              title: 'Fatura do cartão',
+              subtitle: 'Suba os PDFs — a IA categoriza e soma; marque o que cortar e veja quanto sobra',
+              config: {},
+              help: {
+                description:
+                  'Suba o PDF da fatura do seu cartão (pode subir várias): a IA lê os lançamentos, categoriza cada um e soma tudo. Marque as assinaturas/ferramentas que quer cortar e veja quanto a conta fica — e quanto economiza no ano.',
+                tutorial: {
+                  title: 'Como analisar suas faturas',
+                  steps: [
+                    'Baixe a fatura do cartão em PDF (no app ou site do banco — geralmente em "Faturas" → "Baixar PDF").',
+                    'Configure a sua chave de API em Configurações (a leitura do PDF por IA usa a sua conta).',
+                    'Clique em "Subir PDF(s) da fatura" e selecione um ou vários PDFs. A leitura leva alguns segundos por fatura.',
+                    'Veja o resumo: total somado de todas as faturas, quanto é recorrente, e os custos por categoria.',
+                    'Nas faturas, expanda para ver os itens. Marque a caixa "cortar" nas assinaturas que não valem a pena — o topo recalcula o total e a economia anual.',
+                    'Se a categorização de algum item não ficou boa, você pode remover a fatura (✕) e subir de novo, ou ajustar depois.',
+                  ],
+                },
+              },
             },
           },
-        },
+          {
+            id: 'resultado',
+            label: 'Resultado & Caixa',
+            icon: 'TrendingUp',
+            view: {
+              block: 'finance-overview',
+              title: 'Resultado & Caixa',
+              subtitle: 'Lucro, margem e projeção de caixa — cruzando a sua receita com os custos',
+              config: {},
+              help: {
+                description:
+                  'A visão de dono: cruza a sua receita (do Faturamento/Hotmart) com as despesas (fatura do cartão + os custos fixos que você informar) e projeta o seu caixa para 3, 6 e 12 meses.',
+                tutorial: {
+                  title: 'Como ler o Resultado & Caixa',
+                  steps: [
+                    'Informe suas premissas: o saldo de caixa que você tem hoje e os custos fixos que NÃO passam no cartão (pró-labore, aluguel, impostos).',
+                    'A receita vem automática do Faturamento (Hotmart) se você já conectou; senão, informe a receita mensal à mão.',
+                    'Veja o lucro/mês, a margem e o ponto de equilíbrio (a receita mínima pra empatar as contas).',
+                    'Na curva de caixa, acompanhe a projeção para 3, 6 e 12 meses — e o alerta de quando o caixa aperta.',
+                    'Para uma leitura com contexto e conselhos, chame o Analista Financeiro no balão ou no menu Agentes.',
+                  ],
+                },
+              },
+            },
+          },
+        ],
       },
 
       // 2) FATURAMENTO — receita da Hotmart (SÓ agregados). Consome o resumo de
