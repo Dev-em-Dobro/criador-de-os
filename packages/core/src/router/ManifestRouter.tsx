@@ -50,6 +50,8 @@ export interface ManifestRouterProps {
    * `useLocation` para se auto-escopar a certas rotas. Repassada ao AppShell.
    */
   floating?: ReactNode;
+  /** Conteúdo opcional no rodapé da sidebar (ex.: toggle de tema). Repassado ao AppShell. */
+  navFooter?: ReactNode;
 }
 
 /** Rota efetiva de uma sub-aba: `${menu.route}/${tab.id}`. */
@@ -161,6 +163,7 @@ export function ManifestRouter({
   period,
   logo,
   floating,
+  navFooter,
 }: ManifestRouterProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -221,6 +224,7 @@ export function ManifestRouter({
       footerText={manifest.settings.footerText}
       logo={logo}
       floating={floatingNode}
+      navFooter={navFooter}
     >
       <Routes>
         {/* "/" → redirect declarado no manifesto. */}

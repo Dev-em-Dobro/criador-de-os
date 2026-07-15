@@ -45,9 +45,14 @@ export interface OsAppProps {
    * do router e pode se auto-escopar por rota. Slot genérico da fábrica.
    */
   floating?: ReactNode;
+  /**
+   * Conteúdo opcional no rodapé da sidebar (ex.: um toggle de tema, avatar do
+   * usuário, versão). Slot genérico da fábrica — repassado ao AppShell.
+   */
+  navFooter?: ReactNode;
 }
 
-export function OsApp({ manifest, registry, client, period, logo, floating }: OsAppProps) {
+export function OsApp({ manifest, registry, client, period, logo, floating, navFooter }: OsAppProps) {
   // Fail-fast: valida antes de renderizar qualquer coisa. Se o manifesto for
   // inválido, a exceção sobe com a lista de campos problemáticos (path legível).
   const validated = validateManifest(manifest);
@@ -68,6 +73,7 @@ export function OsApp({ manifest, registry, client, period, logo, floating }: Os
             period={period}
             logo={logo}
             floating={floating}
+            navFooter={navFooter}
           />
         </BrowserRouter>
       </AuthGate>

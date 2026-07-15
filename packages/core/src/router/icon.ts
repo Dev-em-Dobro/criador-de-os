@@ -40,6 +40,8 @@ import {
   Briefcase, Building2, Store, Home, MapPin, Truck, GraduationCap,
   // Diversos
   Dna, Globe, Hash,
+  // IA / agentes
+  Sparkles, Bot, Wand2, BrainCircuit,
   // Fallback
   Square,
 } from 'lucide-react';
@@ -60,6 +62,7 @@ const ICONS = {
   Shield, ShieldCheck, CheckCircle2, CheckSquare, Kanban,
   Briefcase, Building2, Store, Home, MapPin, Truck, GraduationCap,
   Dna, Globe, Hash,
+  Sparkles, Bot, Wand2, BrainCircuit,
   Square,
 } satisfies Record<string, LucideIcon>;
 

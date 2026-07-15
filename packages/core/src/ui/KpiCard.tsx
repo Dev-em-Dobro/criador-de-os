@@ -46,26 +46,32 @@ export function KpiCard({ data }: KpiCardProps) {
         <span className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-1">
           {data.label}
           {data.tooltip && (
-            <span
-              className="relative inline-flex"
+            <button
+              type="button"
+              className="relative inline-flex items-center justify-center w-5 h-5 -m-1 rounded-full cursor-help"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
+              onFocus={() => setShowTooltip(true)}
+              onBlur={() => setShowTooltip(false)}
+              onClick={() => setShowTooltip((v) => !v)}
+              aria-label={`Mais informações: ${data.tooltip}`}
+              aria-expanded={showTooltip}
             >
               <span
-                className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gray-600 text-gray-300 text-[10px] font-bold cursor-help hover:bg-gray-500"
-                aria-label="Mais informações"
+                aria-hidden="true"
+                className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gray-600 text-gray-300 text-[10px] font-bold hover:bg-gray-500"
               >
                 i
               </span>
               {showTooltip && (
                 <span
-                  className="absolute left-0 bottom-full mb-1.5 z-50 px-3 py-2 text-xs text-gray-200 bg-gray-900 border border-gray-600 rounded-lg shadow-xl max-w-[260px] whitespace-normal"
+                  className="absolute left-0 bottom-full mb-1.5 z-50 px-3 py-2 text-xs text-gray-200 bg-gray-900 border border-gray-600 rounded-lg shadow-xl max-w-[260px] whitespace-normal font-normal normal-case tracking-normal text-left"
                   role="tooltip"
                 >
                   {data.tooltip}
                 </span>
               )}
-            </span>
+            </button>
           )}
         </span>
         <StatusIndicator value={data.value} target={data.target} />

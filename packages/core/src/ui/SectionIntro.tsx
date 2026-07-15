@@ -16,34 +16,48 @@ export interface SectionIntroProps {
 }
 
 export function SectionIntro({ help }: SectionIntroProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false); // modal do tutorial
+  const [expanded, setExpanded] = useState(false); // descrição inline
   const hasTutorial = !!help.tutorial && help.tutorial.steps.length > 0;
 
   // Nada a mostrar (nem descrição nem tutorial) → não renderiza o banner.
   if (!help.description && !hasTutorial) return null;
 
+  // Progressive disclosure: por padrão só uma linha discreta "Como funciona".
+  // A descrição fica escondida até o usuário pedir — menos texto na tela.
   return (
     <div className="mb-5">
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-gray-700/50 bg-gray-800/50 px-4 py-3 backdrop-blur-sm">
-        <span
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500/15 text-xs font-bold text-blue-300"
-          aria-hidden
-        >
-          i
-        </span>
+      <div className="flex flex-wrap items-center gap-1">
         {help.description && (
-          <p className="flex-1 text-sm leading-relaxed text-gray-300">{help.description}</p>
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-400 transition-colors hover:bg-(color:--os-hover) hover:text-gray-200"
+          >
+            <span className="grid h-4 w-4 place-items-center rounded-full bg-blue-500/15 text-[10px] font-bold text-blue-300" aria-hidden>
+              i
+            </span>
+            Como funciona
+            <span className="text-gray-500" aria-hidden>{expanded ? '▾' : '▸'}</span>
+          </button>
         )}
         {hasTutorial && (
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="shrink-0 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300 transition-colors hover:bg-blue-500/20"
+            className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-blue-400 transition-colors hover:bg-(color:--os-hover) hover:text-blue-300"
           >
             Ver tutorial
           </button>
         )}
       </div>
+
+      {expanded && help.description && (
+        <p className="mt-2 rounded-2xl border border-gray-700/50 bg-gray-800/50 px-4 py-3 text-sm leading-relaxed text-gray-300 backdrop-blur-sm">
+          {help.description}
+        </p>
+      )}
 
       {open && hasTutorial && help.tutorial && (
         <TutorialModal

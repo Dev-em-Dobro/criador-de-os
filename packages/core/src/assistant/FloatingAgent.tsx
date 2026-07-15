@@ -31,6 +31,9 @@ export interface FloatingAgentProps {
 
 const storageKey = (contextKey: string, inputKey: string) => `os-assistant-${contextKey}-${inputKey}`;
 
+/** Frases que se alternam durante a análise, pra a espera parecer viva. */
+const FRASES_ANALISE = ['Reunindo os dados…', 'Analisando os números…', 'Cruzando as informações…', 'Montando as recomendações…'];
+
 export function FloatingAgent({ config }: FloatingAgentProps) {
   const { contextKey, title, subtitle, starters, inputs } = config;
   const Icon = config.icon ? resolveIcon(config.icon) : Sparkles;
@@ -44,6 +47,7 @@ export function FloatingAgent({ config }: FloatingAgentProps) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [fraseIdx, setFraseIdx] = useState(0);
   const [fields, setFields] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const f of inputs ?? []) init[f.key] = localStorage.getItem(storageKey(contextKey, f.key)) ?? '';
@@ -102,6 +106,16 @@ export function FloatingAgent({ config }: FloatingAgentProps) {
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, analise, loading, chatLoading]);
+
+  // Enquanto analisa, alterna as frases pra a espera parecer viva.
+  useEffect(() => {
+    if (!loading) {
+      setFraseIdx(0);
+      return;
+    }
+    const t = setInterval(() => setFraseIdx((i) => (i + 1) % FRASES_ANALISE.length), 1600);
+    return () => clearInterval(t);
+  }, [loading]);
 
   function aplicarCampos(): void {
     for (const f of inputs ?? []) localStorage.setItem(storageKey(contextKey, f.key), fields[f.key] ?? '');
@@ -192,9 +206,25 @@ export function FloatingAgent({ config }: FloatingAgentProps) {
             )}
 
             {loading && (
-              <div role="status" aria-live="polite" className="rounded-xl border border-gray-700/50 bg-gray-800/40 p-6 text-center">
-                <div aria-hidden="true" className="mb-2 text-2xl">🔎</div>
-                <p className="text-sm font-medium text-gray-300">Analisando…</p>
+              <div role="status" aria-live="polite" className="rounded-xl border border-gray-700/50 bg-gray-800/40 p-5">
+                <div className="flex items-center gap-3">
+                  <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-500/15">
+                    <span aria-hidden="true" className="os-agent-halo absolute inset-0 rounded-full bg-blue-500/25" />
+                    <Icon className="relative h-5 w-5 animate-pulse text-blue-300" strokeWidth={1.75} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-200">Analisando…</p>
+                    <p className="mt-0.5 text-xs text-blue-300/90">{FRASES_ANALISE[fraseIdx]}</p>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-2.5" aria-hidden="true">
+                  <div className="os-shimmer h-3 w-4/5 rounded bg-gray-700/50" />
+                  <div className="os-shimmer h-3 w-3/5 rounded bg-gray-700/40" />
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="os-shimmer h-16 rounded-xl bg-gray-700/40" />
+                    <div className="os-shimmer h-16 rounded-xl bg-gray-700/30" />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -317,15 +347,28 @@ export function FloatingAgent({ config }: FloatingAgentProps) {
         </div>
       )}
 
-      {/* FAB */}
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? `Fechar ${title}` : `Abrir ${title}`}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg shadow-blue-500/30 ring-1 ring-white/10 transition-transform hover:scale-105 active:scale-95"
-      >
-        {open ? <X className="h-6 w-6" strokeWidth={2} /> : <Icon className="h-6 w-6" strokeWidth={2} />}
-      </button>
+      {/* FAB — halo pulsante quando fechado, pra chamar atenção */}
+      <div className="fixed bottom-6 right-6 z-50">
+        {!open && <span aria-hidden="true" className="os-agent-halo pointer-events-none absolute inset-0 rounded-full bg-blue-500" />}
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? `Fechar ${title}` : `Abrir ${title} — assistente de IA`}
+          className="relative flex h-14 w-14 flex-col items-center justify-center gap-[3px] rounded-full bg-blue-500 text-white shadow-lg shadow-blue-500/30 ring-1 ring-white/10 transition-transform hover:scale-105 active:scale-95"
+        >
+          {open ? (
+            <X className="h-6 w-6" strokeWidth={2} />
+          ) : (
+            <>
+              <Icon className="h-5 w-5" strokeWidth={2} />
+              {/* Rótulo suave indicando que é um agente de IA (disclosure) */}
+              <span aria-hidden="true" className="text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-white/85">
+                IA
+              </span>
+            </>
+          )}
+        </button>
+      </div>
     </>
   );
 }

@@ -25,7 +25,8 @@ export function PeriodFilter({ period, onChange, only }: PeriodFilterProps) {
           key={p.value}
           type="button"
           onClick={() => onChange(p.value)}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer ${
+          aria-pressed={effectivePeriod === p.value}
+          className={`px-4 py-2 rounded-full text-sm font-medium border transition-all cursor-pointer ${
             effectivePeriod === p.value
               ? 'bg-blue-500 border-blue-500 text-white'
               : 'border-gray-600 text-gray-400 hover:border-gray-400'

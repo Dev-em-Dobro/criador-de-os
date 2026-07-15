@@ -196,6 +196,33 @@ body::after {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ---- Halo pulsante do copiloto flutuante (FAB) — chama atenção suave ---- */
+.os-agent-halo {
+  animation: os-agent-halo 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes os-agent-halo {
+  0%   { transform: scale(1);   opacity: 0.5; }
+  70%  { transform: scale(1.8); opacity: 0;   }
+  100% { transform: scale(1.8); opacity: 0;   }
+}
+
+/* ---- Brilho deslizante para blocos de carregamento (skeleton) ---- */
+.os-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.os-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-brand) 22%, transparent), transparent);
+  animation: os-shimmer 1.5s ease-in-out infinite;
+}
+@keyframes os-shimmer {
+  100% { transform: translateX(100%); }
+}
+
 /* Números tabulares para métricas. */
 .tnum {
   font-variant-numeric: tabular-nums;
@@ -240,8 +267,21 @@ body::after {
   display: none;
 }
 
+/* ---- Foco visível para navegação por teclado (acessibilidade) ----
+   :focus-visible só dispara no foco por teclado (não no clique), então não
+   incomoda o uso com mouse. Cobre TODOS os interativos do OS de uma vez
+   (botões, links, pills, abas, checkboxes). Campos de texto definem o próprio
+   anel via `focus-visible:ring` e já suprimem o outline com `focus:outline-none`,
+   então não duplicam com esta regra. O outline segue o border-radius do alvo. */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-rise { animation: none; }
   .status-dot { animation: none; }
+  .os-agent-halo { animation: none; }
+  .os-shimmer::after { animation: none; }
   html { scroll-behavior: auto; }
 }

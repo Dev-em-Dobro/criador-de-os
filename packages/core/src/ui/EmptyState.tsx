@@ -16,9 +16,9 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="rounded-xl border border-gray-700 bg-gray-800/50 p-12 text-center">
-      {icon != null && <div className="text-4xl mb-4 opacity-40">{icon}</div>}
+      {icon != null && <div aria-hidden="true" className="text-4xl mb-4 opacity-50">{icon}</div>}
       <p className="text-gray-400 text-sm font-medium">{message}</p>
-      {hint && <p className="text-gray-600 text-xs mt-2">{hint}</p>}
+      {hint && <p className="text-gray-500 text-xs mt-2">{hint}</p>}
     </div>
   );
 }

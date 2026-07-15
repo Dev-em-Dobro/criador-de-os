@@ -19,8 +19,10 @@ export function SectionHeader({ title, icon, subtitle, children }: SectionHeader
           className="w-1 rounded-full bg-gradient-to-b from-blue-400 via-blue-500 to-emerald-500"
         />
         <div>
-          <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
-            {icon != null && <span className="text-[1.1em] inline-flex items-center">{icon}</span>}
+          {/* Título em fonte de display: no Neurovida é a serifa Fraunces (assinatura
+              editorial da marca); nos demais apps `--font-display` = sans (inalterado). */}
+          <h2 className="text-xl font-bold tracking-tight flex items-center gap-2" style={{ fontFamily: 'var(--font-display)' }}>
+            {icon != null && <span aria-hidden="true" className="text-[1.1em] inline-flex items-center">{icon}</span>}
             {title}
           </h2>
           {subtitle && <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>}

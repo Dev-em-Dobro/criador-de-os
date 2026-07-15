@@ -1,10 +1,12 @@
+import { Fragment, useState } from 'react';
 import type { ReactNode } from 'react';
+import { Menu, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /**
  * Item de navegação genérico do shell (menu principal ou sub-aba).
  * Dirigido por callback (`onSelect`), NÃO por rota — o chassi é agnóstico de
- * router. Na fatia 1B, estes itens passarão a ser derivados do manifesto.
+ * router. Os itens são derivados do manifesto pelo ManifestRouter.
  */
 export interface ShellNavItem {
   /** Chave estável (usada como key e para marcar o item ativo). */
@@ -26,17 +28,19 @@ export interface AppShellProps {
   brandBadge?: string;
   /**
    * Logo do cliente (opcional). Quando presente, substitui o emblema genérico
-   * (`.brand-mark`) na topbar. Passado como ReactNode para o app decidir a fonte
-   * (ex.: <img src={manifest.identity.logoUrl} />) — o shell nunca hardcoda logo.
+   * (`.brand-mark`) no topo da sidebar. Passado como ReactNode para o app decidir
+   * a fonte (ex.: <img src={manifest.identity.logoUrl} />) — o shell nunca hardcoda.
    */
   logo?: ReactNode;
-  /** Menus principais (pills na topbar). */
+  /** Menus principais (itens da sidebar). */
   menus: ShellNavItem[];
-  /** Sub-abas verticais (sidebar). Se ausente/vazio, a sidebar não é renderizada. */
+  /** Sub-abas do menu ATIVO. Se presentes, aninham sob o item ativo na sidebar. */
   sidebar?: ShellNavItem[];
-  /** Texto do rodapé (à direita). */
+  /** Texto do rodapé (na base da sidebar). */
   footerText?: string;
-  /** Faixa de aviso opcional no topo (ex.: <ErrorBanner />). */
+  /** Conteúdo opcional no rodapé da sidebar (ex.: toggle de tema, perfil, versão). */
+  navFooter?: ReactNode;
+  /** Faixa de aviso opcional no topo do conteúdo (ex.: <ErrorBanner />). */
   banner?: ReactNode;
   /**
    * Camada flutuante opcional, renderizada por cima de todo o OS (posição fixa,
@@ -49,25 +53,28 @@ export interface AppShellProps {
   children: ReactNode;
 }
 
-/** Botão de pill do menu principal (topbar). */
-function MenuPill({ item }: { item: ShellNavItem }) {
+/** Item de navegação vertical da sidebar (menu principal ou sub-aba aninhada). */
+function NavItem({ item, sub = false, onNavigate }: { item: ShellNavItem; sub?: boolean; onNavigate?: () => void }) {
   const Icon = item.icon;
   return (
     <button
       type="button"
-      onClick={item.onSelect}
+      onClick={() => {
+        item.onSelect?.();
+        onNavigate?.();
+      }}
       aria-current={item.active ? 'page' : undefined}
-      className={`group px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
+      className={`flex items-center gap-2.5 rounded-lg text-left font-medium transition-colors ${
+        sub ? 'px-3 py-1.5 text-[13px]' : 'px-3 py-2.5 text-sm'
+      } ${
         item.active
-          ? 'bg-blue-500/15 text-(color:--os-active-text) ring-1 ring-blue-500/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-          : 'text-gray-400 hover:text-gray-100 hover:bg-(color:--os-hover)'
+          ? 'bg-blue-500/15 text-(color:--os-active-text) ring-1 ring-blue-500/30'
+          : 'text-gray-400 hover:bg-(color:--os-hover) hover:text-gray-100'
       }`}
     >
       {Icon && (
         <Icon
-          className={`w-4 h-4 shrink-0 transition-colors duration-200 ${
-            item.active ? 'text-blue-300' : 'text-gray-500 group-hover:text-gray-300'
-          }`}
+          className={`h-4 w-4 shrink-0 transition-colors ${item.active ? 'text-blue-300' : 'text-gray-500'}`}
           strokeWidth={1.75}
         />
       )}
@@ -76,32 +83,14 @@ function MenuPill({ item }: { item: ShellNavItem }) {
   );
 }
 
-/** Botão de sub-aba vertical (sidebar). */
-function SidebarItem({ item }: { item: ShellNavItem }) {
-  const Icon = item.icon;
-  return (
-    <button
-      type="button"
-      onClick={item.onSelect}
-      aria-current={item.active ? 'page' : undefined}
-      className={`flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-lg text-left transition-colors cursor-pointer border-l-2 ${
-        item.active
-          ? 'border-blue-400 text-blue-200 bg-blue-500/10 shadow-[inset_0_0_0_1px_rgba(101,40,211,0.18)]'
-          : 'border-transparent text-gray-400 hover:text-gray-100 hover:bg-(color:--os-hover)'
-      }`}
-    >
-      {Icon && <Icon className="w-4 h-4 shrink-0" strokeWidth={1.75} />}
-      {item.label}
-    </button>
-  );
-}
-
 /**
- * AppShell — chassi genérico do OS (topbar + nav em pills + sidebar opcional +
- * footer), totalmente dirigido por props. Sem textos/menus de cliente.
+ * AppShell — chassi genérico do OS: navegação LATERAL (sidebar) + área de
+ * conteúdo, totalmente dirigido por props. Sem textos/menus de cliente.
  *
- * Generalizado a partir do shell de referência: a navegação usa callbacks
- * (`onSelect`) em vez de rotas, para o chassi não depender de router.
+ * A sidebar concentra a marca, os menus principais (com sub-abas aninhadas sob o
+ * item ativo) e o status. Em telas pequenas ela vira um drawer off-canvas aberto
+ * por um botão na barra superior. A navegação usa callbacks (`onSelect`), então
+ * o chassi não depende de router.
  */
 export function AppShell({
   productName,
@@ -110,85 +99,109 @@ export function AppShell({
   menus,
   sidebar,
   footerText,
+  navFooter,
   banner,
   floating,
   children,
 }: AppShellProps) {
-  const hasSidebar = Boolean(sidebar && sidebar.length > 0);
+  const [navOpen, setNavOpen] = useState(false);
+  const hasSub = Boolean(sidebar && sidebar.length > 0);
+  const closeNav = () => setNavOpen(false);
+
+  const brand = (
+    <div className="flex items-center gap-2.5 select-none">
+      {logo != null ? (
+        <span className="inline-flex shrink-0 items-center">{logo}</span>
+      ) : (
+        <span className="brand-mark" aria-hidden="true" />
+      )}
+      <div className="flex items-baseline gap-1.5">
+        <span className="os-wordmark text-base font-bold uppercase tracking-[0.22em] text-gray-100">{productName}</span>
+        {brandBadge && (
+          <span className="rounded-md bg-blue-500/15 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-[0.28em] text-blue-300 ring-1 ring-blue-500/30">
+            {brandBadge}
+          </span>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="relative min-h-screen text-gray-100 antialiased">
-      {banner}
+      {/* Barra superior — só em telas pequenas: hambúrguer + wordmark */}
+      <header className="nav-glass sticky top-0 z-30 flex items-center gap-3 border-b border-(color:--os-hairline) px-4 py-3 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setNavOpen(true)}
+          aria-label="Abrir menu"
+          aria-expanded={navOpen}
+          className="rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-(color:--os-hover)"
+        >
+          <Menu className="h-5 w-5" strokeWidth={1.75} />
+        </button>
+        {brand}
+      </header>
 
-      {/* Topbar: wordmark (esquerda) | menus (direita) */}
-      <nav className="nav-glass border-b border-(color:--os-hairline) sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between flex-wrap gap-x-6 gap-y-3">
-            {/* Wordmark: logo do cliente (se houver) OU emblema genérico + nome + badge */}
-            <div className="flex items-center gap-2.5 select-none">
-              {logo != null ? (
-                <span className="inline-flex items-center shrink-0">{logo}</span>
-              ) : (
-                <span className="brand-mark" aria-hidden="true" />
+      {/* Backdrop do drawer (mobile) */}
+      {navOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={closeNav} aria-hidden="true" />}
+
+      {/* SIDEBAR (nav principal) */}
+      <aside
+        className={`nav-glass fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-(color:--os-hairline) transition-transform duration-200 lg:translate-x-0 ${
+          navOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Marca */}
+        <div className="flex items-center justify-between gap-2 border-b border-(color:--os-hairline) px-4 py-4">
+          {brand}
+          <button
+            type="button"
+            onClick={closeNav}
+            aria-label="Fechar menu"
+            className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-(color:--os-hover) lg:hidden"
+          >
+            <X className="h-4 w-4" strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Status */}
+        <div className="flex items-center gap-2 px-4 pb-1 pt-3 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">
+          <span className="status-dot" /> Sistema online
+        </div>
+
+        {/* Itens */}
+        <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-2">
+          {menus.map((item) => (
+            <Fragment key={item.key}>
+              <NavItem item={item} onNavigate={closeNav} />
+              {item.active && hasSub && (
+                <div className="mb-1 ml-4 flex flex-col gap-0.5 border-l border-(color:--os-hairline) pl-2">
+                  {sidebar!.map((sub) => (
+                    <NavItem key={sub.key} item={sub} sub onNavigate={closeNav} />
+                  ))}
+                </div>
               )}
-              <div className="flex items-baseline gap-1.5">
-                <span className="os-wordmark text-base font-bold tracking-[0.22em] text-gray-100 uppercase">
-                  {productName}
-                </span>
-                {brandBadge && (
-                  <span className="font-mono text-[11px] font-bold tracking-[0.28em] text-blue-300 px-1.5 py-0.5 rounded-md bg-blue-500/15 ring-1 ring-blue-500/30">
-                    {brandBadge}
-                  </span>
-                )}
-              </div>
-              <span className="status-dot ml-1" title="Sistema online" />
-            </div>
+            </Fragment>
+          ))}
+        </nav>
 
-            {/* Pills do menu principal */}
-            <div className="flex items-center gap-1 flex-wrap">
-              {menus.map((item) => (
-                <MenuPill key={item.key} item={item} />
-              ))}
-            </div>
+        {/* Rodapé da sidebar (slot do app + status) */}
+        <div className="border-t border-(color:--os-hairline) px-3 py-3">
+          {navFooter && <div className="mb-2.5 px-1">{navFooter}</div>}
+          <div className="px-1 text-[11px] text-gray-500">
+            <span className="flex items-center gap-1.5 font-mono uppercase tracking-wide">
+              <span className="status-dot" /> Operational
+            </span>
+            {footerText && <p className="mt-1.5 leading-snug">{footerText}</p>}
           </div>
         </div>
-      </nav>
+      </aside>
 
-      {/* Conteúdo: sidebar vertical opcional + área principal */}
-      <div className="flex flex-1 min-h-0">
-        {hasSidebar && (
-          <aside className="w-52 shrink-0 nav-glass border-r border-(color:--os-hairline) py-5 sticky top-[57px] self-start max-h-[calc(100vh-57px)] overflow-y-auto">
-            <nav className="flex flex-col gap-0.5 px-3">
-              {sidebar!.map((item) => (
-                <SidebarItem key={item.key} item={item} />
-              ))}
-            </nav>
-          </aside>
-        )}
-
-        <main className="flex-1 min-w-0 max-w-7xl mx-auto px-4 py-8 w-full animate-rise">
-          {children}
-        </main>
+      {/* Conteúdo (deslocado pela largura da sidebar em telas grandes) */}
+      <div className="lg:pl-60">
+        {banner}
+        <main className="mx-auto w-full max-w-7xl animate-rise px-4 py-8">{children}</main>
       </div>
-
-      {/* Footer */}
-      <footer className="border-t border-(color:--os-hairline) py-5 mt-4">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between flex-wrap gap-2 text-xs text-gray-500">
-          <span className="flex items-center gap-2 font-mono tracking-wide uppercase">
-            <span className="brand-mark" aria-hidden="true" />
-            {productName}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="status-dot" /> Operational
-            {footerText && (
-              <>
-                <span className="text-gray-600 mx-1.5">·</span>
-                {footerText}
-              </>
-            )}
-          </span>
-        </div>
-      </footer>
 
       {/* Camada flutuante (copiloto/agente ancorado). Posição fixa: fora do fluxo. */}
       {floating}
