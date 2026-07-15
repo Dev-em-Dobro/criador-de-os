@@ -90,7 +90,36 @@ export const neurovidaManifest: ClientManifest = {
         },
       },
 
-      // 2) CLUBE — Membros (comparativo) + Acessos (unificação das 3 plataformas).
+      // 2) FATURAMENTO — receita da Hotmart (SÓ agregados). Consome o resumo de
+      //    vendas via credenciais BYOK do cliente; guarda só números (sem PII).
+      {
+        key: 'faturamento',
+        label: 'Faturamento',
+        icon: 'DollarSign',
+        route: '/faturamento',
+        view: {
+          block: 'hotmart-console',
+          title: 'Faturamento (Hotmart)',
+          subtitle: 'Suas vendas mês a mês — puxadas direto da sua conta Hotmart',
+          config: {},
+          help: {
+            description:
+              'Conecte a sua conta Hotmart (em Configurações) e o OS traz o seu faturamento mês a mês. Trazemos apenas os TOTAIS de vendas — nenhum dado dos seus compradores é lido ou guardado. Transparência: como operamos a infraestrutura, a equipe do Dev em Dobro tem capacidade técnica de acessar esses números; comprometemo-nos a não fazê-lo fora de suporte solicitado por você.',
+            tutorial: {
+              title: 'Como conectar a sua Hotmart',
+              steps: [
+                'Acesse a sua conta Hotmart e vá em "Ferramentas" → "Credenciais" (área de Desenvolvedores).',
+                'Crie/abra uma credencial e copie o "Client ID" e o "Client Secret".',
+                'Aqui no OS, vá em Configurações e cole os dois campos da Hotmart (ficam cifrados; nunca aparecem de volta).',
+                'Volte a esta tela e clique em "Atualizar da Hotmart": o sistema busca o resumo dos últimos 12 meses.',
+                'Veja o faturamento por mês e os totais. Clique em "Atualizar" sempre que quiser trazer os dados mais recentes.',
+              ],
+            },
+          },
+        },
+      },
+
+      // 3) CLUBE — Membros (comparativo) + Acessos (unificação das 3 plataformas).
       {
         key: 'clube',
         label: 'Clube',

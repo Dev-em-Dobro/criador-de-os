@@ -14,6 +14,7 @@ import { isKnownSource, makeLeads } from './leads';
 import { makeInvoices } from './invoices';
 import { extractInvoice } from './invoice-extract';
 import { isScoringSpec } from './scoring';
+import { makeHotmart } from './hotmart';
 
 /** Forma mínima do Better Auth que usamos (evita depender do pacote nos tipos). */
 export interface AuthLike {
@@ -38,6 +39,7 @@ export function mountApi(app: Hono, deps: ServerDeps): MountedApi {
   const settings = makeSettings(deps.db, deps.settingsEncKey);
   const leads = makeLeads(deps.db);
   const invoices = makeInvoices(deps.db);
+  const hotmart = makeHotmart(deps.db, settings.getSettingValue);
 
   const uid = async (headers: Headers): Promise<string | null> =>
     (await deps.auth.api.getSession({ headers }))?.user.id ?? null;
@@ -181,6 +183,34 @@ export function mountApi(app: Hono, deps: ServerDeps): MountedApi {
     if (!(await uid(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
     await invoices.deleteInvoice(c.req.param('id'));
     return c.json({ ok: true });
+  });
+
+  // ---- Faturamento (Hotmart) — só agregados ----
+  app.get('/api/hotmart/metrics', async (c) => {
+    if (!(await uid(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
+    return c.json(await hotmart.getMetrics());
+  });
+
+  app.post('/api/hotmart/sync', async (c) => {
+    if (!(await uid(c.req.raw.headers))) return c.json({ error: 'Não autenticado' }, 401);
+    let months = 12;
+    try {
+      const body = (await c.req.json()) as { months?: unknown };
+      if (typeof body.months === 'number' && body.months >= 1 && body.months <= 24) {
+        months = Math.floor(body.months);
+      }
+    } catch {
+      /* corpo opcional — usa o default de 12 meses */
+    }
+    try {
+      const report = await hotmart.sync({ months });
+      const metrics = await hotmart.getMetrics();
+      return c.json({ report, ...metrics });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[hotmart/sync] erro:', msg); // não vaza credencial
+      return c.json({ error: msg }, 400);
+    }
   });
 
   return { getSettingValue: settings.getSettingValue };

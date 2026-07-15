@@ -20,6 +20,7 @@ import { metricComparison } from './metric-comparison';
 import { settingsPanel } from './settings-panel';
 import { leadConsole } from './lead-console';
 import { invoiceConsole } from './invoice-console';
+import { hotmartConsole } from './hotmart-console';
 
 // ============================================================
 // Blocos (definições registráveis)
@@ -35,6 +36,7 @@ export { metricComparison } from './metric-comparison';
 export { settingsPanel } from './settings-panel';
 export { leadConsole } from './lead-console';
 export { invoiceConsole } from './invoice-console';
+export { hotmartConsole } from './hotmart-console';
 
 // ============================================================
 // Tipos de config (por bloco) + schemas zod
@@ -69,6 +71,7 @@ export const defaultBlocks: readonly AnyBlockDefinition[] = [
   settingsPanel,
   leadConsole,
   invoiceConsole,
+  hotmartConsole,
 ];
 
 /**

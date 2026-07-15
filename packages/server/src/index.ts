@@ -29,3 +29,7 @@ export type { ExtractedInvoice, ExtractedItem } from './invoice-extract';
 /* Score (config-driven) */
 export { computeScore, tierOf, isScoringSpec } from './scoring';
 export type { ScoringSpec, ScoreRule, ScoreMatch, TierCut } from './scoring';
+
+/* Faturamento (Hotmart) — só agregados */
+export { makeHotmart, parseHotmartSummary, HOTMART_SETTING_KEYS } from './hotmart';
+export type { HotmartApi, HotmartMetricsResponse, HotmartMetricRow, MonthAggregate, SyncReport } from './hotmart';

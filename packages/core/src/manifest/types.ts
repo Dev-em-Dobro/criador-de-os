@@ -284,6 +284,7 @@ export type BlockType =
   | 'settings-panel'
   | 'lead-console'
   | 'invoice-console'
+  | 'hotmart-console'
   | `custom:${string}`;
 
 /** Nome de ícone do set do lucide-react (validado contra o set em runtime pelo app). */

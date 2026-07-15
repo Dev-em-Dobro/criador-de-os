@@ -152,6 +152,32 @@ export const invoiceItems = pgTable('invoice_items', {
   recurring: boolean('recurring').notNull(),
 });
 
+// ============================================================
+// Faturamento (Hotmart) — SÓ AGREGADOS (minimização estrutural / LGPD)
+// ============================================================
+
+/**
+ * Faturamento vindo da Hotmart, um registro por (período, produto). Por decisão
+ * de privacidade (Caminho C + "só agregados"), a integração consome o endpoint
+ * de RESUMO da Hotmart — que já devolve totais — e persiste APENAS números aqui.
+ * Não há coluna para nome/e-mail/CPF do comprador: mesmo que alguém troque a
+ * fonte para o histórico detalhado no futuro, não existe onde guardar PII de
+ * terceiros. O `id` é determinístico (período+produto) para o sync ser idempotente.
+ */
+export const hotmartMetrics = pgTable('hotmart_metrics', {
+  id: text('id').primaryKey(),
+  period: text('period').notNull(), // 'YYYY-MM'
+  product: text('product').notNull(), // nome do produto ou 'Todos os produtos'
+  productId: text('product_id'), // id do produto na Hotmart (opcional)
+  grossRevenue: doublePrecision('gross_revenue').notNull(), // faturamento bruto
+  netRevenue: doublePrecision('net_revenue').notNull(), // líquido (o que o produtor recebe)
+  salesCount: integer('sales_count').notNull(), // nº de vendas aprovadas
+  currency: text('currency').notNull(), // ex.: 'BRL'
+  updatedAt: timestamp('updated_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
 /** SQL de GRANTs das tabelas compartilhadas para o role de runtime `app_auth`. */
 export const SHARED_TABLES = [
   '"user"',
@@ -163,4 +189,5 @@ export const SHARED_TABLES = [
   'leads',
   'invoices',
   'invoice_items',
+  'hotmart_metrics',
 ] as const;

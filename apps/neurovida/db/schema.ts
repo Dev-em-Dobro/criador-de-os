@@ -17,4 +17,5 @@ export {
   leads,
   invoices,
   invoiceItems,
+  hotmartMetrics,
 } from '@os/server/schema';

@@ -163,6 +163,7 @@ const blockTypeSchema = z
         'settings-panel',
         'lead-console',
         'invoice-console',
+        'hotmart-console',
       ].includes(v) || v.startsWith('custom:'),
     { message: 'block deve ser um tipo conhecido ou começar com "custom:"' },
   );

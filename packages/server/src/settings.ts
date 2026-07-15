@@ -26,6 +26,18 @@ export const KNOWN_SETTINGS: Record<string, SettingSpec> = {
     help: 'Usada nas ações de IA (ex.: gerar conteúdo, ler PDFs de fatura). Gere em console.anthropic.com. Fica cifrada; nunca é exibida de volta.',
     prefix: 'sk-ant-',
   },
+  // Credenciais da Hotmart (modelo BYOK) — habilitam o painel de Faturamento.
+  // Sem prefixo fixo (a Hotmart não usa um). Ficam cifradas; nunca voltam ao browser.
+  hotmart_client_id: {
+    key: 'hotmart_client_id',
+    label: 'Hotmart — Client ID',
+    help: 'Credencial da sua conta Hotmart (área de Desenvolvedores → Credenciais). Autoriza o OS a ler o RESUMO das suas vendas. Fica cifrada; nunca é exibida de volta.',
+  },
+  hotmart_client_secret: {
+    key: 'hotmart_client_secret',
+    label: 'Hotmart — Client Secret',
+    help: 'O segredo da mesma credencial da Hotmart. Fica cifrado; nunca é exibido de volta.',
+  },
 };
 
 export interface SettingStatus {

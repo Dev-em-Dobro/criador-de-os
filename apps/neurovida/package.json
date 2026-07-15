@@ -13,6 +13,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx db/migrate.ts",
     "db:provision-roles": "tsx db/provision-roles.ts",
+    "db:reset-data": "tsx db/reset-data.ts",
+    "db:seed-hotmart": "tsx db/seed-hotmart.ts",
     "auth:create-user": "tsx api/scripts/create-user.ts"
   },
   "dependencies": {
