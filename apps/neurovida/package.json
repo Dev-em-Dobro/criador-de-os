@@ -15,6 +15,7 @@
     "db:provision-roles": "tsx db/provision-roles.ts",
     "db:reset-data": "tsx db/reset-data.ts",
     "db:seed-hotmart": "tsx db/seed-hotmart.ts",
+    "db:seed-leads": "tsx db/seed-leads.ts",
     "auth:create-user": "tsx api/scripts/create-user.ts"
   },
   "dependencies": {

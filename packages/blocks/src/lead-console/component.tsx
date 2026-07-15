@@ -124,8 +124,31 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
       setErro(e instanceof Error ? e.message : String(e));
     }
   }
+
+  // Se já existem leads PONTUADOS no banco, mostra a visão completa (tiers,
+  // segmentos, tabela) logo no load — sem exigir novo clique em Consolidar/Pontuar.
+  // Deriva os totais dos próprios leads (mesma contagem que a Pontuação produz).
+  async function loadExisting(): Promise<void> {
+    try {
+      const { leads: rows } = await api<{ leads: Lead[] }>('GET', '/api/leads/list');
+      if (rows.length > 0 && rows.some((r) => r.tier || r.segment)) {
+        const byTier: Record<string, number> = {};
+        const bySegment: Record<string, number> = {};
+        for (const r of rows) {
+          if (r.tier) byTier[r.tier] = (byTier[r.tier] ?? 0) + 1;
+          if (r.segment) bySegment[r.segment] = (bySegment[r.segment] ?? 0) + 1;
+        }
+        setScore({ scored: rows.length, byTier, bySegment });
+        setLeads(rows);
+      }
+    } catch {
+      /* silencioso — a tela continua funcionando pelo fluxo manual */
+    }
+  }
+
   useEffect(() => {
     void loadSummary();
+    void loadExisting();
   }, []);
 
   async function upload(source: string, file: File): Promise<void> {
