@@ -82,7 +82,7 @@ function renderCell(col: ColumnSpec, raw: unknown) {
       return formatDate(raw);
     case 'badge': {
       const text = toText(raw);
-      if (!text) return <span className="text-gray-600">—</span>;
+      if (!text) return <span className="text-gray-500">—</span>;
       return (
         <span
           className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${badgeClass(text)}`}
@@ -94,7 +94,7 @@ function renderCell(col: ColumnSpec, raw: unknown) {
     case 'text':
     default: {
       const text = toText(raw);
-      return text === '' ? <span className="text-gray-600">—</span> : text;
+      return text === '' ? <span className="text-gray-500">—</span> : text;
     }
   }
 }

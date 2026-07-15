@@ -58,6 +58,38 @@ const TIER_BADGE: Record<string, string> = {
   C: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
 };
 
+// Fonte de display (Fraunces via token do skin) para os números grandes.
+const DISPLAY = { fontFamily: 'var(--font-display, inherit)' } as const;
+
+/** Anel de progresso (0..1). Mesmo padrão visual do invoice-console. */
+function Ring({ pct, tone = 'brand' }: { pct: number; tone?: 'brand' | 'amber' | 'red' }) {
+  const C = 138.2; // 2π·22
+  const p = Math.max(0, Math.min(1, Number.isFinite(pct) ? pct : 0));
+  const stroke = tone === 'amber' ? 'var(--color-amber-400)' : tone === 'red' ? 'var(--color-red-400)' : 'var(--color-blue-500)';
+  return (
+    <div className="relative" style={{ width: 48, height: 48 }}>
+      <svg width="48" height="48" viewBox="0 0 52 52" aria-hidden>
+        <circle cx="26" cy="26" r="22" fill="none" stroke={stroke} strokeOpacity="0.15" strokeWidth="6" />
+        <circle
+          cx="26"
+          cy="26"
+          r="22"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={C}
+          strokeDashoffset={C * (1 - p)}
+          transform="rotate(-90 26 26)"
+        />
+      </svg>
+      <span className="absolute inset-0 grid place-items-center text-[10px] font-bold" style={{ color: stroke }}>
+        {Math.round(p * 100)}%
+      </span>
+    </div>
+  );
+}
+
 // Modelo da pesquisa de perfil (config-driven, do manifesto). O bloco gera um CSV
 // para o cliente baixar, preencher e subir de volta na fonte de pesquisa.
 interface SurveyQuestion {
@@ -262,10 +294,7 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
             <div className="max-w-2xl">
               <h3 className="text-sm font-semibold text-gray-100">📋 Modelo de pesquisa de perfil (ICP)</h3>
               <p className="mt-1 text-xs text-gray-400">
-                Baixe o modelo, colete as respostas dos seus leads (ex.: monte um formulário com estas mesmas
-                perguntas) e suba o CSV preenchido na fonte{' '}
-                <span className="text-gray-200">"Pesquisa de perfil"</span> acima — fica guardado no sistema e
-                alimenta a Pontuação. As respostas definem o ICP de cada lead.
+                Baixe, colete as respostas e suba na fonte <span className="text-gray-200">"Pesquisa de perfil"</span> — elas definem o ICP de cada lead.
               </p>
             </div>
             <div className="flex flex-shrink-0 gap-2">
@@ -317,8 +346,8 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
         <div className="flex-1 text-sm text-gray-400">
           {summary ? (
             <>
-              <span className="font-semibold text-gray-200">{summary.totalRows}</span> registros ·{' '}
-              <span className="font-semibold text-gray-200">{summary.consolidated}</span> leads consolidados
+              <span className="font-semibold text-gray-200" style={DISPLAY}>{summary.totalRows}</span> registros ·{' '}
+              <span className="font-semibold text-gray-200" style={DISPLAY}>{summary.consolidated}</span> leads consolidados
             </>
           ) : (
             'Carregando…'
@@ -354,22 +383,22 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {(
             [
-              { key: 'quente', label: 'Quente (S/A)', n: tierTotals.quente, barra: 'bg-red-500', texto: 'text-red-400' },
-              { key: 'morno', label: 'Morno (B)', n: tierTotals.morno, barra: 'bg-amber-500', texto: 'text-amber-400' },
-              { key: 'frio', label: 'Frio (C)', n: tierTotals.frio, barra: 'bg-blue-500', texto: 'text-blue-400' },
+              { key: 'quente', label: 'Quente', sub: 'S / A', n: tierTotals.quente, tone: 'red', chip: '🔥', chipBg: 'bg-red-500/10', texto: 'text-red-400' },
+              { key: 'morno', label: 'Morno', sub: 'B', n: tierTotals.morno, tone: 'amber', chip: '🌤️', chipBg: 'bg-amber-500/10', texto: 'text-amber-400' },
+              { key: 'frio', label: 'Frio', sub: 'C', n: tierTotals.frio, tone: 'brand', chip: '❄️', chipBg: 'bg-blue-500/10', texto: 'text-blue-400' },
             ] as const
           ).map((t) => {
-            const pct = tierTotals.total > 0 ? Math.round((t.n / tierTotals.total) * 100) : 0;
+            const pct = tierTotals.total > 0 ? t.n / tierTotals.total : 0;
             return (
-              <div key={t.key} className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 backdrop-blur-sm">
-                <div className="flex items-baseline justify-between">
-                  <span className={`text-sm font-semibold ${t.texto}`}>{t.label}</span>
-                  <span className="text-xs text-gray-500">{pct}%</span>
+              <div key={t.key} className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className={`grid h-11 w-11 place-items-center rounded-xl ${t.chipBg} text-lg ${t.texto}`} aria-hidden>{t.chip}</span>
+                  <Ring pct={pct} tone={t.tone} />
                 </div>
-                <div className="mt-1 text-2xl font-bold text-gray-100">{t.n}</div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-700/50">
-                  <div className={`h-full rounded-full ${t.barra}`} style={{ width: `${pct}%` }} />
+                <div className="mt-4 text-xs font-medium uppercase tracking-wide text-gray-400">
+                  {t.label} <span className="text-gray-500">· {t.sub}</span>
                 </div>
+                <div className={`mt-1 text-2xl ${t.texto}`} style={DISPLAY}>{t.n}</div>
               </div>
             );
           })}
@@ -393,7 +422,7 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
                 >
                   <div className="flex items-baseline justify-between">
                     <span className={`text-sm font-semibold ${s.accent}`}>{s.label}</span>
-                    <span className="text-lg font-bold text-gray-100">{score.bySegment[s.id] ?? 0}</span>
+                    <span className="text-lg text-gray-100" style={DISPLAY}>{score.bySegment[s.id] ?? 0}</span>
                   </div>
                   <p className="mt-1 text-xs text-gray-400">{s.desc}</p>
                 </button>

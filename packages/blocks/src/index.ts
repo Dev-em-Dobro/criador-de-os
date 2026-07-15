@@ -21,6 +21,7 @@ import { settingsPanel } from './settings-panel';
 import { leadConsole } from './lead-console';
 import { invoiceConsole } from './invoice-console';
 import { hotmartConsole } from './hotmart-console';
+import { agentGallery } from './agent-gallery';
 
 // ============================================================
 // Blocos (definições registráveis)
@@ -37,6 +38,7 @@ export { settingsPanel } from './settings-panel';
 export { leadConsole } from './lead-console';
 export { invoiceConsole } from './invoice-console';
 export { hotmartConsole } from './hotmart-console';
+export { agentGallery } from './agent-gallery';
 
 // ============================================================
 // Tipos de config (por bloco) + schemas zod
@@ -72,6 +74,7 @@ export const defaultBlocks: readonly AnyBlockDefinition[] = [
   leadConsole,
   invoiceConsole,
   hotmartConsole,
+  agentGallery,
 ];
 
 /**

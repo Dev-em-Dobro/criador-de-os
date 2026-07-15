@@ -157,8 +157,9 @@ export default function SettingsPanel({ title, subtitle }: BlockProps) {
         ))}
       </div>
 
-      <p className="mt-6 text-xs leading-relaxed text-gray-500">
-        Suas chaves ficam cifradas no seu banco e são usadas apenas pelo servidor do seu OS. Nunca são exibidas de volta nem enviadas ao navegador.
+      <p className="mt-6 flex items-center gap-2 text-xs text-gray-500">
+        <span aria-hidden="true">🔒</span>
+        Suas chaves ficam cifradas no seu banco — nunca voltam ao navegador.
       </p>
     </div>
   );
