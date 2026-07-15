@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="pt-BR" data-skin="cream">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Neurovida OS — Financeiro (redesign · mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ===== Tokens (paleta REAL da Neurovida — skin creme + acento teal/petróleo Liranê) ===== */
+  :root{
+    --bg:#faf8f3;
+    --card:#ffffff;
+    --sunken:#fbf9f3;
+    --hairline:#e9e2d4;
+    --hairline-strong:#c9bda4;
+
+    --text:#2b2620;      /* principal */
+    --text-2:#35302a;    /* forte */
+    --text-3:#4b4536;    /* médio */
+    --muted:#6f6656;     /* muted */
+    --subtle:#78705f;    /* subtle */
+
+    --brand:#003349;         /* teal base */
+    --brand-bright:#0f4d63;  /* teal vivo */
+    --brand-soft:#7fa6b3;    /* teal claro */
+    --brand-strong:#0b2432;  /* petróleo (CTA) */
+    --brand-deep:#071820;
+
+    --amber:#925906;   /* cortes */
+    --green:#107c38;   /* economia */
+    --red:#b91c1c;
+
+    --tint:rgba(0,51,73,0.07);       /* chip/superfície teal bem clara */
+    --tint-2:rgba(0,51,73,0.12);
+    --shadow:0 10px 34px rgba(11,36,50,0.07), 0 2px 6px rgba(11,36,50,0.04);
+    --shadow-hero:0 18px 46px rgba(3,24,32,0.28);
+    --r:24px; --r-sm:16px; --r-xs:12px;
+
+    --sans:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+    --display:'Fraunces',Georgia,'Times New Roman',serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--sans);
+    color:var(--text);
+    background:
+      radial-gradient(58% 42% at 50% -14%, rgba(0,51,73,0.10), transparent 70%),
+      var(--bg);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+
+  /* ===== Topbar (leve — só pra dar contexto do shell) ===== */
+  .topbar{
+    max-width:1200px;margin:0 auto;padding:22px 28px 6px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+  }
+  .wordmark{display:flex;align-items:center;gap:11px}
+  .brand-dot{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand-strong));box-shadow:0 4px 12px rgba(0,51,73,.35)}
+  .wordmark b{font-family:var(--display);font-weight:600;letter-spacing:.18em;font-size:15px;text-transform:uppercase;color:var(--text)}
+  .badge{font:600 10px/1 var(--sans);letter-spacing:.22em;color:var(--brand);background:var(--tint);padding:5px 8px;border-radius:7px}
+  .nav{display:flex;gap:4px}
+  .nav a{font:500 13.5px/1 var(--sans);color:var(--muted);text-decoration:none;padding:9px 14px;border-radius:11px}
+  .nav a.active{color:#fff;background:var(--brand);box-shadow:0 6px 16px rgba(0,51,73,.25)}
+  .avatar{width:36px;height:36px;border-radius:11px;background:var(--tint);display:grid;place-items:center;font-weight:700;color:var(--brand);font-size:13px}
+
+  /* ===== Página ===== */
+  .page{max-width:1200px;margin:0 auto;padding:14px 28px 60px}
+  .head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin:14px 2px 22px}
+  .head h1{font-family:var(--display);font-weight:600;font-size:34px;line-height:1.05;margin:0;color:var(--text);letter-spacing:-.01em}
+  .head p{margin:7px 0 0;color:var(--muted);font-size:14px;max-width:46ch}
+  .segmented{display:inline-flex;background:var(--card);border:1px solid var(--hairline);border-radius:13px;padding:4px;box-shadow:var(--shadow)}
+  .segmented button{font:600 13px/1 var(--sans);color:var(--muted);border:0;background:transparent;padding:9px 15px;border-radius:9px;cursor:pointer}
+  .segmented button.on{color:#fff;background:var(--brand)}
+  .cta{display:inline-flex;align-items:center;gap:8px;font:600 13.5px/1 var(--sans);color:#fff;background:var(--brand-strong);border:0;border-radius:13px;padding:12px 16px;cursor:pointer;box-shadow:0 8px 20px rgba(11,36,50,.24)}
+
+  /* grid geral */
+  .grid{display:grid;gap:20px}
+  .row-kpi{grid-template-columns:1.5fr 1fr 1fr 1fr}
+  .row-charts{grid-template-columns:1.55fr 1fr;margin-top:20px}
+
+  .card{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r);box-shadow:var(--shadow);padding:24px}
+  .card h3{margin:0;font:600 12px/1 var(--sans);letter-spacing:.10em;text-transform:uppercase;color:var(--subtle)}
+
+  /* ===== Card herói (preenchido — o "Light 120W" da ref) ===== */
+  .hero{
+    background:radial-gradient(120% 140% at 100% 0%, var(--brand-bright), var(--brand) 42%, var(--brand-strong) 100%);
+    border:0;border-radius:var(--r);padding:24px 26px;color:#fff;box-shadow:var(--shadow-hero);
+    display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;min-height:186px;
+  }
+  .hero::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06)}
+  .hero .lbl{font:600 12px/1 var(--sans);letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.72);position:relative}
+  .hero .big{font-family:var(--display);font-weight:600;font-size:40px;line-height:1;margin:10px 0 0;letter-spacing:-.02em;position:relative}
+  .hero .sub{display:flex;align-items:center;gap:10px;margin-top:12px;position:relative}
+  .chip-up{display:inline-flex;align-items:center;gap:5px;font:600 12px/1 var(--sans);background:rgba(255,255,255,.16);color:#eafcff;padding:6px 9px;border-radius:8px}
+  .hero .foot{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;position:relative}
+  .hero .mini{color:rgba(255,255,255,.8);font-size:12px}
+
+  /* ===== KPI cards (soft, com chip de ícone + anel) ===== */
+  .kpi{display:flex;flex-direction:column;justify-content:space-between;min-height:186px}
+  .kpi .top{display:flex;align-items:center;justify-content:space-between}
+  .ichip{width:44px;height:44px;border-radius:13px;background:var(--tint);display:grid;place-items:center;color:var(--brand)}
+  .ichip.amber{background:rgba(146,89,6,.10);color:var(--amber)}
+  .ichip.green{background:rgba(16,124,56,.10);color:var(--green)}
+  .kpi .lbl{font:600 12px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--subtle)}
+  .kpi .val{font-family:var(--display);font-weight:600;font-size:27px;line-height:1;margin:12px 0 0;color:var(--text);letter-spacing:-.01em}
+  .kpi .delta{font-size:12px;color:var(--muted);margin-top:7px}
+  .kpi .delta b{color:var(--green);font-weight:600}
+  .kpi .delta.cut b{color:var(--amber)}
+  .ring{position:relative;width:52px;height:52px}
+  .ring .pct{position:absolute;inset:0;display:grid;place-items:center;font:700 12px/1 var(--sans);color:var(--brand)}
+
+  /* ===== Charts ===== */
+  .chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+  .chart-head .n{font-family:var(--display);font-weight:600;font-size:26px;margin:8px 0 0;letter-spacing:-.01em}
+  .tabs{display:inline-flex;background:var(--sunken);border:1px solid var(--hairline);border-radius:11px;padding:3px}
+  .tabs button{font:600 12px/1 var(--sans);color:var(--muted);border:0;background:transparent;padding:7px 11px;border-radius:8px;cursor:pointer}
+  .tabs button.on{background:var(--card);color:var(--brand);box-shadow:0 2px 6px rgba(11,36,50,.10)}
+  .bars{display:flex;align-items:flex-end;gap:16px;height:170px;padding:0 2px}
+  .bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:10px;height:100%}
+  .bar .track{width:100%;max-width:52px;height:100%;display:flex;align-items:flex-end}
+  .bar .fill{width:100%;border-radius:12px 12px 6px 6px;background:linear-gradient(180deg,var(--brand-bright),var(--brand));box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
+  .bar .fill.soft{background:linear-gradient(180deg,#9cc0cc,var(--brand-soft))}
+  .bar .cap{font:600 12px/1 var(--sans);color:var(--text-3)}
+  .bar .cap small{display:block;color:var(--subtle);font-weight:500;margin-top:4px;font-size:11px}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px}
+  .legend span{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text-3)}
+  .dot{width:9px;height:9px;border-radius:3px;background:var(--brand)}
+  .dot.soft{background:var(--brand-soft)}
+
+  .exp-nums{display:flex;gap:22px;margin-top:2px}
+  .exp-nums div .k{font:600 11px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--subtle)}
+  .exp-nums div .v{font-family:var(--display);font-weight:600;font-size:22px;margin-top:6px}
+  .exp-nums div .v.dim{color:var(--muted)}
+
+  /* ===== Lançamentos ===== */
+  .lanc{margin-top:20px}
+  .lanc .rowh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .lanc .rowh a{font:600 13px/1 var(--sans);color:var(--brand-bright);text-decoration:none}
+  .item{display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:16px;padding:14px 8px;border-bottom:1px solid var(--hairline)}
+  .item:last-child{border-bottom:0}
+  .item .cdot{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:16px;background:var(--tint)}
+  .item .name{font:600 14.5px/1.2 var(--sans);color:var(--text)}
+  .item .meta{font-size:12px;color:var(--subtle);margin-top:4px;display:flex;gap:8px;align-items:center}
+  .rec{display:inline-flex;align-items:center;gap:4px;font:600 10.5px/1 var(--sans);color:var(--brand);background:var(--tint);padding:4px 7px;border-radius:6px}
+  .item .amt{font-family:var(--display);font-weight:600;font-size:16px;color:var(--text)}
+  .item.cut .name,.item.cut .amt{text-decoration:line-through;color:var(--muted)}
+  /* toggle estilo ON/OFF da ref */
+  .sw{width:46px;height:26px;border-radius:99px;background:var(--hairline-strong);position:relative;cursor:pointer;transition:.2s}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.18);transition:.2s}
+  .sw.on{background:var(--amber)}
+  .sw.on::after{left:23px}
+  .cut-lab{font:600 11px/1 var(--sans);color:var(--subtle);text-align:right;margin-top:6px}
+
+  /* ===== FAB copiloto ===== */
+  .fab{position:fixed;right:26px;bottom:26px;width:58px;height:58px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;box-shadow:0 12px 28px rgba(0,51,73,.4);border:1px solid rgba(255,255,255,.12)}
+  .note{max-width:1200px;margin:26px auto 0;padding:0 28px;color:var(--subtle);font-size:12px}
+  @media (max-width:1080px){.row-kpi{grid-template-columns:1fr 1fr}.row-charts{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+  <!-- shell topbar (contexto) -->
+  <div class="topbar">
+    <div class="wordmark">
+      <span class="brand-dot"></span>
+      <b>NEUROVIDA</b><span class="badge">OS</span>
+    </div>
+    <nav class="nav">
+      <a class="active" href="#">Financeiro</a>
+      <a href="#">Faturamento</a>
+      <a href="#">Leads quentes</a>
+      <a href="#">Simulador</a>
+      <a href="#">Configurações</a>
+    </nav>
+    <div class="avatar">LS</div>
+  </div>
+
+  <div class="page">
+    <!-- header da seção -->
+    <div class="head">
+      <div>
+        <h1>Fatura do cartão</h1>
+        <p>Seus lançamentos, organizados e somados. Marque o que cortar e veja quanto sobra.</p>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="segmented">
+          <button>Mai</button><button>Jun</button><button class="on">Jul 26</button>
+        </div>
+        <button class="cta">＋ Subir PDF</button>
+      </div>
+    </div>
+
+    <!-- LINHA 1: herói + KPIs -->
+    <div class="grid row-kpi">
+      <!-- herói preenchido -->
+      <div class="hero">
+        <div>
+          <div class="lbl">Total da fatura · Jul 2026</div>
+          <div class="big">R$ 57.417,76</div>
+          <div class="sub">
+            <span class="chip-up">▲ 4,3% vs. jun</span>
+            <span class="mini">134 lançamentos · 17 páginas</span>
+          </div>
+        </div>
+        <div class="foot">
+          <span class="mini">Recorrente: R$ 45.716,84/mês</span>
+          <!-- sparkline -->
+          <svg width="132" height="44" viewBox="0 0 132 44" fill="none">
+            <path d="M2 34 L24 30 L46 33 L68 22 L90 26 L112 12 L130 8" stroke="rgba(255,255,255,.9)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 34 L24 30 L46 33 L68 22 L90 26 L112 12 L130 8 L130 44 L2 44 Z" fill="rgba(255,255,255,.10)"/>
+            <circle cx="130" cy="8" r="3.5" fill="#fff"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- KPI: recorrentes -->
+      <div class="card kpi">
+        <div class="top">
+          <span class="ichip">♻</span>
+          <div class="ring">
+            <svg width="52" height="52" viewBox="0 0 52 52">
+              <circle cx="26" cy="26" r="22" fill="none" stroke="var(--tint-2)" stroke-width="6"/>
+              <circle cx="26" cy="26" r="22" fill="none" stroke="var(--brand)" stroke-width="6" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="27.6" transform="rotate(-90 26 26)"/>
+            </svg>
+            <span class="pct">80%</span>
+          </div>
+        </div>
+        <div>
+          <div class="lbl">Recorrentes</div>
+          <div class="val">R$ 45.717</div>
+          <div class="delta">80% da fatura são assinaturas fixas</div>
+        </div>
+      </div>
+
+      <!-- KPI: marcado pra cortar -->
+      <div class="card kpi">
+        <div class="top">
+          <span class="ichip amber">✂</span>
+          <div class="ring">
+            <svg width="52" height="52" viewBox="0 0 52 52">
+              <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(146,89,6,.14)" stroke-width="6"/>
+              <circle cx="26" cy="26" r="22" fill="none" stroke="var(--amber)" stroke-width="6" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="118" transform="rotate(-90 26 26)"/>
+            </svg>
+            <span class="pct" style="color:var(--amber)">15%</span>
+          </div>
+        </div>
+        <div>
+          <div class="lbl">Marcado pra cortar</div>
+          <div class="val">R$ 1.240<span style="font-size:14px;color:var(--muted);font-family:var(--sans)">/mês</span></div>
+          <div class="delta cut">Economia no ano: <b>R$ 14.880</b></div>
+        </div>
+      </div>
+
+      <!-- KPI: fatura após cortes -->
+      <div class="card kpi">
+        <div class="top">
+          <span class="ichip green">✓</span>
+          <div class="ring">
+            <svg width="52" height="52" viewBox="0 0 52 52">
+              <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(16,124,56,.12)" stroke-width="6"/>
+              <circle cx="26" cy="26" r="22" fill="none" stroke="var(--green)" stroke-width="6" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="10" transform="rotate(-90 26 26)"/>
+            </svg>
+            <span class="pct" style="color:var(--green)">98%</span>
+          </div>
+        </div>
+        <div>
+          <div class="lbl">Fatura após cortes</div>
+          <div class="val">R$ 56.178</div>
+          <div class="delta">Você fica <b>R$ 1.240</b> mais leve por mês</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LINHA 2: categorias (bar) + evolução (área) -->
+    <div class="grid row-charts">
+      <!-- custos por categoria -->
+      <div class="card">
+        <div class="chart-head">
+          <div>
+            <h3>Custos por categoria</h3>
+            <div class="n">R$ 57.418 <span style="font:500 13px var(--sans);color:var(--subtle)">no período</span></div>
+          </div>
+          <div class="tabs"><button class="on">Este mês</button><button>3 meses</button></div>
+        </div>
+        <div class="bars">
+          <div class="bar"><div class="track"><div class="fill" style="height:100%"></div></div><div class="cap">Ferramentas<small>R$ 46.249</small></div></div>
+          <div class="bar"><div class="track"><div class="fill soft" style="height:26%"></div></div><div class="cap">Serviços<small>R$ 6.894</small></div></div>
+          <div class="bar"><div class="track"><div class="fill soft" style="height:15%"></div></div><div class="cap">Tráfego<small>R$ 3.294</small></div></div>
+          <div class="bar"><div class="track"><div class="fill soft" style="height:7%"></div></div><div class="cap">Impostos<small>R$ 980</small></div></div>
+        </div>
+        <div class="legend">
+          <span><i class="dot"></i> Maior peso</span>
+          <span><i class="dot soft"></i> Demais categorias</span>
+          <span style="margin-left:auto;color:var(--brand);font-weight:600">Ferramentas = 80% do gasto ⚠</span>
+        </div>
+      </div>
+
+      <!-- evolução da fatura -->
+      <div class="card">
+        <div class="chart-head">
+          <div><h3>Evolução da fatura</h3></div>
+          <div class="tabs"><button>Mês</button><button class="on">Trim</button><button>Ano</button></div>
+        </div>
+        <div class="exp-nums">
+          <div><div class="k">Este mês</div><div class="v">R$ 57,4k</div></div>
+          <div><div class="k">Mês anterior</div><div class="v dim">R$ 55,0k</div></div>
+        </div>
+        <svg width="100%" height="150" viewBox="0 0 360 150" preserveAspectRatio="none" style="margin-top:14px">
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="rgba(0,51,73,.20)"/><stop offset="1" stop-color="rgba(0,51,73,0)"/>
+            </linearGradient>
+          </defs>
+          <path d="M0 96 C 40 92, 70 70, 110 76 C 150 82, 180 40, 220 52 C 260 64, 300 30, 360 22 L360 150 L0 150 Z" fill="url(#g)"/>
+          <path d="M0 96 C 40 92, 70 70, 110 76 C 150 82, 180 40, 220 52 C 260 64, 300 30, 360 22" fill="none" stroke="var(--brand)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="360" cy="22" r="4.5" fill="var(--brand)" stroke="#fff" stroke-width="2"/>
+        </svg>
+        <div class="legend" style="justify-content:space-between;color:var(--subtle);font-size:11.5px">
+          <span>Mai</span><span>Jun</span><span>Jul</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LINHA 3: lançamentos -->
+    <div class="card lanc">
+      <div class="rowh">
+        <h3>Lançamentos · Ferramentas</h3>
+        <a href="#">Ver todas as categorias →</a>
+      </div>
+
+      <div class="item cut">
+        <div class="cdot">🎥</div>
+        <div><div class="name">Loom — gravação de tela</div><div class="meta"><span class="rec">♻ recorrente</span> Assinatura mensal</div></div>
+        <div class="amt">R$ 80,00</div>
+        <div><div class="sw on"></div><div class="cut-lab">cortar</div></div>
+      </div>
+      <div class="item cut">
+        <div class="cdot">📹</div>
+        <div><div class="name">Zoom Pro</div><div class="meta"><span class="rec">♻ recorrente</span> Assinatura mensal</div></div>
+        <div class="amt">R$ 99,00</div>
+        <div><div class="sw on"></div><div class="cut-lab">cortar</div></div>
+      </div>
+      <div class="item">
+        <div class="cdot">✉️</div>
+        <div><div class="name">ActiveCampaign</div><div class="meta"><span class="rec">♻ recorrente</span> E-mail marketing</div></div>
+        <div class="amt">R$ 290,00</div>
+        <div><div class="sw"></div><div class="cut-lab">manter</div></div>
+      </div>
+      <div class="item">
+        <div class="cdot">🎨</div>
+        <div><div class="name">Adobe Creative Cloud</div><div class="meta"><span class="rec">♻ recorrente</span> Criação</div></div>
+        <div class="amt">R$ 320,00</div>
+        <div><div class="sw"></div><div class="cut-lab">manter</div></div>
+      </div>
+      <div class="item">
+        <div class="cdot">🤖</div>
+        <div><div class="name">Claude.ai / Anthropic</div><div class="meta"><span class="rec">♻ recorrente</span> IA</div></div>
+        <div class="amt">R$ 110,00</div>
+        <div><div class="sw"></div><div class="cut-lab">manter</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- copiloto flutuante -->
+  <div class="fab">✦</div>
+
+  <div class="note">Mockup de direção — Neurovida OS · Financeiro. Paleta e fontes reais do design system (teal/petróleo Liranê · creme · Fraunces). Dados ilustrativos baseados numa fatura real.</div>
+</body>
+</html>

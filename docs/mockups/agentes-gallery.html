@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Neurovida OS — Agentes (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#faf8f3; --card:#ffffff; --sunken:#fbf9f3;
+    --hairline:#e9e2d4; --hairline-strong:#c9bda4;
+    --text:#2b2620; --text-2:#35302a; --text-3:#4b4536; --muted:#6f6656; --subtle:#78705f;
+    --brand:#003349; --brand-bright:#0f4d63; --brand-soft:#7fa6b3; --brand-strong:#0b2432; --brand-deep:#071820;
+    --amber:#925906; --green:#107c38; --red:#b91c1c;
+    --tint:rgba(0,51,73,0.07); --tint-2:rgba(0,51,73,0.12);
+    --shadow:0 10px 34px rgba(11,36,50,0.07), 0 2px 6px rgba(11,36,50,0.04);
+    --shadow-hero:0 18px 46px rgba(3,24,32,0.28);
+    --r:24px; --r-sm:16px; --r-xs:12px;
+    --sans:'Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;
+    --display:'Fraunces',Georgia,serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{font-family:var(--sans);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;
+    background:radial-gradient(58% 42% at 50% -14%, rgba(0,51,73,0.10), transparent 70%), var(--bg);}
+  .topbar{max-width:1200px;margin:0 auto;padding:22px 28px 6px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .wordmark{display:flex;align-items:center;gap:11px}
+  .brand-dot{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand-strong));box-shadow:0 4px 12px rgba(0,51,73,.35)}
+  .wordmark b{font-family:var(--display);font-weight:600;letter-spacing:.18em;font-size:15px;text-transform:uppercase}
+  .badge{font:600 10px/1 var(--sans);letter-spacing:.22em;color:var(--brand);background:var(--tint);padding:5px 8px;border-radius:7px}
+  .nav{display:flex;gap:4px}
+  .nav a{font:500 13.5px/1 var(--sans);color:var(--muted);text-decoration:none;padding:9px 14px;border-radius:11px}
+  .nav a.active{color:#fff;background:var(--brand);box-shadow:0 6px 16px rgba(0,51,73,.25)}
+  .avatar{width:36px;height:36px;border-radius:11px;background:var(--tint);display:grid;place-items:center;font-weight:700;color:var(--brand);font-size:13px}
+
+  .page{max-width:1200px;margin:0 auto;padding:14px 28px 60px}
+  .head{margin:14px 2px 22px}
+  .head h1{font-family:var(--display);font-weight:600;font-size:34px;line-height:1.05;margin:0;letter-spacing:-.01em}
+  .head p{margin:8px 0 0;color:var(--muted);font-size:14px;max-width:56ch}
+  .kicker{font:600 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--brand);margin-bottom:30px;opacity:.5}
+
+  /* ===== Galeria de agentes ===== */
+  .agents{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .agent{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r);box-shadow:var(--shadow);padding:22px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden;transition:.15s}
+  .agent .bar{position:absolute;inset:0 0 auto 0;height:4px;background:linear-gradient(90deg,var(--brand-bright),var(--brand))}
+  .agent.soon{opacity:.72}
+  .agent.soon .bar{background:var(--hairline-strong)}
+  .a-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .a-av{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:24px;background:radial-gradient(120% 120% at 100% 0%,var(--brand-bright),var(--brand-strong));color:#fff;box-shadow:0 8px 18px rgba(0,51,73,.28)}
+  .a-av.soft{background:var(--tint);color:var(--brand);box-shadow:none}
+  .pill{display:inline-flex;align-items:center;gap:6px;font:600 11px/1 var(--sans);padding:6px 9px;border-radius:99px}
+  .pill.ok{color:var(--green);background:rgba(16,124,56,.10)}
+  .pill.wait{color:var(--muted);background:var(--sunken);border:1px solid var(--hairline)}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+  .a-name{font-family:var(--display);font-weight:600;font-size:19px;line-height:1.1;margin:0}
+  .a-exp{color:var(--muted);font-size:13px;line-height:1.45;margin:5px 0 0}
+  .a-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:14px;border-top:1px solid var(--hairline)}
+  .a-meta{font-size:11.5px;color:var(--subtle)}
+  .a-cta{font:600 13px/1 var(--sans);color:var(--brand-bright);text-decoration:none}
+  .a-cta.dim{color:var(--muted)}
+
+  /* ===== Relatório (ao clicar) ===== */
+  .report-kicker{font:600 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--subtle);margin:46px 0 12px}
+  .report{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+  .r-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 26px;background:linear-gradient(180deg,var(--sunken),transparent);border-bottom:1px solid var(--hairline)}
+  .r-id{display:flex;align-items:center;gap:14px}
+  .r-id .a-av{width:48px;height:48px;font-size:22px;border-radius:14px}
+  .r-id h2{font-family:var(--display);font-weight:600;font-size:22px;margin:0;line-height:1.1}
+  .r-id p{margin:3px 0 0;color:var(--muted);font-size:12.5px}
+  .r-actions{display:flex;align-items:center;gap:10px}
+  .btn-ghost{font:600 12.5px/1 var(--sans);color:var(--brand-bright);background:var(--card);border:1px solid var(--hairline);border-radius:11px;padding:10px 13px;cursor:pointer}
+  .r-stamp{font-size:11px;color:var(--subtle)}
+  .r-body{padding:24px 26px;display:grid;grid-template-columns:1.4fr 1fr;gap:22px}
+  .resumo{grid-column:1 / -1;font-size:15px;line-height:1.6;color:var(--text-2)}
+  .resumo b{color:var(--text)}
+  .sec h4{font:600 12px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);margin:0 0 12px}
+  .sec ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+  .sec li{display:flex;gap:9px;font-size:13.5px;line-height:1.5;color:var(--text-3)}
+  .sec li i{color:var(--brand);font-style:normal}
+  .callout{border-radius:16px;padding:16px 18px;margin-top:6px}
+  .callout.health{background:var(--tint);border:1px solid rgba(0,51,73,.12)}
+  .callout.health .k{font:600 11px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--brand)}
+  .callout.health .v{margin-top:7px;font-size:14px;line-height:1.5;color:var(--text-2)}
+  .alerts li{color:var(--amber)}
+  .alerts li i{color:var(--amber)}
+  .acoes{grid-column:1 / -1}
+  .acoes h4{font:600 12px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--subtle);margin:6px 0 12px}
+  .act-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .act{border:1px solid rgba(0,51,73,.14);background:linear-gradient(180deg,var(--tint),transparent);border-radius:16px;padding:15px 16px}
+  .act .t{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .act .t b{font-size:14px;color:var(--text)}
+  .act .save{font:600 12px/1 var(--sans);color:var(--brand);white-space:nowrap}
+  .act .d{margin-top:7px;font-size:12px;line-height:1.5;color:var(--muted)}
+  .r-chat{display:flex;gap:10px;padding:16px 26px 22px;border-top:1px solid var(--hairline);background:var(--sunken)}
+  .r-chat input{flex:1;border:1px solid var(--hairline);background:var(--card);border-radius:13px;padding:12px 14px;font:400 14px var(--sans);color:var(--text)}
+  .r-chat input::placeholder{color:var(--subtle)}
+  .r-chat button{width:44px;border:0;border-radius:13px;background:var(--brand);color:#fff;font-size:16px;cursor:pointer}
+
+  .note{max-width:1200px;margin:26px auto 0;padding:0 28px;color:var(--subtle);font-size:12px}
+  @media(max-width:1000px){.agents{grid-template-columns:1fr 1fr}.r-body{grid-template-columns:1fr}.act-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="wordmark"><span class="brand-dot"></span><b>NEUROVIDA</b><span class="badge">OS</span></div>
+    <nav class="nav">
+      <a href="#">Financeiro</a><a href="#">Faturamento</a><a href="#">Leads quentes</a>
+      <a class="active" href="#">Agentes</a><a href="#">Configurações</a>
+    </nav>
+    <div class="avatar">LS</div>
+  </div>
+
+  <div class="page">
+    <div class="head">
+      <h1>Agentes</h1>
+      <p>Sua equipe de especialistas de IA. Cada um cuida de uma frente do seu negócio — clique num card para ver o relatório dele.</p>
+    </div>
+
+    <!-- ===== GALERIA ===== -->
+    <div class="kicker">1 · Galeria de agentes</div>
+    <div class="agents">
+      <!-- Financeiro -->
+      <div class="agent">
+        <div class="bar"></div>
+        <div class="a-top">
+          <div class="a-av">📊</div>
+          <span class="pill ok"><span class="dot"></span> Pronto</span>
+        </div>
+        <div>
+          <p class="a-name">Analista Financeiro</p>
+          <p class="a-exp">Lê suas faturas do cartão, aponta onde cortar e lê a saúde da sua estrutura de custos.</p>
+        </div>
+        <div class="a-foot"><span class="a-meta">Última análise há 2 dias</span><a class="a-cta" href="#">Ver relatório →</a></div>
+      </div>
+
+      <!-- Leads -->
+      <div class="agent">
+        <div class="bar"></div>
+        <div class="a-top">
+          <div class="a-av">🎯</div>
+          <span class="pill ok"><span class="dot"></span> Pronto</span>
+        </div>
+        <div>
+          <p class="a-name">Analista de Leads</p>
+          <p class="a-exp">Avalia sua base de leads, classifica por interesse (ICP) e diz em quem focar agora.</p>
+        </div>
+        <div class="a-foot"><span class="a-meta">312 leads consolidados</span><a class="a-cta" href="#">Ver relatório →</a></div>
+      </div>
+
+      <!-- Conteúdo -->
+      <div class="agent">
+        <div class="bar"></div>
+        <div class="a-top">
+          <div class="a-av">✦</div>
+          <span class="pill ok"><span class="dot"></span> Pronto</span>
+        </div>
+        <div>
+          <p class="a-name">Estrategista de Conteúdo</p>
+          <p class="a-exp">Sugere temas de post embasados em evidência científica e monta o roteiro pra você.</p>
+        </div>
+        <div class="a-foot"><span class="a-meta">Baseado em fontes reais</span><a class="a-cta" href="#">Ver relatório →</a></div>
+      </div>
+
+      <!-- Faturamento -->
+      <div class="agent soon">
+        <div class="bar"></div>
+        <div class="a-top">
+          <div class="a-av soft">📈</div>
+          <span class="pill wait"><span class="dot"></span> Aguardando dados</span>
+        </div>
+        <div>
+          <p class="a-name">Consultor de Faturamento</p>
+          <p class="a-exp">Acompanha suas vendas na Hotmart mês a mês e aponta tendências e sazonalidade.</p>
+        </div>
+        <div class="a-foot"><span class="a-meta">Conecte a Hotmart em Configurações</span><a class="a-cta dim" href="#">Conectar →</a></div>
+      </div>
+
+      <!-- Simulador -->
+      <div class="agent">
+        <div class="bar"></div>
+        <div class="a-top">
+          <div class="a-av">🚀</div>
+          <span class="pill ok"><span class="dot"></span> Pronto</span>
+        </div>
+        <div>
+          <p class="a-name">Analista de Lançamentos</p>
+          <p class="a-exp">Roda o simulador com as suas premissas e recomenda o quanto investir pra crescer.</p>
+        </div>
+        <div class="a-foot"><span class="a-meta">Escada de crescimento</span><a class="a-cta" href="#">Ver relatório →</a></div>
+      </div>
+
+      <!-- Card "novo agente" (extensível) -->
+      <div class="agent soon" style="align-items:center;justify-content:center;text-align:center;border-style:dashed">
+        <div class="a-av soft" style="margin-top:6px">＋</div>
+        <p class="a-name" style="font-size:16px">Novo agente</p>
+        <p class="a-exp" style="max-width:22ch">Cada seção do seu OS pode ganhar um especialista de IA.</p>
+      </div>
+    </div>
+
+    <!-- ===== RELATÓRIO (ao clicar num card) ===== -->
+    <div class="report-kicker">2 · Ao clicar → relatório do agente</div>
+    <div class="report">
+      <div class="r-head">
+        <div class="r-id">
+          <div class="a-av">📊</div>
+          <div>
+            <h2>Analista Financeiro</h2>
+            <p>Especialista na sua fatura do cartão</p>
+          </div>
+        </div>
+        <div class="r-actions">
+          <span class="r-stamp">gerado há 5 min</span>
+          <button class="btn-ghost">🔄 Atualizar relatório</button>
+        </div>
+      </div>
+
+      <div class="r-body">
+        <p class="resumo">No período de <b>mai–jul/2026</b> você gastou <b>R$ 57.418</b> no cartão, sendo <b>R$ 45.717/mês</b> em assinaturas fixas. A estrutura está saudável, mas há gordura em ferramentas que se sobrepõem — dá pra enxugar sem doer.</p>
+
+        <div class="sec">
+          <h4>Destaques</h4>
+          <ul>
+            <li><i>◆</i> Ferramentas concentram 80% do gasto (R$ 46.249).</li>
+            <li><i>◆</i> Recorrente mensal: R$ 1.668 — 9% da receita.</li>
+            <li><i>◆</i> Tráfego (R$ 6.000) é investimento, não custo puro.</li>
+          </ul>
+          <div class="callout health">
+            <div class="k">Saúde financeira</div>
+            <div class="v">Custos recorrentes consomem <b>9% da receita</b> e o cartão como um todo <b>29%</b> — saudável, com folga pra investir em crescimento.</div>
+          </div>
+        </div>
+
+        <div class="sec alerts">
+          <h4>Alertas</h4>
+          <ul>
+            <li><i>▲</i> Uma categoria (Ferramentas) domina o gasto — acompanhe de perto.</li>
+            <li><i>▲</i> Loom, Zoom e Dropbox podem ter funções sobrepostas.</li>
+            <li><i>▲</i> Antes de mexer no tráfego, meça o retorno das campanhas.</li>
+          </ul>
+        </div>
+
+        <div class="acoes">
+          <h4>Onde cortar</h4>
+          <div class="act-grid">
+            <div class="act"><div class="t"><b>Loom</b><span class="save">−R$ 960/ano</span></div><div class="d">Gravação de vídeo tem alternativa grátis; corte de menor risco.</div></div>
+            <div class="act"><div class="t"><b>Zoom Pro</b><span class="save">−R$ 1.188/ano</span></div><div class="d">Reuniões podem caber no plano gratuito ou no que você já paga.</div></div>
+            <div class="act"><div class="t"><b>Dropbox</b><span class="save">−R$ 792/ano</span></div><div class="d">Armazenamento costuma se sobrepor a outra nuvem já contratada.</div></div>
+            <div class="act"><div class="t"><b>Adobe CC</b><span class="save">−R$ 3.840/ano</span></div><div class="d">Maior assinatura; se o uso de design é leve, o Canva já cobre.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="r-chat">
+        <input placeholder="Pergunte ao Analista Financeiro… (ex.: quanto economizo cortando as 4?)" />
+        <button>➤</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">Mockup de direção — Neurovida OS · Agentes. Reaproveita o primitivo de copiloto (cada card = um AssistantProvider; o relatório = a análise resumo/seções/ações). Paleta e fontes reais (teal/petróleo Liranê · creme · Fraunces).</div>
+</body>
+</html>

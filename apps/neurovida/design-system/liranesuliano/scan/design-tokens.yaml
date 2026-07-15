@@ -1,0 +1,128 @@
+# Design Tokens — liranesuliano.com.br
+# Extracted from Elementor Global settings + verified DOM usage
+# Scanned: 2026-07-13 · Source: https://liranesuliano.com.br/
+# Note: values filtered to author-defined design system (not bundled plugin fallbacks)
+
+meta:
+  project: liranesuliano
+  source_url: https://liranesuliano.com.br/
+  stack: WordPress + Elementor Pro
+  scanned: 2026-07-13
+  color_space: hex
+
+colors:
+  # --- Brand core (Elementor globals) ---
+  brand:
+    petrol:                    # --e-global-color-primary
+      value: "#0B2432"
+      usage: "Darkest brand base — headers, dark section backgrounds, logotype"
+    teal:                      # --e-global-color-secondary / 2b0a5e8
+      value: "#003349"
+      usage: "Dark teal — full-bleed section backgrounds, footer (23 uses)"
+    gold:                      # --e-global-color-accent — DOMINANT ACCENT
+      value: "#BE9B64"
+      usage: "Primary brand accent — CTAs, highlights, icons, rules (25 uses)"
+    gold_deep:                 # 319bc87
+      value: "#9C7F53"
+      usage: "Darker gold — hover state for gold, secondary accent (11 uses)"
+  neutrals:
+    cream_light:
+      value: "#F5EEE4"
+      usage: "Primary warm page background (13 uses)"
+    cream:                     # 7ecae5b
+      value: "#EBDDC9"
+      usage: "Beige panel / card background (10 uses)"
+    white:                     # --e-global-color-text / 56e80c5
+      value: "#FFFFFF"
+      usage: "Text on dark backgrounds, light surfaces"
+    slate:                     # e8faf89
+      value: "#81929F"
+      usage: "Muted/secondary text on light (6 uses)"
+    mist:                      # b57edfb
+      value: "#D4DADE"
+      usage: "Borders, dividers, disabled surfaces (8 uses)"
+  # --- State colors (injected by form/Bootstrap-style plugin CSS, NOT brand) ---
+  state:
+    success: "#39B54A"
+    danger:  "#D9534F"
+    warning: "#F0AD4E"
+    note: "From bundled form/plugin CSS — use only for form validation, not brand UI"
+
+  css_variables_suggested:
+    --color-petrol:      "#0B2432"
+    --color-teal:        "#003349"
+    --color-gold:        "#BE9B64"
+    --color-gold-deep:   "#9C7F53"
+    --color-cream-light: "#F5EEE4"
+    --color-cream:       "#EBDDC9"
+    --color-white:       "#FFFFFF"
+    --color-slate:       "#81929F"
+    --color-mist:        "#D4DADE"
+
+typography:
+  families:
+    heading:                   # --e-global-typography-secondary
+      stack: '"Roboto Slab", Georgia, serif'
+      role: "Headings / display — serif authority"
+      weight: 400
+    editorial:
+      stack: '"Lora", Georgia, serif'
+      role: "Editorial / quote serif (Google Font loaded: Lora 400/700 + italics)"
+    body:                      # --e-global-typography-text / primary / accent
+      stack: '"Roboto", system-ui, sans-serif'
+      role: "Body, UI, buttons, labels"
+      weights: [400, 500, 600]  # text=400, accent=500, primary/emphasis=600
+  scale_px:
+    xs:   12
+    sm:   14
+    "s+": 15
+    base: 16   # most common (64 hits)
+    md:   18
+    lg:   20
+    xl:   24
+    "2xl": 32
+    "3xl": 36
+    "4xl": 40
+  notes: "16px body baseline. Also uses em units (.8em / .9em / 1.2em / 1.4em / 1.6em / 2em) for relative scaling inside widgets."
+
+spacing:
+  base_unit: 4px
+  scale:
+    xs:   4
+    sm:   8
+    "sm+": 12
+    md:   16   # most common padding (31 hits)
+    lg:   24   # 28 hits
+    xl:   32   # 27 hits
+    "2xl": 48
+    "3xl": 64  # section padding (15 hits)
+    "4xl": 80
+  gap_common: [5, 8, 32]   # 8px dominant flex gap
+
+radius:
+  sm:   "4px"
+  md:   "8px"    # dominant (23 hits) — cards, buttons, images
+  pill: "200px"  # fully-rounded pill buttons/badges
+  full: "50%"    # circular avatars / icon chips
+  notes: "8px is the default corner. Pill (200px) used for rounded CTAs/badges."
+
+shadows:
+  strategy: "Flat — elevation via color blocks & borders, not drop shadows"
+  default: "none"
+  # No consistent brand elevation scale detected in author styles.
+  # If introducing shadows, suggest a restrained scale:
+  suggested_scale:
+    sm: "0 1px 2px rgba(11,36,50,0.06)"
+    md: "0 4px 12px rgba(11,36,50,0.08)"
+    lg: "0 12px 28px rgba(11,36,50,0.12)"
+
+buttons:
+  primary:
+    background: "#BE9B64"   # gold
+    text: "#0B2432 or #FFFFFF"
+    radius: "8px (or pill 200px on rounded variants)"
+    font: '"Roboto", 600'
+    note: "Gold-fill is the hero CTA style (e.g. Comprar, Cadastrar, Quero saber mais)"
+  secondary:
+    style: "Outline / text link on dark (nav links, Blog, Home)"
+  full_width_mobile: true    # .elementor-button width:100% on mobile
