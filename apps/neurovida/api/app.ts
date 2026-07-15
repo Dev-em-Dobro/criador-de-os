@@ -42,7 +42,7 @@ mountAssistant(app, {
   auth,
   resolveApiKey: resolveAnthropicKey,
   providers: {
-    financas: makeFinanceAssistant(dbAuth as unknown as ServerDb),
+    financas: makeFinanceAssistant(dbAuth as unknown as ServerDb, api.getSettingValue),
     leads: makeLeadsAssistant(dbAuth as unknown as ServerDb),
     conteudo: contentAssistant,
     simulador: simuladorAssistant,

@@ -86,8 +86,10 @@ export const neurovidaManifest: ClientManifest = {
               key: 'receitaMensal',
               label: 'Seu faturamento mensal',
               placeholder: 'ex.: 15.000',
-              hint: 'opcional — libera a leitura de margem',
+              hint: 'ou conecte a Hotmart',
             },
+            { key: 'saldoInicial', label: 'Saldo de caixa hoje', placeholder: 'ex.: 20.000' },
+            { key: 'custosForaCartao', label: 'Custos fixos fora do cartão', placeholder: 'ex.: 8.000', hint: '/mês' },
           ],
         },
         // Grupo com abas: a fatura do cartão (despesas) + o painel do dono (resultado).
@@ -437,7 +439,9 @@ export const neurovidaManifest: ClientManifest = {
                 expertise: 'Lê suas faturas do cartão, aponta onde cortar e lê a saúde da sua estrutura de custos.',
                 teaser: 'Fatura do cartão',
                 inputs: [
-                  { key: 'receitaMensal', label: 'Seu faturamento mensal', placeholder: 'ex.: 15.000', hint: 'opcional — libera a leitura de margem' },
+                  { key: 'receitaMensal', label: 'Seu faturamento mensal', placeholder: 'ex.: 15.000', hint: 'ou conecte a Hotmart' },
+                  { key: 'saldoInicial', label: 'Saldo de caixa hoje', placeholder: 'ex.: 20.000' },
+                  { key: 'custosForaCartao', label: 'Custos fixos fora do cartão', placeholder: 'ex.: 8.000', hint: '/mês' },
                 ],
               },
               {

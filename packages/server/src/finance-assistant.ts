@@ -11,6 +11,9 @@
  */
 
 import { makeInvoices } from './invoices';
+import { makeHotmart } from './hotmart';
+import type { HotmartMetricsResponse } from './hotmart';
+import { computeFinanceOverview, financeOverviewToContext } from './finance-overview';
 import type { ServerDb } from './db';
 import type { AssistantProvider } from './assistant';
 import type { InvoicesResponse } from './invoices';
@@ -34,11 +37,20 @@ export const FINANCE_PERSONA = [
   '- "TOTAL DO PERÍODO" soma N meses; "CUSTO RECORRENTE MENSAL" é por mês — não confunda.',
   '- Corte = escolher da lista "ASSINATURAS RECORRENTES"; economia anual = valor mensal × 12.',
   '',
+  '## Resultado & Caixa (quando o bloco aparece no contexto)',
+  '- Ele traz números JÁ CALCULADOS por código: receita, lucro, margem, break-even, runway e a',
+  '  projeção de caixa 3/6/12m. USE-OS como verdade — NUNCA recalcule nem invente projeção de caixa.',
+  '- Se o caixa fica NEGATIVO em algum mês, esse é o alerta mais importante: destaque com a urgência',
+  '  do prazo e priorize o que melhora o caixa (cortes + puxar receita).',
+  '- Sem receita (nem Hotmart nem valor informado): diga que sem ela não dá pra ler lucro/caixa e',
+  '  oriente a conectar a Hotmart ou informar o faturamento.',
+  '',
   '## Como mapear na análise',
-  '- resumo: retrato geral (e leitura de margem/saúde se houver receita).',
-  '- secoes: use para "Destaques" (números que importam, incl. custos vs receita), "Saúde',
-  '  financeira" (só com receita) e "Alertas" (categoria dominando, custo alto vs receita).',
-  '- acoes: os cortes sugeridos — titulo = o que cortar; detalhe = "Economia ~R$X/ano — <justificativa/trade-off>".',
+  '- resumo: retrato geral do negócio (lucro/margem e a leitura de caixa, se houver receita).',
+  '- secoes: "Destaques" (números que importam), "Resultado & Caixa" (lucro/margem/runway/projeção',
+  '  quando houver) e "Alertas" (caixa apertando, categoria dominando, custo alto vs receita).',
+  '- acoes: os cortes sugeridos (titulo = o que cortar; detalhe = "Economia ~R$X/ano — <trade-off>")',
+  '  e, se o caixa aperta, as jogadas para aliviar o caixa no prazo.',
 ].join('\n');
 
 /** Formata reais para o texto do resumo. */
@@ -52,6 +64,11 @@ function parseReceita(s?: string): number | undefined {
   const limpo = s.trim().replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.');
   const n = Number(limpo);
   return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+/** Valor BR opcional (saldo/custos) → número ≥ 0 (0 quando vazio/inválido). */
+function parseAmount(s?: string): number {
+  return parseReceita(s) ?? 0;
 }
 
 /**
@@ -148,18 +165,45 @@ export function buildFinanceSummary(data: InvoicesResponse, receitaMensal?: numb
 }
 
 /**
- * Provedor de fábrica: lê as faturas do Neon e monta o contexto. Recebe
- * `inputs.receitaMensal` (opcional) do balão. Devolve `null` (estado vazio) quando
- * ainda não há faturas — sem gastar IA.
+ * Provedor de fábrica: lê as faturas do Neon + o RESULTADO & CAIXA (motor
+ * determinístico: receita da Hotmart × despesa do cartão + premissas informadas)
+ * e monta o contexto. O agente interpreta esses números — não os recalcula.
+ *
+ * `inputs`: `receitaMensal` (fallback se sem Hotmart), `saldoInicial`,
+ * `custosForaCartao` (compartilhados com o painel "Resultado & Caixa"). Devolve
+ * `null` (estado vazio) quando ainda não há faturas — sem gastar IA.
  */
-export function makeFinanceAssistant(db: ServerDb): AssistantProvider {
+export function makeFinanceAssistant(
+  db: ServerDb,
+  getSetting: (key: string) => Promise<string | null>,
+): AssistantProvider {
   const invoices = makeInvoices(db);
+  const hotmart = makeHotmart(db, getSetting);
   return {
     persona: FINANCE_PERSONA,
     async provide({ inputs }) {
       const data = await invoices.getInvoices();
       if (data.invoices.length === 0 || data.totals.grand <= 0) return null;
-      return buildFinanceSummary(data, parseReceita(inputs.receitaMensal));
+
+      let hm: HotmartMetricsResponse | null = null;
+      try {
+        hm = await hotmart.getMetrics();
+      } catch {
+        hm = null; // sem tabela/dados de Hotmart — cai na receita informada.
+      }
+      const overview = computeFinanceOverview({
+        invoices: data,
+        hotmart: hm,
+        premissas: {
+          saldoInicial: parseAmount(inputs.saldoInicial),
+          custosForaCartao: parseAmount(inputs.custosForaCartao),
+          receitaManual: parseReceita(inputs.receitaMensal),
+        },
+      });
+
+      // A receita do resumo de custos = a mesma do painel (alinha os % de margem).
+      const receitaSummary = overview.receitaMes > 0 ? overview.receitaMes : undefined;
+      return `${buildFinanceSummary(data, receitaSummary)}\n\n${financeOverviewToContext(overview)}`;
     },
   };
 }
