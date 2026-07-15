@@ -47,3 +47,6 @@ export type {
 
 /* Assistente de finanças pronto (analista da fatura do cartão) */
 export { makeFinanceAssistant, buildFinanceSummary, FINANCE_PERSONA } from './finance-assistant';
+
+/* Assistente de leads pronto (analista de growth/leads quentes) */
+export { makeLeadsAssistant, LEADS_PERSONA } from './leads-assistant';
