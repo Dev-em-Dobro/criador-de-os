@@ -102,6 +102,12 @@ export interface AssistantInput {
   placeholder?: string;
   /** Dica curta ao lado do rótulo (ex.: "opcional — libera a leitura de margem"). */
   hint?: string;
+  /**
+   * Procedência do dado (opcional): de onde ele vem quando NÃO é digitado à mão.
+   * Ex.: "vem do Faturamento (Hotmart) se conectada". Renderizado como uma nota
+   * de origem, para o usuário entender por que/quando o campo é usado.
+   */
+  source?: string;
 }
 
 /**

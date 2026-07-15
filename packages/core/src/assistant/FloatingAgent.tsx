@@ -192,6 +192,7 @@ export function FloatingAgent({ config }: FloatingAgentProps) {
                       placeholder={f.placeholder}
                       className="w-full rounded-lg border border-gray-600 bg-gray-900/50 px-2.5 py-1.5 text-sm text-gray-100 placeholder:text-gray-500 focus:border-blue-500/60 focus:outline-none"
                     />
+                    {f.source && <p className="mt-1 text-[10px] leading-snug text-blue-400">⟳ {f.source}</p>}
                   </div>
                 ))}
                 <button

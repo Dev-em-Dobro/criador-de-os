@@ -146,20 +146,36 @@ export default function FinanceOverview({ title, subtitle }: BlockProps) {
     <div>
       <SectionHeader title={title ?? 'Resultado & Caixa'} subtitle={subtitle} icon="📈" />
 
-      {/* Premissas do dono */}
+      {/* Premissas do dono — só o que você sabe; receita e despesa entram dos dados */}
       <div className="mb-6 rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Suas premissas</p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <PremissaInput label="Saldo de caixa hoje" hint="quanto você tem em conta" value={saldo} onChange={setSaldo} onEnter={aplicar} />
-          <PremissaInput label="Custos fixos fora do cartão" hint="/mês — pró-labore, aluguel…" value={custo} onChange={setCusto} onEnter={aplicar} />
-          <PremissaInput
-            label="Receita mensal"
-            hint={data?.fonteReceita === 'hotmart' ? 'vem da Hotmart (ignorado)' : 'se não usa Hotmart'}
-            value={receita}
-            onChange={setReceita}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Suas premissas</p>
+          <p className="text-[11px] text-gray-500">
+            Só o que só você sabe — a <b className="text-gray-400">despesa</b> vem da fatura e a{' '}
+            <b className="text-gray-400">receita</b> do Faturamento.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <ManualField label="Saldo de caixa hoje" help="quanto você tem em conta agora" value={saldo} onChange={setSaldo} onEnter={aplicar} />
+          <ManualField
+            label="Custos fixos fora do cartão"
+            help="/mês · pró-labore, aluguel, impostos (o que não passa no cartão)"
+            value={custo}
+            onChange={setCusto}
             onEnter={aplicar}
-            disabled={data?.fonteReceita === 'hotmart'}
           />
+          {data && data.fonteReceita === 'hotmart' ? (
+            <SourceField label="Receita mensal" source="Faturamento · Hotmart" value={fmtBRL(data.receitaMes)} note="Conectado — vem sozinho e atualiza no Faturamento." />
+          ) : (
+            <ManualField
+              label="Receita mensal"
+              help="sua receita média por mês"
+              value={receita}
+              onChange={setReceita}
+              onEnter={aplicar}
+              nudge="ou conecte a Hotmart em Faturamento para vir automático"
+            />
+          )}
         </div>
         <button
           type="button"
@@ -261,41 +277,64 @@ function fonteLabel(o: Overview): string {
   return 'sem fonte';
 }
 
-function PremissaInput({
+/** Campo que o DONO informa (manual) — deixa claro "você informa" + o que é. */
+function ManualField({
   label,
-  hint,
+  help,
   value,
   onChange,
   onEnter,
-  disabled,
+  nudge,
 }: {
   label: string;
-  hint?: string;
+  help?: string;
   value: string;
   onChange: (v: string) => void;
   onEnter: () => void;
-  disabled?: boolean;
+  nudge?: string;
 }) {
   return (
     <div>
-      <label className="mb-1 block text-[11px] text-gray-400">
-        {label} {hint && <span className="text-gray-500">({hint})</span>}
-      </label>
+      <div className="mb-1 flex flex-wrap items-center gap-1.5">
+        <label className="text-xs font-medium text-gray-200">{label}</label>
+        <span className="rounded bg-gray-700/40 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-gray-400">você informa</span>
+      </div>
+      {help && <p className="mb-1.5 text-[11px] leading-snug text-gray-500">{help}</p>}
       <div className="flex items-center rounded-lg border border-gray-600 bg-gray-900/40 focus-within:border-blue-500/60">
         <span className="pl-3 text-xs text-gray-500">R$</span>
         <input
           type="text"
           inputMode="numeric"
           value={value}
-          disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') onEnter();
           }}
           placeholder="0"
-          className="w-full bg-transparent px-2 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none disabled:opacity-40"
+          className="w-full bg-transparent px-2 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none"
         />
       </div>
+      {nudge && <p className="mt-1.5 text-[11px] leading-snug text-blue-400">↗ {nudge}</p>}
+    </div>
+  );
+}
+
+/** Campo cujo valor VEM de outra fonte (automático) — read-only, com a origem clara. */
+function SourceField({ label, source, value, note }: { label: string; source: string; value: string; note?: string }) {
+  return (
+    <div>
+      <div className="mb-1 flex flex-wrap items-center gap-1.5">
+        <label className="text-xs font-medium text-gray-200">{label}</label>
+        <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-blue-400">⟳ automático</span>
+      </div>
+      <p className="mb-1.5 text-[11px] leading-snug text-gray-500">
+        vem de <b className="text-gray-400">{source}</b>
+      </p>
+      <div className="flex items-center justify-between rounded-lg border border-blue-500/20 bg-blue-500/[0.06] px-3 py-2">
+        <span className="text-sm font-semibold text-gray-100" style={DISPLAY}>{value}</span>
+        <span className="text-[10px] uppercase tracking-wide text-gray-500">dos dados</span>
+      </div>
+      {note && <p className="mt-1.5 text-[11px] leading-snug text-gray-500">{note}</p>}
     </div>
   );
 }

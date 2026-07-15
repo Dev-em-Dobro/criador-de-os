@@ -20,6 +20,8 @@ interface AgentInput {
   label: string;
   placeholder?: string;
   hint?: string;
+  /** Procedência do dado (de onde vem quando não é digitado à mão). */
+  source?: string;
 }
 interface AgentCard {
   /** contextKey do provider no backend (ex.: 'financas'). */
@@ -278,6 +280,7 @@ function AgentReport({ agent, onBack }: { agent: AgentCard; onBack: () => void }
                   placeholder={f.placeholder}
                   className="w-full rounded-lg border border-gray-600 bg-gray-900/40 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:border-blue-500/60 focus:outline-none"
                 />
+                {f.source && <p className="mt-1 text-[10px] leading-snug text-blue-400">⟳ {f.source}</p>}
               </div>
             ))}
             <button

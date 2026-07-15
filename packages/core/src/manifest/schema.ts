@@ -209,6 +209,7 @@ const assistantInputSchema = z
     label: z.string().min(1),
     placeholder: z.string().optional(),
     hint: z.string().optional(),
+    source: z.string().optional(),
   })
   .strict();
 
