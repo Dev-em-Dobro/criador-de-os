@@ -9,6 +9,11 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 export default defineConfig({
   plugins: [react(), tailwindcss(), tsconfigPaths({ root: '../..' })],
   server: {
+    // Porta fixa: o Better Auth valida a origin (BETTER_AUTH_URL=http://localhost:5173).
+    // strictPort evita o Vite pular p/ 5174+ quando a 5173 está ocupada — o que faria
+    // o login falhar com 401 por mismatch de origin. Melhor falhar explícito.
+    port: 5173,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8788',

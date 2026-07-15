@@ -1,0 +1,73 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 1950 >>
+stream
+BT /F2 16 Tf 1 0 0 1 60 792 Tm (Cartao Lirane Corporativo) Tj ET
+BT /F1 10 Tf 1 0 0 1 60 772 Tm (Fatura do cartao de credito) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 757 Tm (Banco Lirane S.A.  |  Cartao final ****9012) Tj ET
+BT /F2 11 Tf 1 0 0 1 60 733 Tm (Periodo de referencia: Julho/2026) Tj ET
+BT /F1 10 Tf 1 0 0 1 60 717 Tm (Vencimento: 12/07/2026    Fechamento: 30/06/2026) Tj ET
+BT /F2 11 Tf 1 0 0 1 60 688 Tm (LANCAMENTOS) Tj ET
+BT /F2 9 Tf 1 0 0 1 60 670 Tm (DATA) Tj ET
+BT /F2 9 Tf 1 0 0 1 120 670 Tm (DESCRICAO) Tj ET
+BT /F2 9 Tf 1 0 0 1 452 670 Tm (VALOR \(R$\)) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 650 Tm (01/06) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 650 Tm (CLOUDFLARE) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 650 Tm (66,00) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 630 Tm (03/06) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 630 Tm (AMAZON AWS) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 630 Tm (435,20) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 610 Tm (05/06) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 610 Tm (MIDJOURNEY) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 610 Tm (60,00) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 590 Tm (08/06) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 590 Tm (RD STATION) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 590 Tm (559,00) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 570 Tm (10/06) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 570 Tm (GOOGLE WORKSPACE) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 570 Tm (66,80) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 550 Tm (13/06) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 550 Tm (GOL LINHAS AEREAS) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 550 Tm (780,00) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 530 Tm (16/06) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 530 Tm (HOTEL IBIS SP) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 530 Tm (320,00) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 510 Tm (22/06) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 510 Tm (NOTAZZ NF-E) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 510 Tm (49,90) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 490 Tm (29/06) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 490 Tm (IOF TARIFA) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 490 Tm (22,15) Tj ET
+BT /F2 11 Tf 1 0 0 1 120 462 Tm (TOTAL DA FATURA) Tj ET
+BT /F2 11 Tf 1 0 0 1 430 462 Tm (R$ 2.359,05) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000002252 00000 n 
+0000002349 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+2451
+%%EOF

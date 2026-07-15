@@ -32,6 +32,10 @@ export interface CarouselFonte {
 export interface CarouselResult {
   titulo: string;
   slides: CarouselSlide[];
+  /** Legenda (caption) do post — texto + chamada pra ação. */
+  legenda: string;
+  /** Hashtags (sem o #). */
+  hashtags: string[];
   fontes: CarouselFonte[];
 }
 
@@ -57,6 +61,17 @@ const PUBLISH_TOOL: Anthropic.Tool = {
           required: ['titulo', 'corpo'],
         },
       },
+      legenda: {
+        type: 'string',
+        description:
+          'Legenda (caption) do post do Instagram: 2 a 4 frases acolhedoras + uma ' +
+          'chamada pra ação suave. NÃO inclua hashtags aqui (elas vão em "hashtags").',
+      },
+      hashtags: {
+        type: 'array',
+        description: '5 a 8 hashtags relevantes, SEM o "#" (só a palavra).',
+        items: { type: 'string' },
+      },
       fontes: {
         type: 'array',
         description: 'Fontes reais usadas (nunca inventadas).',
@@ -70,27 +85,52 @@ const PUBLISH_TOOL: Anthropic.Tool = {
         },
       },
     },
-    required: ['titulo', 'slides', 'fontes'],
+    required: ['titulo', 'slides', 'legenda', 'hashtags', 'fontes'],
   },
 };
 
+/**
+ * Prompt do roteirista. Incorpora o framework de conteúdo do @carousel-designer
+ * (AIDA + capa-gancho + slide 3 de engajamento). É GENÉRICO/independente de marca:
+ * o conteúdo NÃO cita nenhuma empresa/produto — serve pra qualquer perfil.
+ */
 function buildPrompt(tema: string, slides: number): string {
   return [
-    'Você é o estúdio de conteúdo da Neurovida, uma marca de suplementos e cursos de saúde.',
-    `Crie um carrossel de Instagram (${slides} slides) sobre o tema: "${tema}".`,
+    'Você é um roteirista sênior de carrosséis de Instagram para uma criadora de',
+    'conteúdo de saúde e bem-estar (público leigo). Escreva o ROTEIRO completo de um',
+    `carrossel de ${slides} slides sobre o tema: "${tema}".`,
     '',
-    'Regras:',
-    '- Público leigo (não técnico): linguagem acessível, acolhedora, sem jargão.',
-    '- Baseie-se em EVIDÊNCIA CIENTÍFICA CONFIÁVEL. Use a ferramenta de busca para',
-    '  encontrar fontes reais (priorize revisões e artigos indexados no PubMed).',
-    '  NUNCA invente estudos nem cite fontes que você não verificou na busca.',
+    '## Framework AIDA (OBRIGATÓRIO, nesta ordem — nunca pule uma etapa)',
+    'O carrossel inteiro segue AIDA — Atenção → Interesse → Desejo → Ação:',
+    '- SLIDE 1 (CAPA = Atenção): um GANCHO forte e provocativo — uma afirmação ousada,',
+    '  contra-intuitiva ou uma pergunta que faz parar o scroll. Título curto e impactante',
+    '  (o corpo pode ser 1 frase curta ou vazio). NÃO é uma descrição neutra: é um gancho.',
+    '- SLIDES DO MEIO INICIAL (Interesse): nomeie o problema, a dúvida ou a situação do',
+    '  público — o "por que isso importa pra VOCÊ". Faça a pessoa querer continuar arrastando.',
+    '- SLIDES DO MEIO FINAL (Desejo): entregue o valor — o que a ciência mostra, os',
+    '  benefícios, a transformação. Conecte cada ponto a um benefício concreto + evidência.',
+    '- ÚLTIMO SLIDE (Ação): UMA chamada pra ação clara e suave (ex.: consultar um',
+    '  profissional de saúde; salvar o post pra consultar depois).',
+    '',
+    '## Slide 3 — engajamento (OBRIGATÓRIO)',
+    'O slide 3 pede UMA micro-ação pro algoritmo: SALVAR (padrão pra conteúdo educativo),',
+    'CURTIR ou SEGUIR — escolha conforme o conteúdo. NÃO substitui o CTA do último slide.',
+    '',
+    '## Regras de conteúdo',
+    '- Público leigo: linguagem acessível, acolhedora, sem jargão.',
+    '- EVIDÊNCIA CIENTÍFICA CONFIÁVEL: use a ferramenta de busca para achar fontes reais',
+    '  (priorize revisões e artigos indexados no PubMed). NUNCA invente estudos nem cite',
+    '  fontes que você não verificou na busca.',
     '- Cada slide: um título curto e chamativo + um corpo de 1 a 2 frases.',
-    '- Slide 1 = gancho que prende a atenção. Último slide = chamada de ação suave',
-    '  (ex.: consultar um profissional / conhecer a Neurovida).',
     '- Inclua um lembrete de que o conteúdo é educativo e não substitui orientação profissional.',
+    '- NÃO cite nenhuma marca, empresa ou produto específico — nem nos slides, nem no CTA,',
+    '  nem na legenda. O conteúdo é da própria criadora, genérico e independente de marca.',
+    '- Escreva também a LEGENDA (caption) do post: 2 a 4 frases acolhedoras + uma chamada',
+    '  pra ação, e de 5 a 8 HASHTAGS relevantes (sem o "#").',
     '',
-    'Ao terminar, chame a ferramenta publish_carousel com o título, os slides e as',
-    'fontes REAIS (título + URL) que você usou. Não escreva o carrossel como texto solto.',
+    'Ao terminar, chame a ferramenta publish_carousel com o título, os slides (na ordem',
+    'AIDA), a legenda, as hashtags e as fontes REAIS (título + URL). Não escreva o',
+    'carrossel como texto solto.',
   ].join('\n');
 }
 

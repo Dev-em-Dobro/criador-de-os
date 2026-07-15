@@ -1,0 +1,73 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 1972 >>
+stream
+BT /F2 16 Tf 1 0 0 1 60 792 Tm (Cartao Impulse Black) Tj ET
+BT /F1 10 Tf 1 0 0 1 60 772 Tm (Fatura do cartao de credito) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 757 Tm (Banco Impulse S.A.  |  Cartao final ****1234) Tj ET
+BT /F2 11 Tf 1 0 0 1 60 733 Tm (Periodo de referencia: Maio/2026) Tj ET
+BT /F1 10 Tf 1 0 0 1 60 717 Tm (Vencimento: 10/05/2026    Fechamento: 30/04/2026) Tj ET
+BT /F2 11 Tf 1 0 0 1 60 688 Tm (LANCAMENTOS) Tj ET
+BT /F2 9 Tf 1 0 0 1 60 670 Tm (DATA) Tj ET
+BT /F2 9 Tf 1 0 0 1 120 670 Tm (DESCRICAO) Tj ET
+BT /F2 9 Tf 1 0 0 1 452 670 Tm (VALOR \(R$\)) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 650 Tm (03/04) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 650 Tm (ANTHROPIC CLAUDE.AI) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 650 Tm (142,90) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 630 Tm (05/04) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 630 Tm (OPENAI CHATGPT PLUS) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 630 Tm (110,00) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 610 Tm (07/04) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 610 Tm (ACTIVECAMPAIGN) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 610 Tm (349,00) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 590 Tm (09/04) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 590 Tm (VERCEL INC) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 590 Tm (98,00) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 570 Tm (12/04) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 570 Tm (META PLATFORMS ADS) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 570 Tm (1.250,00) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 550 Tm (15/04) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 550 Tm (NOTION LABS) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 550 Tm (48,00) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 530 Tm (18/04) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 530 Tm (CANVA PRO) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 530 Tm (54,90) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 510 Tm (20/04) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 510 Tm (UBER *TRIP) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 510 Tm (32,40) Tj ET
+BT /F1 9 Tf 1 0 0 1 60 490 Tm (28/04) Tj ET
+BT /F1 9 Tf 1 0 0 1 120 490 Tm (IOF TRANSACAO EXTERIOR) Tj ET
+BT /F1 9 Tf 1 0 0 1 452 490 Tm (18,73) Tj ET
+BT /F2 11 Tf 1 0 0 1 120 462 Tm (TOTAL DA FATURA) Tj ET
+BT /F2 11 Tf 1 0 0 1 430 462 Tm (R$ 2.103,93) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000002274 00000 n 
+0000002371 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+2473
+%%EOF

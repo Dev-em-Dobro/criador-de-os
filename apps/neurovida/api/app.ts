@@ -8,10 +8,11 @@
  */
 
 import { Hono } from 'hono';
-import { mountApi, mountAssistant, makeFinanceAssistant, type ServerDb } from '@os/server';
+import { mountApi, mountAssistant, makeFinanceAssistant, makeLeadsAssistant, type ServerDb } from '@os/server';
 import { auth } from './auth';
 import { dbAuth } from '../db/client';
 import { generateCarousel } from './carousel';
+import { contentAssistant, simuladorAssistant } from './agents';
 import { getAgencyAnthropicKey, getSettingsEncKey } from './env';
 
 export const app = new Hono();
@@ -42,6 +43,9 @@ mountAssistant(app, {
   resolveApiKey: resolveAnthropicKey,
   providers: {
     financas: makeFinanceAssistant(dbAuth as unknown as ServerDb),
+    leads: makeLeadsAssistant(dbAuth as unknown as ServerDb),
+    conteudo: contentAssistant,
+    simulador: simuladorAssistant,
   },
 });
 

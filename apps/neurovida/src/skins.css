@@ -20,7 +20,7 @@
   --color-gray-800: #ffffff; /* cards */
   --color-gray-700: #e9e2d4; /* bordas */
   --color-gray-600: #c9bda4; /* bordas fortes / texto subtle */
-  --color-gray-500: #877d6c; /* texto subtle (escurecido p/ contraste) */
+  --color-gray-500: #78705f; /* texto subtle (escurecido p/ passar AA sobre o creme) */
   --color-gray-400: #6f6656; /* texto muted */
   --color-gray-300: #4b4536; /* texto médio */
   --color-gray-200: #35302a; /* texto forte */
@@ -28,25 +28,30 @@
   --color-gray-50: #211d18;
 
   /* Cores semânticas — no claro, TODOS os tons usados como TEXTO/badge escurecem
-     para ter contraste de leitura sobre o creme (WCAG). No dark seguem claros.
-     Cobre marca (blue→brand), emerald, red, orange, amber, yellow, purple —
-     senão o pastel-sobre-pastel some (ex.: pill ativo, badges de tier/segmento). */
-  --color-blue-300: var(--color-brand-strong);
-  --color-blue-400: var(--color-brand);
+     para ter contraste de leitura sobre o creme (WCAG AA). No dark seguem claros.
+     Cobre marca (blue→brand), green (sucesso), emerald, red, orange, amber, yellow,
+     purple — senão o pastel-sobre-pastel some (ex.: pill ativo, badges, CTA). */
+  --color-blue-200: var(--color-brand-deep);   /* sub-aba ativa da sidebar (era pastel do TW) */
+  --color-blue-300: var(--color-brand-deep);   /* badge/pill de acento (texto sobre tint claro) */
+  --color-blue-400: var(--color-brand-strong); /* links / acento de marca */
+  --color-blue-500: var(--color-brand-strong); /* CTA sólido: o branco fica legível (era brand claro) */
+  --color-green-300: #107c38;  /* sucesso (badge "Configurada") — antes herdava o pastel do TW */
+  --color-green-400: #15803d;  /* sucesso (feedback "salvo") */
+  --color-green-500: #16a34a;
   --color-emerald-300: #047857;
   --color-emerald-400: #047857;
   --color-emerald-500: #059669;
   --color-red-300: #b91c1c;
-  --color-red-400: #dc2626;
+  --color-red-400: #c21f1f;    /* escurecido: badge Tier S e status vermelho passam AA */
   --color-red-500: #ef4444;
   --color-orange-300: #9a3412;
-  --color-orange-400: #c2410c;
+  --color-orange-400: #b13b0b; /* escurecido: badge Tier A passa AA */
   --color-orange-500: #ea580c;
   --color-amber-300: #92400e;
-  --color-amber-400: #a16207;
+  --color-amber-400: #925906;  /* escurecido: badge Tier B e cortes da fatura passam AA */
   --color-amber-500: #d97706;
   --color-yellow-300: #854d0e;
-  --color-yellow-400: #a16207;
+  --color-yellow-400: #9a5e07; /* escurecido: status amarelo do KpiCard passa AA */
   --color-yellow-500: #ca8a04;
   --color-purple-300: #7e22ce;
   --color-purple-400: #9333ea;
@@ -85,7 +90,7 @@
   --color-gray-800: #272016; /* cards (marrom escuro quente) */
   --color-gray-700: #3a3120; /* bordas */
   --color-gray-600: #4d4230; /* bordas fortes / texto subtle */
-  --color-gray-500: #746647; /* texto subtle */
+  --color-gray-500: #8f8058; /* texto subtle (clareado p/ passar AA sobre o dusk) */
   --color-gray-400: #a99a7c; /* texto muted (bege quente) */
   --color-gray-300: #cabda0; /* texto médio-claro */
   --color-gray-200: #e3dac4; /* texto forte */
@@ -94,6 +99,11 @@
 
   /* Semânticas: tons claros (bons sobre fundo escuro) — deixa os defaults do
      Tailwind, então NÃO redefinimos emerald/yellow/red aqui. */
+
+  /* Marca (blue→brand): o CTA sólido precisa de fundo mais escuro p/ o branco
+     passar AA; e a sub-aba ativa usa a marca (não o pastel do TW). */
+  --color-blue-200: var(--color-brand-soft);
+  --color-blue-500: var(--color-brand-strong);
 
   --os-bg: #17130d;
   --os-text: #f0e9d8;
@@ -116,4 +126,38 @@
     radial-gradient(58% 44% at 50% -12%, color-mix(in srgb, var(--color-brand) 20%, transparent), transparent 70%),
     radial-gradient(46% 40% at 100% 2%, color-mix(in srgb, #b5623c 10%, transparent), transparent 62%),
     var(--os-bg);
+}
+
+/* ------------------------------------------------------------
+   TESTE — acento da CLIENTE (petróleo/teal do design system Liranê
+   Suliano) SÓ na página de Fatura, em QUALQUER skin (creme ou dusk).
+
+   Redefine apenas TOKENS no bloco `invoice-console`: a rampa de marca e
+   as escalas blue-*/emerald-* (o skin fixou-as em var(--color-brand*) no
+   <html>, então redefinimos aqui com hex direto para o novo acento
+   propagar). Nenhum componente é tocado.
+
+   Paleta (design-system/liranesuliano): petróleo #0B2432 · teal #003349.
+   ------------------------------------------------------------ */
+[data-block='invoice-console'] {
+  --color-brand:        #003349; /* teal — acento base */
+  --color-brand-bright: #0f4d63; /* teal vivo — hover / ícones */
+  --color-brand-soft:   #7fa6b3; /* teal claro dessaturado */
+  --color-brand-strong: #0b2432; /* petróleo — CTA sólido (texto branco AA) */
+  --color-brand-deep:   #071820; /* petróleo profundo */
+
+  /* Acento (utilities blue-*): botão "Subir PDF", barra de categoria,
+     ícones de categoria azuis. Teal no sólido (branco passa AA fácil). */
+  --color-blue-200: #0b2432;
+  --color-blue-300: #0b2432; /* texto de badge sobre tint claro */
+  --color-blue-400: #0f4d63; /* links / acento vivo */
+  --color-blue-500: #003349; /* CTA sólido + barra (texto branco AA) */
+  --color-blue-600: #002738;
+  --color-blue-700: #0b2432;
+
+  /* "O que estava verde" → teal: card "Total após cortes" e os ícones
+     de categoria que usavam emerald passam ao acento da cliente. */
+  --color-emerald-300: #0b2432;
+  --color-emerald-400: #0b2432;
+  --color-emerald-500: #003349;
 }

@@ -44,13 +44,14 @@ export const neurovidaManifest: ClientManifest = {
     displayName: 'Neurovida',
     productName: 'Neurovida OS',
     logoUrl: '/logo.svg',
-    // Verde-esmeralda: saúde, natural, ciência. Pinta todo o acento do design system.
+    // TESTE — paleta da cliente (petróleo/teal do design system Liranê Suliano),
+    // aplicada globalmente via ThemeProvider (:root). Pinta todo o acento do OS.
     theme: {
-      brand: '#059669',
-      brandBright: '#10b981',
-      brandSoft: '#6ee7b7',
-      brandStrong: '#047857',
-      brandDeep: '#065f46',
+      brand: '#003349',        // teal — acento base
+      brandBright: '#0f4d63',  // teal vivo — hover/ícones
+      brandSoft: '#7fa6b3',    // teal claro dessaturado
+      brandStrong: '#0b2432',  // petróleo — CTA sólido (texto branco AA)
+      brandDeep: '#071820',    // petróleo profundo
       signal: '#22c55e',
     },
   },
@@ -381,7 +382,75 @@ export const neurovidaManifest: ClientManifest = {
         },
       },
 
-      // 6) CONFIGURAÇÕES — chaves/integrações do cliente (modelo BYOK). A chave da
+      // 6) AGENTES — hub da equipe de IA. Cada card é um AssistantProvider (mesmo
+      //    contextKey do copiloto flutuante); clicar abre o relatório do agente
+      //    (a análise resumo/seções/ações + chat). Config-driven pela lista abaixo.
+      {
+        key: 'agentes',
+        label: 'Agentes',
+        icon: 'Users',
+        route: '/agentes',
+        view: {
+          block: 'agent-gallery',
+          title: 'Agentes',
+          subtitle: 'Sua equipe de especialistas de IA — clique num card para ver o relatório dele.',
+          config: {
+            agents: [
+              {
+                contextKey: 'financas',
+                name: 'Analista Financeiro',
+                icon: '📊',
+                status: 'ready',
+                expertise: 'Lê suas faturas do cartão, aponta onde cortar e lê a saúde da sua estrutura de custos.',
+                teaser: 'Fatura do cartão',
+                inputs: [
+                  { key: 'receitaMensal', label: 'Seu faturamento mensal', placeholder: 'ex.: 15.000', hint: 'opcional — libera a leitura de margem' },
+                ],
+              },
+              {
+                contextKey: 'leads',
+                name: 'Analista de Leads',
+                icon: '🎯',
+                status: 'ready',
+                expertise: 'Avalia sua base de leads, classifica por interesse (ICP) e diz em quem focar agora.',
+              },
+              {
+                contextKey: 'conteudo',
+                name: 'Estrategista de Conteúdo',
+                icon: '✦',
+                status: 'ready',
+                expertise: 'Sugere temas de post embasados em evidência científica e monta o roteiro pra você.',
+              },
+              {
+                contextKey: 'faturamento',
+                name: 'Consultor de Faturamento',
+                icon: '📈',
+                status: 'soon',
+                expertise: 'Acompanha suas vendas na Hotmart mês a mês e aponta tendências e sazonalidade.',
+                teaser: 'Conecte a Hotmart',
+              },
+              {
+                contextKey: 'simulador',
+                name: 'Analista de Lançamentos',
+                icon: '🚀',
+                status: 'ready',
+                expertise: 'Roda o simulador com as suas premissas e recomenda quanto investir pra crescer.',
+                inputs: [
+                  { key: 'metaFaturamento', label: 'Meta de faturamento (R$)', placeholder: 'ex.: 100.000' },
+                  { key: 'custoFixoMensal', label: 'Custo fixo mensal (R$)', placeholder: 'ex.: 15.000' },
+                  { key: 'roas', label: 'ROAS esperado', placeholder: 'ex.: 3', hint: 'retorno por real de anúncio' },
+                ],
+              },
+            ],
+          },
+          help: {
+            description:
+              'Cada agente é um especialista de IA numa frente do seu negócio. Clique num card para ver o relatório dele e conversar. Os marcados "em breve" ainda estão sendo preparados.',
+          },
+        },
+      },
+
+      // 7) CONFIGURAÇÕES — chaves/integrações do cliente (modelo BYOK). A chave da
       //    API fica cifrada no Neon e alimenta o Estúdio IA (e futuras ações de IA).
       {
         key: 'configuracoes',
@@ -406,6 +475,47 @@ export const neurovidaManifest: ClientManifest = {
                 'Cada uso consome créditos da SUA conta Anthropic. Você pode trocar ou remover a chave quando quiser.',
               ],
             },
+          },
+        },
+      },
+      // 7) PRIVACIDADE & TERMOS — aviso interno (reusa doc-viewer; sem bloco novo).
+      //    Config-driven: primitivo da fábrica — todo OS de cliente pode ter o seu,
+      //    só trocando o texto. Não substitui o contrato/DPA (docs/legal/) nem a
+      //    política de privacidade PÚBLICA do cliente (que vive nos canais dele).
+      {
+        key: 'privacidade',
+        label: 'Privacidade',
+        icon: 'ShieldCheck',
+        route: '/privacidade',
+        view: {
+          block: 'doc-viewer',
+          title: 'Privacidade & Termos',
+          subtitle: 'Como seus dados são tratados neste sistema',
+          config: {
+            heading: 'Privacidade & Termos de Uso — Neurovida OS',
+            markdown: [
+              '_Última atualização: 14/07/2026._',
+              '',
+              'Este é um **sistema interno de gestão** feito sob medida para a Neurovida e operado em parceria com a **Dev em Dobro**. Não é um serviço público: o acesso é restrito à sua equipe, mediante login.',
+              '',
+              '## Onde ficam os seus dados',
+              'Os dados deste OS ficam em um **banco de dados dedicado à Neurovida** (isolado de qualquer outro cliente). O tráfego é criptografado (HTTPS) e o acesso à aplicação exige autenticação.',
+              '',
+              '## O que o sistema trata',
+              '- **Financeiro:** as faturas de cartão que você sobe (lidas por IA para categorizar).',
+              '- **Faturamento (Hotmart):** apenas os **totais** de vendas por período — **nenhum dado dos seus compradores** (nome, e-mail, CPF) é lido ou guardado.',
+              '- **Leads:** os contatos que você importa (nome, e-mail, telefone) e as respostas de pesquisa, para consolidar e pontuar.',
+              '- **Suas chaves de integração** (ex.: API do Claude, credenciais Hotmart): ficam **criptografadas** e nunca são exibidas de volta.',
+              '',
+              '## Transparência sobre acesso',
+              'Como a Dev em Dobro opera a infraestrutura do sistema, a equipe técnica **tem capacidade de acessar** esses dados. Comprometemo-nos a **só acessá-los** para operar, corrigir falhas ou atender suporte solicitado por você — nunca para outros fins. Se você preferir garantias adicionais (por exemplo, o banco na sua própria conta, ou cifragem com chave só sua), fale com a gente.',
+              '',
+              '## Dados de terceiros (seus leads)',
+              'Os contatos que você importa são de **outras pessoas**. A responsabilidade por ter permissão para usá-los, e por manter uma **Política de Privacidade pública** informando isso a eles, é da Neurovida (a Dev em Dobro ajuda com o modelo). Este aviso interno não substitui essa política.',
+              '',
+              '## Contato',
+              'Dúvidas sobre privacidade ou sobre este sistema: **contato@devemdobro.com** _(ajuste o e-mail)_.',
+            ].join('\n'),
           },
         },
       },

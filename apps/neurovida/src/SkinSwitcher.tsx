@@ -1,10 +1,11 @@
 /**
- * Neurovida — alternador de tema Claro/Escuro.
+ * Neurovida — alternador de tema Claro/Escuro (segmented control).
  *
  * O Neurovida tem um par de temas na mesma linguagem orgânica: "cream" (claro,
  * padrão) e "dusk" (escuro quente). Este controle troca o `data-skin` no <html>
- * em runtime e persiste a escolha em localStorage. Estilizado com inline styles
- * fixos (independentes do tema) para ficar sempre legível.
+ * em runtime e persiste a escolha em localStorage. É INLINE (sem posição fixa) —
+ * montado no rodapé da sidebar via o slot `navFooter` do AppShell. Usa as classes
+ * do design system (herda o skin), então fica legível nos dois temas.
  */
 
 import { useEffect, useState } from 'react';
@@ -43,37 +44,9 @@ export function SkinSwitcher() {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        right: 16,
-        bottom: 16,
-        zIndex: 200,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-        padding: '10px 12px',
-        borderRadius: 16,
-        background: 'rgba(255,255,255,0.92)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        border: '1px solid rgba(0,0,0,0.08)',
-        boxShadow: '0 12px 32px -12px rgba(0,0,0,0.35)',
-        fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-      }}
-    >
-      <span
-        style={{
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          color: '#8a8175',
-        }}
-      >
-        Tema
-      </span>
-      <div style={{ display: 'flex', gap: 6 }}>
+    <div>
+      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500">Tema</span>
+      <div className="flex gap-1 rounded-lg border border-(color:--os-hairline) p-0.5">
         {OPTIONS.map((opt) => {
           const active = skin === opt.id;
           return (
@@ -82,30 +55,16 @@ export function SkinSwitcher() {
               type="button"
               onClick={() => choose(opt.id)}
               aria-pressed={active}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 10px',
-                borderRadius: 10,
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                color: active ? '#2b2620' : '#6b6459',
-                background: active ? 'rgba(0,0,0,0.05)' : 'transparent',
-                border: active ? '1px solid rgba(0,0,0,0.14)' : '1px solid transparent',
-                transition: 'all 0.15s ease',
-              }}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                active
+                  ? 'bg-blue-500/15 text-(color:--os-active-text) ring-1 ring-blue-500/30'
+                  : 'text-gray-400 hover:bg-(color:--os-hover) hover:text-gray-200'
+              }`}
             >
               <span
                 aria-hidden="true"
-                style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: 4,
-                  background: opt.swatch,
-                  border: '1px solid rgba(0,0,0,0.15)',
-                }}
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ background: opt.swatch, border: '1px solid rgba(0,0,0,0.2)' }}
               />
               {opt.label}
             </button>
