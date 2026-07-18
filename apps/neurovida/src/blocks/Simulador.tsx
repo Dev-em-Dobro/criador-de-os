@@ -122,6 +122,9 @@ function loadState(): SimState {
 const fmtBRL = (n: number): string =>
   Number.isFinite(n) ? `R$ ${Math.round(n).toLocaleString('pt-BR')}` : '—';
 const fmtPct = (f: number): string => `${Math.round(f * 100)}%`;
+/** Formato compacto "R$ N mil" (arredonda ao milhar), como no painel de cascata. */
+const fmtMil = (n: number): string =>
+  Number.isFinite(n) ? `R$ ${Math.round(n / 1000).toLocaleString('pt-BR')} mil` : '—';
 
 // Fonte de display (Fraunces via token do skin) para os números grandes.
 const DISPLAY = { fontFamily: 'var(--font-display, inherit)' } as const;
@@ -170,6 +173,43 @@ function calcDireto(e: Escada, invest: number) {
   const ingresso = trafegoNosso * e.ingressoPct;
   const sobra = caixaImediato - (trafegoNosso - ingresso);
   return { faturamento, liquido, caixaImediato, boleto24x, trafegoNosso, sobra };
+}
+
+/**
+ * Cascata "do faturamento ao caixa": decompõe um investimento (× nº de
+ * lançamentos) desde o faturamento até a sobra dos lançamentos e, então, faz a
+ * ponte até o crescimento de caixa do mês somando a entrada fixa e subtraindo o
+ * custo fixo + outras saídas. Cada campo é o valor JÁ retirado/somado no passo.
+ */
+function calcWaterfall(e: Escada, invest: number) {
+  const n = Math.max(1, e.numLancamentos);
+  const faturamento = e.roas * invest * n;
+  const parteParceiro = faturamento * (1 - e.nossaPartePct);
+  const receitaNossa = faturamento - parteParceiro;
+  const descontos = receitaNossa * e.descontoPct;
+  const liquido = receitaNossa - descontos;
+  const boleto = liquido * (1 - e.pctAVista);
+  const caixaImediato = liquido - boleto;
+  const trafego = invest * e.trafegoNossaPct * n;
+  const ingresso = trafego * e.ingressoPct;
+  const trafegoLiquido = trafego - ingresso;
+  const sobraLancamentos = caixaImediato - trafegoLiquido;
+  const custoTotal = e.custoFixo + e.outrasSaidas;
+  const crescimento = sobraLancamentos + e.entradaFixa - custoTotal;
+  return {
+    faturamento,
+    parteParceiro,
+    receitaNossa,
+    descontos,
+    liquido,
+    boleto,
+    caixaImediato,
+    trafegoLiquido,
+    sobraLancamentos,
+    entradaFixa: e.entradaFixa,
+    custoTotal,
+    crescimento,
+  };
 }
 
 /**
@@ -345,6 +385,81 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/**
+ * Painel "Do faturamento ao caixa": a cascata que mostra, passo a passo, como o
+ * faturamento do mês vira crescimento de caixa — cada linha principal é o que
+ * SOBRA depois da dedução da sub-linha (em vermelho) ou soma (em verde) logo
+ * acima dela. Vivo: recalcula com os parâmetros da Escada e o investimento
+ * simulado. Reproduz o desenho de referência do fluxo.
+ */
+function CascataCaixa({ e, invest }: { e: Escada; invest: number }) {
+  const w = useMemo(() => calcWaterfall(e, invest), [e, invest]);
+
+  type Linha = { kind: 'main' | 'neg' | 'pos' | 'total'; label: string; value: number };
+  const linhas: Linha[] = [
+    { kind: 'main', label: 'Faturamento gerado / mês', value: w.faturamento },
+    { kind: 'neg', label: `Parte do Bruno (${fmtPct(1 - e.nossaPartePct)} da receita)`, value: w.parteParceiro },
+    { kind: 'main', label: 'Receita nossa', value: w.receitaNossa },
+    { kind: 'neg', label: `Descontos (imposto+plataforma+comissão, ${fmtPct(e.descontoPct)})`, value: w.descontos },
+    { kind: 'main', label: 'Líquido', value: w.liquido },
+    { kind: 'neg', label: `Boleto 24x (${fmtPct(1 - e.pctAVista)} — fica pra depois)`, value: w.boleto },
+    { kind: 'main', label: `Caixa imediato (${fmtPct(e.pctAVista)} à vista)`, value: w.caixaImediato },
+    { kind: 'neg', label: 'Tráfego nosso / mês', value: w.trafegoLiquido },
+    { kind: 'main', label: 'Sobra dos lançamentos', value: w.sobraLancamentos },
+    { kind: 'pos', label: 'Entrada fixa (boletos)', value: w.entradaFixa },
+    { kind: 'neg', label: 'Custo fixo / despesas', value: w.custoTotal },
+    { kind: 'total', label: '= Crescimento de caixa / mês', value: w.crescimento },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 backdrop-blur-sm">
+      <div className="mb-1 flex items-center gap-2">
+        <span aria-hidden className="text-lg">📊</span>
+        <h4 className="text-sm font-semibold text-gray-100">Do faturamento ao caixa (atual)</h4>
+      </div>
+      <p className="mb-3 text-xs leading-snug text-gray-400">
+        Como o faturamento do mês vira crescimento de caixa, descontando tudo no caminho. Alvo de
+        crescimento: {fmtBRL(e.alvo)}.
+      </p>
+      <div>
+        {linhas.map((linha, i) => {
+          if (linha.kind === 'main' || linha.kind === 'total') {
+            const isTotal = linha.kind === 'total';
+            return (
+              <div
+                key={i}
+                className={`flex items-center justify-between ${
+                  isTotal ? 'mt-1 border-t border-gray-600 pt-3 pb-1' : 'border-t border-gray-700/50 py-2.5'
+                }`}
+              >
+                <span className="text-sm font-medium text-gray-100">{linha.label}</span>
+                <span
+                  className={`text-sm font-semibold tnum ${
+                    isTotal ? (w.crescimento < 0 ? 'text-red-400' : 'text-emerald-400') : 'text-gray-100'
+                  }`}
+                  style={isTotal ? DISPLAY : undefined}
+                >
+                  {fmtMil(linha.value)}
+                </span>
+              </div>
+            );
+          }
+          const pos = linha.kind === 'pos';
+          return (
+            <div key={i} className="flex items-center justify-between py-1.5 pl-4">
+              <span className="text-[13px] text-gray-400">{linha.label}</span>
+              <span className={`text-[13px] font-medium tnum ${pos ? 'text-emerald-400' : 'text-red-400'}`}>
+                {pos ? '+ ' : '− '}
+                {fmtMil(linha.value)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // Abas
 // ============================================================
@@ -443,24 +558,43 @@ function EscadaTab({ escada, set }: { escada: Escada; set: (patch: Partial<Escad
         </div>
       </Card>
 
-      {/* Resultado principal */}
+      {/* Resultado principal: herói (investimento) + KPIs, na linguagem "com vida" */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className={`rounded-2xl border p-5 shadow-sm ${r.viavel ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-red-500/40 bg-red-500/5'}`}>
-          <div className="text-xs text-gray-400">Investimento necessário (tráfego)</div>
-          <div className="mt-1 text-2xl text-gray-100" style={DISPLAY}>{fmtBRL(r.investimento)}</div>
-          <div className="mt-1 text-xs text-gray-500">para crescer {fmtBRL(escada.alvo)}/mês</div>
-        </div>
-        <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
-          <div className="text-xs text-gray-400">Faturamento necessário</div>
-          <div className="mt-1 text-2xl text-gray-100" style={DISPLAY}>{fmtBRL(r.faturamento)}</div>
-          <div className="mt-1 text-xs text-gray-500">ROAS {escada.roas}× sobre o investimento</div>
-        </div>
-        <div className={`rounded-2xl border p-5 shadow-sm ${r.viavel ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-red-500/40 bg-red-500/5'}`}>
-          <div className="text-xs text-gray-400">Eficiência (caixa por R$ investido)</div>
-          <div className={`mt-1 text-2xl ${r.viavel ? 'text-emerald-400' : 'text-red-400'}`} style={DISPLAY}>
-            {r.eficiencia.toFixed(2)}
+        {/* HERÓI — investimento necessário (gradiente da marca; vermelho se inviável) */}
+        <div
+          className={`relative overflow-hidden rounded-2xl p-6 text-white shadow-xl ${
+            r.viavel
+              ? 'bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700 shadow-blue-500/25'
+              : 'bg-gradient-to-br from-red-400 to-red-600 shadow-red-500/25'
+          }`}
+        >
+          <span className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10" />
+          <div className="relative text-[11px] font-semibold uppercase tracking-wider text-white/70">Investimento necessário</div>
+          <div className="relative mt-2 text-3xl leading-none tracking-tight" style={DISPLAY}>{fmtBRL(r.investimento)}</div>
+          <div className="relative mt-3 text-xs text-white/75">
+            {r.viavel ? `para crescer ${fmtBRL(escada.alvo)}/mês` : 'inviável — ajuste os parâmetros'}
           </div>
-          <div className="mt-1 text-xs text-gray-500">{r.viavel ? 'viável' : 'inviável — ajuste os parâmetros'}</div>
+        </div>
+
+        {/* Faturamento necessário */}
+        <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-500/10 text-lg text-blue-400" aria-hidden>💰</span>
+          <div className="mt-4 text-xs font-medium uppercase tracking-wide text-gray-400">Faturamento necessário</div>
+          <div className="mt-1 text-2xl text-gray-100" style={DISPLAY}>{fmtBRL(r.faturamento)}</div>
+          <div className="mt-1 text-[11px] text-gray-500">ROAS {escada.roas}× sobre o investimento</div>
+        </div>
+
+        {/* Eficiência */}
+        <div className={`rounded-2xl border p-5 shadow-sm ${r.viavel ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
+          <span
+            className={`grid h-11 w-11 place-items-center rounded-xl text-lg ${r.viavel ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}
+            aria-hidden
+          >
+            ⚡
+          </span>
+          <div className="mt-4 text-xs font-medium uppercase tracking-wide text-gray-400">Eficiência · caixa por R$</div>
+          <div className={`mt-1 text-2xl ${r.viavel ? 'text-emerald-400' : 'text-red-400'}`} style={DISPLAY}>{r.eficiencia.toFixed(2)}</div>
+          <div className="mt-1 text-[11px] text-gray-500">{r.viavel ? 'viável' : 'inviável — ajuste os parâmetros'}</div>
         </div>
       </div>
 
@@ -501,22 +635,39 @@ function EscadaTab({ escada, set }: { escada: Escada; set: (patch: Partial<Escad
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {[
-            { label: 'Faturamento', v: direto.faturamento },
-            { label: 'Líquido', v: direto.liquido },
-            { label: 'Caixa imediato', v: direto.caixaImediato },
-            { label: 'Boleto 24x', v: direto.boleto24x },
-            { label: 'Tráfego nosso', v: direto.trafegoNosso },
-            { label: 'Sobra no ciclo', v: direto.sobra },
-          ].map((item) => (
-            <div key={item.label} className="rounded-xl border border-gray-700/50 bg-gray-800/40 p-3">
-              <div className="text-[11px] text-gray-500">{item.label}</div>
-              <div className={`mt-0.5 text-sm font-semibold ${item.label === 'Sobra no ciclo' && item.v < 0 ? 'text-red-400' : 'text-gray-100'}`}>
-                {fmtBRL(item.v)}
+            { label: 'Faturamento', v: direto.faturamento, emoji: '🚀', destaque: false },
+            { label: 'Líquido', v: direto.liquido, emoji: '💧', destaque: false },
+            { label: 'Caixa imediato', v: direto.caixaImediato, emoji: '⚡', destaque: false },
+            { label: 'Boleto 24x', v: direto.boleto24x, emoji: '🗓️', destaque: false },
+            { label: 'Tráfego nosso', v: direto.trafegoNosso, emoji: '🎯', destaque: false },
+            { label: 'Sobra no ciclo', v: direto.sobra, emoji: '💰', destaque: true },
+          ].map((item) => {
+            const neg = item.v < 0;
+            return (
+              <div
+                key={item.label}
+                className={`rounded-xl border p-3 ${
+                  item.destaque ? (neg ? 'border-red-500/30 bg-red-500/5' : 'border-emerald-500/30 bg-emerald-500/5') : 'border-gray-700/50 bg-gray-800/40'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                  <span aria-hidden>{item.emoji}</span>
+                  {item.label}
+                </div>
+                <div
+                  className={`mt-1 text-base ${item.destaque ? (neg ? 'text-red-400' : 'text-emerald-400') : neg ? 'text-red-400' : 'text-gray-100'}`}
+                  style={DISPLAY}
+                >
+                  {fmtBRL(item.v)}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
+
+      {/* Cascata: do faturamento ao caixa (viva, a partir do investimento simulado) */}
+      <CascataCaixa e={escada} invest={escada.investimentoSimulado} />
     </div>
   );
 }

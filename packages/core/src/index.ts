@@ -98,6 +98,7 @@ export { TrendChart } from './ui/TrendChart';
 export { SkeletonCard, SkeletonCards } from './ui/Skeleton';
 export { StatusIndicator } from './ui/StatusIndicator';
 export { ErrorBanner } from './ui/ErrorBanner';
+export { Portal } from './ui/Portal';
 
 /* UI — tipos */
 export type { KpiCardData, IndicatorStatus, Period } from './ui/types';

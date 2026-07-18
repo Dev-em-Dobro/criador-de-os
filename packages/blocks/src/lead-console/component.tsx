@@ -45,10 +45,10 @@ interface Lead {
 }
 
 const SEGMENTS = [
-  { id: 'icp-alto', label: 'ICP Alto', desc: 'Não-cliente — oferta direta', accent: 'text-emerald-400' },
-  { id: 'icp-medio', label: 'ICP Médio', desc: 'Não-cliente — aquecimento', accent: 'text-blue-300' },
-  { id: 'icp-baixo', label: 'ICP Baixo', desc: 'Não-cliente — nutrição', accent: 'text-gray-300' },
-  { id: 'sem-perfil', label: 'Sem Perfil', desc: 'Sem pesquisa respondida', accent: 'text-yellow-300' },
+  { id: 'icp-alto', label: 'ICP Alto', desc: 'Não-cliente — oferta direta', accent: 'text-emerald-400', emoji: '🎯', chipBg: 'bg-emerald-500/10', bar: 'from-emerald-400 to-emerald-500' },
+  { id: 'icp-medio', label: 'ICP Médio', desc: 'Não-cliente — aquecimento', accent: 'text-blue-300', emoji: '📈', chipBg: 'bg-blue-500/10', bar: 'from-blue-400 to-blue-500' },
+  { id: 'icp-baixo', label: 'ICP Baixo', desc: 'Não-cliente — nutrição', accent: 'text-gray-300', emoji: '🌱', chipBg: 'bg-gray-500/10', bar: 'from-gray-400 to-gray-500' },
+  { id: 'sem-perfil', label: 'Sem Perfil', desc: 'Sem pesquisa respondida', accent: 'text-yellow-300', emoji: '❓', chipBg: 'bg-yellow-500/10', bar: 'from-yellow-400 to-yellow-500' },
 ];
 
 const TIER_BADGE: Record<string, string> = {
@@ -259,12 +259,29 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
       {/* 1) Fontes — upload de CSV */}
       <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Fontes de dados (subir CSV)</h3>
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {(summary?.sources ?? []).map((s) => (
-          <div key={s.id} className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-4 backdrop-blur-sm">
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm font-semibold text-gray-100">{s.label}</span>
-              <span className="text-xs text-gray-500">{s.rows} linha(s)</span>
+        {(summary?.sources ?? []).map((s) => {
+          const cheia = s.rows > 0;
+          return (
+          <div
+            key={s.id}
+            className={`rounded-2xl border p-4 backdrop-blur-sm transition-colors ${
+              cheia ? 'border-emerald-500/30 bg-emerald-500/[0.05]' : 'border-gray-700/50 bg-gray-800/60'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span
+                className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-base ${cheia ? 'bg-emerald-500/10 text-emerald-400' : 'bg-blue-500/10 text-blue-400'}`}
+                aria-hidden
+              >
+                {cheia ? '✓' : '🗂️'}
+              </span>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${cheia ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-gray-600/50 text-gray-500'}`}
+              >
+                {s.rows} linha(s)
+              </span>
             </div>
+            <div className="mt-3 text-sm font-semibold text-gray-100">{s.label}</div>
             <p className="mt-0.5 mb-3 text-xs text-gray-500">{s.hint}</p>
             <label
               className={`inline-flex cursor-pointer items-center rounded-lg border border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-blue-500/40 hover:text-gray-100 focus-within:ring-2 focus-within:ring-blue-500/50 ${
@@ -284,7 +301,8 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
               />
             </label>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Modelo de pesquisa de perfil (ICP) — baixar CSV, coletar, subir de volta */}
@@ -380,7 +398,16 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
       )}
 
       {score && (
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* HERÓI — base pontuada (preenchido no acento da marca, que nem a Fatura) */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700 p-6 text-white shadow-xl shadow-blue-500/25">
+            <span className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10" />
+            <div className="relative text-[11px] font-semibold uppercase tracking-wider text-white/70">Leads pontuados</div>
+            <div className="relative mt-2 text-3xl leading-none tracking-tight" style={DISPLAY}>{score.scored}</div>
+            <div className="relative mt-3 text-xs text-white/75">
+              {tierTotals.quente} quentes · {tierTotals.total > 0 ? Math.round((tierTotals.quente / tierTotals.total) * 100) : 0}% da base
+            </div>
+          </div>
           {(
             [
               { key: 'quente', label: 'Quente', sub: 'S / A', n: tierTotals.quente, tone: 'red', chip: '🔥', chipBg: 'bg-red-500/10', texto: 'text-red-400' },
@@ -408,23 +435,32 @@ export default function LeadConsole({ title, subtitle, config }: BlockProps) {
       {score && (
         <>
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">Segmentos de ação</h3>
-          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {SEGMENTS.map((s) => {
               const ativo = segment === s.id;
+              const n = score.bySegment[s.id] ?? 0;
+              const pct = score.scored > 0 ? Math.round((n / score.scored) * 100) : 0;
               return (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => void loadLeads(ativo ? null : s.id)}
-                  className={`rounded-2xl border p-4 text-left transition-colors ${
-                    ativo ? 'border-blue-500/50 bg-blue-500/10' : 'border-gray-700/50 bg-gray-800/60 hover:border-blue-500/25'
+                  aria-pressed={ativo}
+                  className={`group relative overflow-hidden rounded-2xl border p-5 text-left transition-all ${
+                    ativo
+                      ? 'border-blue-500/50 bg-blue-500/10 shadow-md shadow-blue-500/10'
+                      : 'border-gray-700/50 bg-gray-800/60 hover:-translate-y-0.5 hover:border-blue-500/30 hover:shadow-md hover:shadow-black/20'
                   }`}
                 >
-                  <div className="flex items-baseline justify-between">
-                    <span className={`text-sm font-semibold ${s.accent}`}>{s.label}</span>
-                    <span className="text-lg text-gray-100" style={DISPLAY}>{score.bySegment[s.id] ?? 0}</span>
+                  <div className="flex items-center justify-between">
+                    <span className={`grid h-11 w-11 place-items-center rounded-xl ${s.chipBg} text-lg`} aria-hidden>{s.emoji}</span>
+                    <span className={`text-3xl leading-none ${s.accent}`} style={DISPLAY}>{n}</span>
                   </div>
-                  <p className="mt-1 text-xs text-gray-400">{s.desc}</p>
+                  <div className="mt-4 text-sm font-semibold text-gray-100">{s.label}</div>
+                  <p className="mt-0.5 text-xs text-gray-400">{s.desc}</p>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-700/40">
+                    <div className={`h-full rounded-full bg-gradient-to-r ${s.bar}`} style={{ width: `${pct}%` }} />
+                  </div>
                 </button>
               );
             })}

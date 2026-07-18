@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SectionHeader } from '@os/core';
+import { SectionHeader, Portal } from '@os/core';
 import type { BlockProps } from '@os/core';
 
 interface Item {
@@ -700,46 +700,57 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
         </>
       )}
 
-      {/* Modal de detalhamento — abre por cima de TODA a página (tela cheia) */}
+      {/* Modal de detalhamento — renderizado via <Portal> no <body> pra cobrir TUDO
+          (inclusive a sidebar), fugindo do stacking context do <main animate-rise>. */}
       {modal && modalContent && (
-        <div
-          ref={modalPanelRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="tx-modal-title"
-          tabIndex={-1}
-          className="fixed inset-0 z-[100] flex flex-col bg-gray-900/95 backdrop-blur-md focus:outline-none"
-        >
-          {/* Cabeçalho (largura total; conteúdo numa coluna legível centralizada) */}
-          <div className="border-b border-gray-700/60 bg-gray-800/60">
-            <div className="mx-auto flex w-full max-w-3xl items-start justify-between gap-3 px-4 py-4 sm:px-6">
-              <div className="min-w-0">
-                <h2 id="tx-modal-title" className="truncate text-lg font-semibold text-gray-100" style={DISPLAY}>
-                  {modalContent.titulo}
-                </h2>
-                <p className="mt-0.5 text-xs text-gray-400">
-                  {modalContent.items.length} {modalContent.items.length === 1 ? 'transação' : 'transações'}
-                  {' · '}
-                  <span className="font-semibold text-gray-300" style={DISPLAY}>{fmtBRL(modalContent.subtotal)}</span>
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closeModal}
-                aria-label="Fechar"
-                title="Fechar (Esc)"
-                className="shrink-0 rounded-lg border border-gray-700/60 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-gray-700/60 hover:text-gray-100"
-              >
-                ✕ Fechar
-              </button>
-            </div>
-          </div>
+        <Portal>
+          <div
+            className="fixed inset-0 z-[100] flex items-stretch justify-center p-0 sm:items-center sm:p-6"
+            onMouseDown={(e) => {
+              // Clique no fundo (fora do painel) fecha.
+              if (e.target === e.currentTarget) closeModal();
+            }}
+          >
+            {/* Fundo com opacidade — escurece e desfoca a página atrás */}
+            <div aria-hidden className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-          {/* Lista rolável ocupando o resto da página (coluna centralizada) */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-            <div className="mx-auto max-w-3xl">
-              {modalContent.items.length === 0 ? (
-                <div className="px-3 py-10 text-center">
+            {/* Painel do popup (tela cheia no mobile; cartão central grande no desktop) */}
+            <div
+              ref={modalPanelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="tx-modal-title"
+              tabIndex={-1}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="relative flex h-full w-full max-w-3xl flex-col overflow-hidden border border-gray-700/60 bg-gray-900 shadow-2xl focus:outline-none sm:h-auto sm:max-h-[85vh] sm:rounded-2xl"
+            >
+              {/* Cabeçalho */}
+              <div className="flex items-start justify-between gap-3 border-b border-gray-700/60 bg-gray-800/60 px-4 py-4 sm:px-6">
+                <div className="min-w-0">
+                  <h2 id="tx-modal-title" className="truncate text-lg font-semibold text-gray-100" style={DISPLAY}>
+                    {modalContent.titulo}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    {modalContent.items.length} {modalContent.items.length === 1 ? 'transação' : 'transações'}
+                    {' · '}
+                    <span className="font-semibold text-gray-300" style={DISPLAY}>{fmtBRL(modalContent.subtotal)}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  aria-label="Fechar"
+                  title="Fechar (Esc)"
+                  className="shrink-0 rounded-lg border border-gray-700/60 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-gray-700/60 hover:text-gray-100"
+                >
+                  ✕ Fechar
+                </button>
+              </div>
+
+              {/* Lista rolável */}
+              <div className="flex-1 overflow-y-auto px-2 py-2 sm:px-3">
+                {modalContent.items.length === 0 ? (
+                  <div className="px-3 py-10 text-center">
                   <div aria-hidden className="mb-2 text-3xl">{modal === 'cortar' ? '✂️' : modal === 'recorrentes' ? '♻️' : '🧾'}</div>
                   {modal === 'cortar' ? (
                     <>
@@ -794,6 +805,7 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );

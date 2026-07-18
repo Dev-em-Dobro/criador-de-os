@@ -44,6 +44,9 @@ function monthLabel(period: string): string {
 const fmtMoney = (n: number, currency: string): string =>
   `${currency === 'BRL' ? 'R$' : currency + ' '} ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+// Fonte de display (Fraunces via token do skin) para os números grandes.
+const DISPLAY = { fontFamily: 'var(--font-display, inherit)' } as const;
+
 export default function HotmartConsole({ title, subtitle }: BlockProps) {
   const [data, setData] = useState<Data | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -130,21 +133,28 @@ export default function HotmartConsole({ title, subtitle }: BlockProps) {
         )
       ) : (
         <>
-          {/* KPIs */}
+          {/* KPIs: herói (faturamento do mês) + KPIs com chip, que nem a Fatura */}
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5">
-              <div className="text-xs text-gray-400">
-                Faturamento do mês{data!.totals.currentPeriod ? ` (${monthLabel(data!.totals.currentPeriod)})` : ''}
+            {/* HERÓI — faturamento do mês (preenchido no acento da marca) */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700 p-6 text-white shadow-xl shadow-blue-500/25">
+              <span className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10" />
+              <div className="relative text-[11px] font-semibold uppercase tracking-wider text-white/70">
+                Faturamento do mês{data!.totals.currentPeriod ? ` · ${monthLabel(data!.totals.currentPeriod)}` : ''}
               </div>
-              <div className="mt-1 text-2xl font-bold text-emerald-400">{fmtMoney(data!.totals.currentRevenue, currency)}</div>
+              <div className="relative mt-2 text-3xl leading-none tracking-tight" style={DISPLAY}>{fmtMoney(data!.totals.currentRevenue, currency)}</div>
+              <div className="relative mt-3 text-xs text-white/75">{data!.totals.totalSales.toLocaleString('pt-BR')} vendas em 12 meses</div>
             </div>
-            <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5">
-              <div className="text-xs text-gray-400">Faturamento (12 meses)</div>
-              <div className="mt-1 text-2xl font-bold text-gray-100">{fmtMoney(data!.totals.last12mRevenue, currency)}</div>
+
+            <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-500/10 text-lg text-blue-400" aria-hidden>📅</span>
+              <div className="mt-4 text-xs font-medium uppercase tracking-wide text-gray-400">Faturamento · 12 meses</div>
+              <div className="mt-1 text-2xl text-gray-100" style={DISPLAY}>{fmtMoney(data!.totals.last12mRevenue, currency)}</div>
             </div>
-            <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5">
-              <div className="text-xs text-gray-400">Vendas (12 meses)</div>
-              <div className="mt-1 text-2xl font-bold text-gray-100">{data!.totals.totalSales.toLocaleString('pt-BR')}</div>
+
+            <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-emerald-500/10 text-lg text-emerald-400" aria-hidden>🛒</span>
+              <div className="mt-4 text-xs font-medium uppercase tracking-wide text-gray-400">Vendas · 12 meses</div>
+              <div className="mt-1 text-2xl text-gray-100" style={DISPLAY}>{data!.totals.totalSales.toLocaleString('pt-BR')}</div>
             </div>
           </div>
 
@@ -164,8 +174,8 @@ export default function HotmartConsole({ title, subtitle }: BlockProps) {
                     </span>
                     <span className="font-mono tnum text-gray-100">{fmtMoney(r.grossRevenue, currency)}</span>
                   </div>
-                  <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-gray-700/50">
-                    <div className="h-full rounded-full bg-emerald-500/70" style={{ width: `${pct}%` }} />
+                  <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-gray-700/50">
+                    <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );
