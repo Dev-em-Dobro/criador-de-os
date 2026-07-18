@@ -66,6 +66,7 @@ async function main(): Promise<void> {
   const result = generateApp(answers, repoRoot, { force });
 
   console.log(`\n✓ Gerado apps/${answers.slug} (preset ${result.preset}) — ${result.files.length} arquivo(s), ${result.views} view(s).`);
+  console.log(`🔐 Relatório de segurança: ${result.securityReport}`);
   printNextSteps(answers.slug, result.preset);
 }
 

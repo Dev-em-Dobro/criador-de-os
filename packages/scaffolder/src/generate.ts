@@ -41,12 +41,15 @@ import {
   dbViewsSql,
 } from './templates-db';
 import { appReadme } from './templates-readme';
+import { securityReport } from './templates-security';
 
 export interface GenerateResult {
   appDir: string;
   files: string[];
   views: number;
   preset: ClientAnswers['preset'];
+  /** Caminho (relativo à raiz) do relatório de segurança gerado para este OS. */
+  securityReport: string;
 }
 
 /**
@@ -82,6 +85,16 @@ export function generateApp(
   const productName = answers.productName ?? `${answers.displayName} OS`;
   const palette = derivePalette(answers.theme.brand, answers.theme.signal);
 
+  // Relatório de segurança (trilha de auditoria) — na RAIZ do monorepo, fora de
+  // apps/<slug>. Emitido para AMBOS os presets: o conteúdo reflete o preset (full
+  // lista as camadas de banco/API; static deixa explícito que elas não existem).
+  const securityReportRel = `security-reports/${answers.slug}.md`;
+  const writeSecurityReport = (): void => {
+    const abs = resolve(repoRoot, securityReportRel);
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, securityReport(answers, built.views), 'utf8');
+  };
+
   // ---- Comum (front) ----
   write('package.json', frontPackageJson(answers.slug, answers.preset, productName));
   write('index.html', indexHtml(productName));
@@ -96,7 +109,14 @@ export function generateApp(
   write('public/logo.svg', logoSvg(answers.displayName, palette.brand));
 
   if (!isFull) {
-    return { appDir, files, views: built.views.length, preset: answers.preset };
+    writeSecurityReport();
+    return {
+      appDir,
+      files,
+      views: built.views.length,
+      preset: answers.preset,
+      securityReport: securityReportRel,
+    };
   }
 
   // ---- Full: config extra + api/ + db/ ----
@@ -120,5 +140,13 @@ export function generateApp(
   write('db/provision-roles.ts', dbProvisionRoles(answers.slug, built.views));
   write('db/verify-grants.ts', dbVerifyGrants(answers.slug, built.views));
 
-  return { appDir, files, views: built.views.length, preset: answers.preset };
+  writeSecurityReport();
+
+  return {
+    appDir,
+    files,
+    views: built.views.length,
+    preset: answers.preset,
+    securityReport: securityReportRel,
+  };
 }
