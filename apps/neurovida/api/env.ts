@@ -48,13 +48,26 @@ export function getDatabaseUrl(): string {
 
 let warnedAuthUrl = false;
 
+/** true quando rodando em produção (deploy real). */
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
 /**
  * Connection string do role `app_auth` (R/W nas tabelas de auth + app_settings).
- * Usada pelo runtime (Better Auth + /api/settings). Fallback DEV: owner (WARN único).
+ * Usada pelo runtime (Better Auth + /api/settings). Produção: fail-closed. Fallback DEV: owner (WARN único).
  */
 export function getAuthDatabaseUrl(): string {
   const url = process.env.AUTH_DATABASE_URL?.trim();
   if (url) return url;
+  // Fail-closed: em produção JAMAIS cair no owner. Sem o role, aborta o boot.
+  if (isProduction()) {
+    throw new Error(
+      '[env] AUTH_DATABASE_URL ausente em produção. O runtime NÃO pode usar a ' +
+        'connection string OWNER (a defesa de role app_auth ficaria inativa). ' +
+        'Rode `pnpm db:provision-roles` e defina AUTH_DATABASE_URL.',
+    );
+  }
   if (!warnedAuthUrl) {
     console.warn(
       '[env] AUTH_DATABASE_URL ausente — o runtime usará a connection string OWNER ' +

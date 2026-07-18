@@ -57,17 +57,31 @@ export function getDatabaseUrl(): string {
 // Fase 3 — hardening (doc 05, §4/§6): a API não conecta como owner. Dois
 // caminhos, dois roles de menor privilégio, cada um com sua connection string.
 // FALLBACK de DEV: sem a var do papel, cai no owner e AVISA (uma vez) que a
-// defesa no nível do banco não está ativa. Em produção, defina ambas.
+// defesa no nível do banco não está ativa. Em PRODUÇÃO é FAIL-CLOSED: sem o
+// role, o boot ABORTA — JAMAIS caímos no owner num deploy real.
 let warnedAuthUrl = false;
 let warnedQueryUrl = false;
 
+/** true quando rodando em produção (deploy real). */
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
 /**
  * Connection string do role `app_auth` (R/W só nas tabelas do Better Auth).
- * Usada pelo handler `/api/auth/*`. Fallback DEV: owner (com WARN único).
+ * Usada pelo handler `/api/auth/*`. Produção: fail-closed. Fallback DEV: owner (WARN único).
  */
 export function getAuthDatabaseUrl(): string {
   const url = process.env.AUTH_DATABASE_URL?.trim();
   if (url) return url;
+  // Fail-closed: em produção JAMAIS cair no owner. Sem o role, aborta o boot.
+  if (isProduction()) {
+    throw new Error(
+      '[env] AUTH_DATABASE_URL ausente em produção. O runtime NÃO pode usar a ' +
+        'connection string OWNER (a defesa de role app_auth ficaria inativa). ' +
+        'Rode `pnpm db:provision-roles` e defina AUTH_DATABASE_URL.',
+    );
+  }
   if (!warnedAuthUrl) {
     console.warn(
       '[env] AUTH_DATABASE_URL ausente — Better Auth usará a connection string OWNER ' +
@@ -80,11 +94,19 @@ export function getAuthDatabaseUrl(): string {
 
 /**
  * Connection string do role `app_query` (SELECT só nas views `v_*`).
- * Usada pelo endpoint `/api/query`. Fallback DEV: owner (com WARN único).
+ * Usada pelo endpoint `/api/query`. Produção: fail-closed. Fallback DEV: owner (WARN único).
  */
 export function getQueryDatabaseUrl(): string {
   const url = process.env.QUERY_DATABASE_URL?.trim();
   if (url) return url;
+  // Fail-closed: em produção JAMAIS cair no owner. Sem o role, aborta o boot.
+  if (isProduction()) {
+    throw new Error(
+      '[env] QUERY_DATABASE_URL ausente em produção. O /api/query NÃO pode usar a ' +
+        'connection string OWNER (a defesa de role app_query ficaria inativa). ' +
+        'Rode `pnpm db:provision-roles` e defina QUERY_DATABASE_URL.',
+    );
+  }
   if (!warnedQueryUrl) {
     console.warn(
       '[env] QUERY_DATABASE_URL ausente — /api/query usará a connection string OWNER ' +

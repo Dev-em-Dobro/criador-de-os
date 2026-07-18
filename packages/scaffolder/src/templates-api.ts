@@ -57,10 +57,23 @@ export function getDatabaseUrl(): string {
 let warnedAuthUrl = false;
 let warnedQueryUrl = false;
 
-/** Role \`app_auth\` (R/W só nas tabelas do Better Auth). Fallback DEV: owner (WARN). */
+/** true quando rodando em produção (deploy real). */
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
+/** Role \`app_auth\` (R/W só nas tabelas do Better Auth). Produção: fail-closed. Fallback DEV: owner (WARN). */
 export function getAuthDatabaseUrl(): string {
   const url = process.env.AUTH_DATABASE_URL?.trim();
   if (url) return url;
+  // Fail-closed: em produção JAMAIS cair no owner. Sem o role, aborta o boot.
+  if (isProduction()) {
+    throw new Error(
+      '[env] AUTH_DATABASE_URL ausente em produção. O runtime NÃO pode usar a ' +
+        'connection string OWNER (a defesa de role app_auth ficaria inativa). ' +
+        'Rode \`pnpm db:provision-roles\` e defina AUTH_DATABASE_URL.',
+    );
+  }
   if (!warnedAuthUrl) {
     console.warn(
       '[env] AUTH_DATABASE_URL ausente — Better Auth usará a connection string OWNER ' +
@@ -71,10 +84,18 @@ export function getAuthDatabaseUrl(): string {
   return getDatabaseUrl();
 }
 
-/** Role \`app_query\` (SELECT só nas views v_*). Fallback DEV: owner (WARN). */
+/** Role \`app_query\` (SELECT só nas views v_*). Produção: fail-closed. Fallback DEV: owner (WARN). */
 export function getQueryDatabaseUrl(): string {
   const url = process.env.QUERY_DATABASE_URL?.trim();
   if (url) return url;
+  // Fail-closed: em produção JAMAIS cair no owner. Sem o role, aborta o boot.
+  if (isProduction()) {
+    throw new Error(
+      '[env] QUERY_DATABASE_URL ausente em produção. O /api/query NÃO pode usar a ' +
+        'connection string OWNER (a defesa de role app_query ficaria inativa). ' +
+        'Rode \`pnpm db:provision-roles\` e defina QUERY_DATABASE_URL.',
+    );
+  }
   if (!warnedQueryUrl) {
     console.warn(
       '[env] QUERY_DATABASE_URL ausente — /api/query usará a connection string OWNER ' +
