@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SectionHeader, EmptyState } from '@os/core';
+import { SectionHeader, EmptyState, Markdown } from '@os/core';
 import type { BlockProps, AssistantAnalysis } from '@os/core';
 
 const DISPLAY = { fontFamily: 'var(--font-display, inherit)' } as const;
@@ -341,7 +341,7 @@ function AgentReport({ agent, onBack }: { agent: AgentCard; onBack: () => void }
 
           {analise && !loading && (
             <div className="space-y-6">
-              <p className="text-[15px] leading-relaxed text-gray-200">{analise.resumo}</p>
+              <Markdown text={analise.resumo} className="text-[15px] leading-relaxed text-gray-200" />
 
               {analise.secoes.length > 0 && (
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -356,7 +356,7 @@ function AgentReport({ agent, onBack }: { agent: AgentCard; onBack: () => void }
                               <span aria-hidden className={amber ? 'text-amber-400' : 'text-blue-400'}>
                                 {amber ? '▲' : '◆'}
                               </span>
-                              <span>{it}</span>
+                              <Markdown text={it} />
                             </li>
                           ))}
                         </ul>
@@ -372,8 +372,8 @@ function AgentReport({ agent, onBack }: { agent: AgentCard; onBack: () => void }
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {analise.acoes.map((a, i) => (
                       <div key={i} className="rounded-2xl border border-blue-500/15 bg-blue-500/[0.04] p-4">
-                        <p className="text-sm font-semibold text-gray-100">{a.titulo}</p>
-                        <p className="mt-1.5 text-xs leading-relaxed text-gray-400">{a.detalhe}</p>
+                        <Markdown text={a.titulo} className="text-sm font-semibold text-gray-100" />
+                        <Markdown text={a.detalhe} className="mt-1.5 text-xs leading-relaxed text-gray-400" />
                       </div>
                     ))}
                   </div>
@@ -388,11 +388,11 @@ function AgentReport({ agent, onBack }: { agent: AgentCard; onBack: () => void }
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                    className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                       m.role === 'user' ? 'bg-blue-500/20 text-gray-100' : 'border border-gray-700/50 bg-gray-800/50 text-gray-200'
                     }`}
                   >
-                    {m.content}
+                    <Markdown text={m.content} />
                   </div>
                 </div>
               ))}

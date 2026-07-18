@@ -221,6 +221,7 @@ const assistantConfigSchema = z
     icon: z.string().optional(),
     starters: z.array(z.string()).optional(),
     inputs: z.array(assistantInputSchema).optional(),
+    analyzeLabel: z.string().optional(),
   })
   .strict();
 

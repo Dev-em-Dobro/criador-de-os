@@ -85,6 +85,8 @@ export type { AppShellProps, ShellNavItem } from './shell/AppShell';
 export { FloatingAgent } from './assistant/FloatingAgent';
 export type { FloatingAgentProps } from './assistant/FloatingAgent';
 export type { AssistantAnalysis, AssistantSection, AssistantAction } from './assistant/types';
+export { Markdown } from './assistant/Markdown';
+export type { MarkdownProps } from './assistant/Markdown';
 
 /* UI — componentes */
 export { KpiCard } from './ui/KpiCard';

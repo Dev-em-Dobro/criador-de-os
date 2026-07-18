@@ -128,6 +128,12 @@ export interface AssistantConfig {
   starters?: string[];
   /** Campos opcionais que o usuário informa (persistidos localmente, enviados ao backend). */
   inputs?: AssistantInput[];
+  /**
+   * Rótulo do botão que dispara a ANÁLISE pesada (diagnóstico) sob demanda.
+   * O balão abre leve (só saudação + sugestões); a análise só roda quando o
+   * usuário clica neste botão. Default: "📊 Diagnóstico completo".
+   */
+  analyzeLabel?: string;
 }
 
 export interface SubTab {

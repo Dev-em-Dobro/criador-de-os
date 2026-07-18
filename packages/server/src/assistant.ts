@@ -8,8 +8,10 @@
  * vive aqui, uma vez; cada domínio registra um `AssistantProvider` (persona +
  * provedor de contexto) por `contextKey` — o mesmo `contextKey` do manifesto.
  *
- * Modelo: claude-opus-4-8. A persona é do DOMÍNIO (server-side); o formato da
- * saída é imposto aqui. Dado e chave nunca saem do servidor.
+ * Modelos: o DIAGNÓSTICO (analyze) usa claude-opus-4-8 (caprichado, sob demanda);
+ * o CHAT de follow-up usa claude-sonnet-4-6 (leve e rápido, resposta concisa). A
+ * persona é do DOMÍNIO (server-side); o formato da saída é imposto aqui. Dado e
+ * chave nunca saem do servidor.
  */
 
 import type { Hono } from 'hono';
@@ -119,9 +121,10 @@ function chatSystem(persona: string, contexto: string): string {
   return [
     persona,
     '',
-    'Responda com base EXCLUSIVAMENTE nos dados abaixo — não invente. Respostas curtas e',
-    'diretas. Use R$ quando houver valores. Se faltar dado para responder bem, diga com',
-    'honestidade e sugira o que informar/subir.',
+    'Responda de forma CURTA e direta — no máximo ~120 palavras, em 1 parágrafo curto ou',
+    'até 3 bullets. Vá ao ponto; só aprofunde se o usuário pedir mais. Use R$ quando houver',
+    'valores. Baseie-se EXCLUSIVAMENTE nos dados abaixo — não invente. Se faltar dado para',
+    'responder bem, diga com honestidade e sugira o que informar/subir.',
     '',
     'DADOS REAIS:',
     contexto,
@@ -149,7 +152,7 @@ export async function runAssistantAnalysis(
   return pub.input as AssistantAnalysis;
 }
 
-/** Resposta de chat em texto (adaptive thinking; contexto no system). */
+/** Resposta de chat em texto — leve e rápida (Sonnet, sem thinking; contexto no system). */
 export async function runAssistantChat(
   apiKey: string,
   persona: string,
@@ -163,9 +166,8 @@ export async function runAssistantChat(
     { role: 'user' as const, content: pergunta },
   ];
   const res = await client.messages.create({
-    model: 'claude-opus-4-8',
-    max_tokens: 4000,
-    thinking: { type: 'adaptive' },
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1200,
     system: chatSystem(persona, contexto),
     messages,
   });

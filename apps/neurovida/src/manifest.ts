@@ -76,20 +76,12 @@ export const neurovidaManifest: ClientManifest = {
           title: 'Analista financeiro',
           subtitle: 'Lê suas faturas e sugere onde cortar',
           icon: 'Sparkles',
+          analyzeLabel: '📊 Diagnóstico completo das faturas',
           starters: [
+            'Como está minha saúde financeira?',
             'O que dá pra cortar sem doer?',
             'Qual categoria pesa mais?',
             'Minha estrutura de custos está saudável?',
-          ],
-          inputs: [
-            {
-              key: 'receitaMensal',
-              label: 'Seu faturamento mensal',
-              placeholder: 'ex.: 15.000',
-              source: 'vem do Faturamento (Hotmart) se conectada; senão, informe aqui.',
-            },
-            { key: 'saldoInicial', label: 'Saldo de caixa hoje', placeholder: 'ex.: 20.000' },
-            { key: 'custosForaCartao', label: 'Custos fixos fora do cartão', placeholder: 'ex.: 8.000', hint: '/mês' },
           ],
         },
         // Grupo com abas: a fatura do cartão (despesas) + o painel do dono (resultado).
@@ -438,11 +430,6 @@ export const neurovidaManifest: ClientManifest = {
                 status: 'ready',
                 expertise: 'Lê suas faturas do cartão, aponta onde cortar e lê a saúde da sua estrutura de custos.',
                 teaser: 'Fatura do cartão',
-                inputs: [
-                  { key: 'receitaMensal', label: 'Seu faturamento mensal', placeholder: 'ex.: 15.000', source: 'vem do Faturamento (Hotmart) se conectada; senão, informe aqui.' },
-                  { key: 'saldoInicial', label: 'Saldo de caixa hoje', placeholder: 'ex.: 20.000' },
-                  { key: 'custosForaCartao', label: 'Custos fixos fora do cartão', placeholder: 'ex.: 8.000', hint: '/mês' },
-                ],
               },
               {
                 contextKey: 'leads',
