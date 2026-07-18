@@ -476,14 +476,17 @@ export function FloatingAgent({ config }: FloatingAgentProps) {
         </div>
       )}
 
-      {/* FAB — halo pulsante quando fechado, pra chamar atenção */}
+      {/* FAB — halo pulsante quando fechado, pra chamar atenção. Usa o tom CLARO
+          da marca (blue-300/400) no halo e no glow: no modo escuro o acento sólido
+          (blue-500, que na Fatura vira petróleo) some no fundo; o tom claro pulsa
+          visível em creme E dusk. */}
       <div className="fixed bottom-6 right-6 z-50">
-        {!open && <span aria-hidden="true" className="os-agent-halo pointer-events-none absolute inset-0 rounded-full bg-blue-500" />}
+        {!open && <span aria-hidden="true" className="os-agent-halo pointer-events-none absolute inset-0 rounded-full bg-blue-300" />}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? `Fechar ${title}` : `Abrir ${title} — assistente de IA`}
-          className="relative flex h-14 w-14 flex-col items-center justify-center gap-[3px] rounded-full bg-blue-500 text-white shadow-lg shadow-blue-500/30 ring-1 ring-white/10 transition-transform hover:scale-105 active:scale-95"
+          className="relative flex h-14 w-14 flex-col items-center justify-center gap-[3px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-lg shadow-blue-400/50 ring-1 ring-white/25 transition-transform hover:scale-105 active:scale-95"
         >
           {open ? (
             <X className="h-6 w-6" strokeWidth={2} />
