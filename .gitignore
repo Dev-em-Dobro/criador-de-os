@@ -33,3 +33,4 @@ Thumbs.db
 *.tsbuildinfo
 apps/*/dist/
 packages/*/dist/
+.gstack/
