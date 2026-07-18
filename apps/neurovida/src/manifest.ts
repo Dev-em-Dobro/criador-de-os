@@ -43,6 +43,7 @@ export const neurovidaManifest: ClientManifest = {
     clientId: 'neurovida',
     displayName: 'Neurovida',
     productName: 'Neurovida OS',
+    brandBadge: '', // productName já contém "OS" — oculta o badge redundante
     logoUrl: '/logo.svg',
     // TESTE — paleta da cliente (petróleo/teal do design system Liranê Suliano),
     // aplicada globalmente via ThemeProvider (:root). Pinta todo o acento do OS.

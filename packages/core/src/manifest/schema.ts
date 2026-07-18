@@ -34,6 +34,7 @@ const identitySchema = z
     clientId: z.string().min(1, 'clientId não pode ser vazio'),
     displayName: z.string().min(1, 'displayName não pode ser vazio'),
     productName: z.string().min(1, 'productName não pode ser vazio'),
+    brandBadge: z.string().optional(),
     logoUrl: z.string(),
     theme: themeSchema,
   })

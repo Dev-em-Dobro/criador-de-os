@@ -64,17 +64,27 @@ function NavItem({ item, sub = false, onNavigate }: { item: ShellNavItem; sub?: 
         onNavigate?.();
       }}
       aria-current={item.active ? 'page' : undefined}
-      className={`flex items-center gap-2.5 rounded-lg text-left font-medium transition-colors ${
+      className={`relative flex items-center gap-2.5 rounded-lg text-left transition-colors ${
         sub ? 'px-3 py-1.5 text-[13px]' : 'px-3 py-2.5 text-sm'
       } ${
         item.active
-          ? 'bg-blue-500/15 text-(color:--os-active-text) ring-1 ring-blue-500/30'
-          : 'text-gray-400 hover:bg-(color:--os-hover) hover:text-gray-100'
+          ? 'bg-blue-500/10 font-semibold text-(color:--os-active-text)'
+          : 'font-medium text-gray-400 hover:bg-(color:--os-hover) hover:text-gray-100'
       }`}
     >
+      {/* Indicador "você está aqui": barra de acento à esquerda, no lugar do
+          antigo contorno duro (ring). Some no hover/inativo; só o item ativo a mostra. */}
+      {item.active && (
+        <span
+          aria-hidden="true"
+          className={`absolute left-1 top-1/2 w-[3px] -translate-y-1/2 rounded-full bg-blue-500 ${
+            sub ? 'h-3.5' : 'h-5'
+          }`}
+        />
+      )}
       {Icon && (
         <Icon
-          className={`h-4 w-4 shrink-0 transition-colors ${item.active ? 'text-blue-300' : 'text-gray-500'}`}
+          className={`h-4 w-4 shrink-0 transition-colors ${item.active ? 'text-blue-400' : 'text-gray-500'}`}
           strokeWidth={1.75}
         />
       )}
@@ -116,7 +126,7 @@ export function AppShell({
         <span className="brand-mark" aria-hidden="true" />
       )}
       <div className="flex items-baseline gap-1.5">
-        <span className="os-wordmark text-base font-bold uppercase tracking-[0.22em] text-gray-100">{productName}</span>
+        <span className="os-wordmark whitespace-nowrap text-sm font-bold uppercase tracking-[0.14em] text-gray-100">{productName}</span>
         {brandBadge && (
           <span className="rounded-md bg-blue-500/15 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-[0.28em] text-blue-300 ring-1 ring-blue-500/30">
             {brandBadge}

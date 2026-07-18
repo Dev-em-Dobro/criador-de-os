@@ -219,6 +219,7 @@ export function ManifestRouter({
   return (
     <AppShell
       productName={manifest.identity.productName}
+      brandBadge={manifest.identity.brandBadge}
       menus={shellMenus}
       sidebar={sidebar}
       footerText={manifest.settings.footerText}

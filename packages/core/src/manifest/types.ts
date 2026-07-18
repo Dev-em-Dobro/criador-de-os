@@ -27,6 +27,11 @@ export interface ManifestIdentity {
   displayName: string;
   /** Wordmark exibido no shell, ex.: "EXEMPLO" (+ badge "OS"). */
   productName: string;
+  /**
+   * Texto do badge ao lado do wordmark (ex.: "OS"). String vazia oculta o badge
+   * (útil quando o `productName` já contém "OS"). Default no shell: "OS".
+   */
+  brandBadge?: string;
   /** Caminho do logo (por app), ex.: "/logo.webp". */
   logoUrl: string;
   /**
