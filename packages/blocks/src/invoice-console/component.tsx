@@ -11,7 +11,7 @@
  * skin remapeia pro acento teal/petróleo), então serve creme E dusk sem hardcode.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionHeader } from '@os/core';
 import type { BlockProps } from '@os/core';
 
@@ -174,6 +174,12 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
   const [abertas, setAbertas] = useState<Set<string>>(() => new Set());
   const [catAberta, setCatAberta] = useState<Set<string>>(() => new Set());
   const [mesSel, setMesSel] = useState<string>(''); // '' = auto (mês mais recente); 'ALL' = todas
+  // Modal de detalhamento: qual card foi aberto (null = fechado). Ao fechar,
+  // devolvemos o foco ao card que abriu (best-effort com um ref por card).
+  const [modal, setModal] = useState<null | 'total' | 'recorrentes' | 'cortar'>(null);
+  const totalCardRef = useRef<HTMLButtonElement>(null);
+  const recorrentesCardRef = useRef<HTMLButtonElement>(null);
+  const cortarCardRef = useRef<HTMLButtonElement>(null);
 
   async function load(): Promise<void> {
     try {
@@ -334,6 +340,70 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
   const pctCortes = resumo.totalCortes / base;
   const pctApos = resumo.aposCortes / base;
 
+  // --- Modal de detalhamento (Total / Recorrentes / Marcado pra cortar) ---
+  // Snapshot dos ids "marcados pra cortar" no MOMENTO em que o modal 'cortar'
+  // abriu: assim, desmarcar um item dentro do modal só aplica o efeito visual
+  // "cortado" (não remove a linha da lista), evitando que itens sumam enquanto
+  // a pessoa interage. Os cards lá fora reagem normalmente porque leem `cortes`.
+  const cortarSnapshot = useRef<Set<number>>(new Set());
+
+  function openModal(which: 'total' | 'recorrentes' | 'cortar'): void {
+    if (which === 'cortar') cortarSnapshot.current = new Set(cortes);
+    setModal(which);
+  }
+
+  function closeModal(): void {
+    const which = modal;
+    setModal(null);
+    // Devolve o foco ao card que abriu (best-effort). Após a re-render que remove
+    // o overlay, o card volta a ser focável.
+    requestAnimationFrame(() => {
+      const ref =
+        which === 'total' ? totalCardRef : which === 'recorrentes' ? recorrentesCardRef : which === 'cortar' ? cortarCardRef : null;
+      ref?.current?.focus();
+    });
+  }
+
+  // Conteúdo do modal aberto: título, subtítulo (contagem + subtotal do card) e a
+  // lista de transações ordenada por valor desc. Reaproveita `visibleInvoices`.
+  const modalContent = useMemo(() => {
+    if (!modal) return null;
+    const allItems = visibleInvoices.flatMap((inv) => inv.items);
+    let items: Item[];
+    let titulo: string;
+    let subtotal: number;
+    if (modal === 'total') {
+      items = allItems;
+      titulo = `Total · ${rotuloMes}`;
+      subtotal = resumo.grand;
+    } else if (modal === 'recorrentes') {
+      items = allItems.filter((it) => it.recurring);
+      titulo = 'Assinaturas recorrentes';
+      subtotal = resumo.recorrente;
+    } else {
+      // 'cortar': usa o snapshot da abertura (não some ao desmarcar dentro do modal).
+      items = allItems.filter((it) => cortarSnapshot.current.has(it.id));
+      titulo = 'Marcado pra cortar';
+      subtotal = resumo.totalCortes;
+    }
+    return { titulo, subtotal, items: [...items].sort((a, b) => b.amount - a.amount) };
+  }, [modal, visibleInvoices, rotuloMes, resumo.grand, resumo.recorrente, resumo.totalCortes]);
+
+  // Esc fecha o modal; foco vai pro painel ao abrir; devolve ao card ao fechar.
+  const modalPanelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!modal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeModal();
+    };
+    window.addEventListener('keydown', onKey);
+    // Foco vai pro painel ao abrir (best-effort).
+    requestAnimationFrame(() => modalPanelRef.current?.focus());
+    return () => window.removeEventListener('keydown', onKey);
+    // closeModal é estável o bastante; refazer o efeito só quando o alvo do modal muda.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modal]);
+
   return (
     <div>
       <SectionHeader title={title ?? 'Fatura do cartão'} subtitle={subtitle} icon="💳" />
@@ -411,40 +481,77 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
 
           {/* Resumo (recalcula com cortes): card herói + 3 KPIs com anel */}
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {/* HERÓI — total da fatura (preenchido no acento da marca) */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700 p-6 text-white shadow-xl shadow-blue-500/25">
+            {/* HERÓI — total da fatura (preenchido no acento da marca). Clicável:
+                abre o modal com TODOS os itens do ciclo. Visual 100% preservado. */}
+            <button
+              ref={totalCardRef}
+              type="button"
+              onClick={() => openModal('total')}
+              aria-label="Ver as transações do total"
+              className="group relative block w-full cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700 p-6 text-left text-white shadow-xl shadow-blue-500/25 transition hover:brightness-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            >
               <span className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10" />
-              <div className="relative text-[11px] font-semibold uppercase tracking-wider text-white/70">Total · {rotuloMes}</div>
+              <div className="relative flex items-start justify-between gap-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-white/70">Total · {rotuloMes}</div>
+                <span
+                  aria-hidden
+                  className="shrink-0 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-medium text-white/90 opacity-80 transition-opacity group-hover:opacity-100"
+                >
+                  ☰ ver itens
+                </span>
+              </div>
               <div className="relative mt-2 text-3xl leading-none tracking-tight" style={DISPLAY}>
                 {fmtBRL(resumo.grand)}
               </div>
               <div className="relative mt-3 text-xs text-white/75">Recorrente: {fmtBRL(resumo.recorrente)}/mês</div>
-            </div>
+            </button>
 
-            {/* Recorrentes */}
-            <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
+            {/* Recorrentes — clicável: abre o modal só com os itens `recurring`. */}
+            <button
+              ref={recorrentesCardRef}
+              type="button"
+              onClick={() => openModal('recorrentes')}
+              aria-label="Ver as assinaturas recorrentes"
+              className="group block w-full cursor-pointer rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 text-left shadow-sm transition-colors hover:bg-gray-700/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+            >
               <div className="flex items-center justify-between">
                 <span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-500/10 text-lg text-blue-400" aria-hidden>♻</span>
                 <Ring pct={pctRecorrente} tone="brand" />
               </div>
-              <div className="mt-4 text-xs font-medium uppercase tracking-wide text-gray-400">Recorrentes</div>
+              <div className="mt-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+                Recorrentes
+                <span aria-hidden className="rounded-full bg-gray-700/50 px-1.5 py-0.5 text-[9px] font-medium normal-case tracking-normal text-gray-400 opacity-70 transition-opacity group-hover:opacity-100">
+                  ☰ ver itens
+                </span>
+              </div>
               <div className="mt-1 text-2xl text-gray-100" style={DISPLAY}>{fmtBRL(resumo.recorrente)}</div>
-            </div>
+            </button>
 
-            {/* Marcado pra cortar */}
-            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 shadow-sm">
+            {/* Marcado pra cortar — clicável: abre o modal só com os itens marcados. */}
+            <button
+              ref={cortarCardRef}
+              type="button"
+              onClick={() => openModal('cortar')}
+              aria-label="Ver as transações marcadas pra cortar"
+              className="group block w-full cursor-pointer rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 text-left shadow-sm transition-colors hover:bg-amber-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
+            >
               <div className="flex items-center justify-between">
                 <span className="grid h-11 w-11 place-items-center rounded-xl bg-amber-500/10 text-lg text-amber-400" aria-hidden>✂</span>
                 <Ring pct={pctCortes} tone="amber" />
               </div>
-              <div className="mt-4 text-xs font-medium uppercase tracking-wide text-gray-400">Marcado pra cortar</div>
+              <div className="mt-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+                Marcado pra cortar
+                <span aria-hidden className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium normal-case tracking-normal text-amber-400/80 opacity-70 transition-opacity group-hover:opacity-100">
+                  ☰ ver itens
+                </span>
+              </div>
               <div className="mt-1 text-2xl text-amber-400" style={DISPLAY}>{fmtBRL(resumo.totalCortes)}</div>
               {resumo.economiaAno > 0 && (
                 <div className="mt-1 text-[11px] text-gray-500">
                   ≈ <span className="font-semibold text-green-400">{fmtBRL(resumo.economiaAno)}</span>/ano
                 </div>
               )}
-            </div>
+            </button>
 
             {/* Total após cortes */}
             <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5 shadow-sm">
@@ -591,6 +698,102 @@ export default function InvoiceConsole({ title, subtitle }: BlockProps) {
             })}
           </div>
         </>
+      )}
+
+      {/* Modal de detalhamento — abre por cima de TODA a página (tela cheia) */}
+      {modal && modalContent && (
+        <div
+          ref={modalPanelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tx-modal-title"
+          tabIndex={-1}
+          className="fixed inset-0 z-[100] flex flex-col bg-gray-900/95 backdrop-blur-md focus:outline-none"
+        >
+          {/* Cabeçalho (largura total; conteúdo numa coluna legível centralizada) */}
+          <div className="border-b border-gray-700/60 bg-gray-800/60">
+            <div className="mx-auto flex w-full max-w-3xl items-start justify-between gap-3 px-4 py-4 sm:px-6">
+              <div className="min-w-0">
+                <h2 id="tx-modal-title" className="truncate text-lg font-semibold text-gray-100" style={DISPLAY}>
+                  {modalContent.titulo}
+                </h2>
+                <p className="mt-0.5 text-xs text-gray-400">
+                  {modalContent.items.length} {modalContent.items.length === 1 ? 'transação' : 'transações'}
+                  {' · '}
+                  <span className="font-semibold text-gray-300" style={DISPLAY}>{fmtBRL(modalContent.subtotal)}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeModal}
+                aria-label="Fechar"
+                title="Fechar (Esc)"
+                className="shrink-0 rounded-lg border border-gray-700/60 px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-gray-700/60 hover:text-gray-100"
+              >
+                ✕ Fechar
+              </button>
+            </div>
+          </div>
+
+          {/* Lista rolável ocupando o resto da página (coluna centralizada) */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+            <div className="mx-auto max-w-3xl">
+              {modalContent.items.length === 0 ? (
+                <div className="px-3 py-10 text-center">
+                  <div aria-hidden className="mb-2 text-3xl">{modal === 'cortar' ? '✂️' : modal === 'recorrentes' ? '♻️' : '🧾'}</div>
+                  {modal === 'cortar' ? (
+                    <>
+                      <p className="text-sm font-medium text-gray-300">Nenhuma transação marcada pra cortar ainda.</p>
+                      <p className="mt-1 text-xs text-gray-500">Marque assinaturas nas listas de categoria ou de faturas para vê-las aqui.</p>
+                    </>
+                  ) : modal === 'recorrentes' ? (
+                    <>
+                      <p className="text-sm font-medium text-gray-300">Nenhuma assinatura recorrente neste ciclo.</p>
+                      <p className="mt-1 text-xs text-gray-500">A IA marca como recorrente o que se repete mês a mês — nada foi identificado aqui.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-gray-300">Nenhuma transação neste ciclo.</p>
+                      <p className="mt-1 text-xs text-gray-500">Suba o PDF da fatura para ver os lançamentos aqui.</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                modalContent.items.map((item) => {
+                  const cortado = cortes.has(item.id);
+                  return (
+                    <label
+                      key={item.id}
+                      className={`flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-gray-700/20 ${cortado ? 'opacity-50' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={cortado}
+                        onChange={() => toggleCorte(item.id)}
+                        className="h-4 w-4 shrink-0 accent-amber-500"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className={`text-sm font-medium text-gray-100 ${cortado ? 'line-through' : ''}`}>
+                          {item.description}
+                          <span className={`ml-2 inline-flex items-center gap-1 rounded-full bg-gray-900/50 px-1.5 py-0.5 text-[10px] font-medium ${catMeta(item.category).accent}`}>
+                            {catMeta(item.category).emoji} {item.category}
+                          </span>
+                          {item.recurring && (
+                            <span className="ml-1 inline-flex items-center rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-400">♻ recorrente</span>
+                          )}
+                        </div>
+                        {item.establishment && <div className="truncate text-xs text-gray-500">{item.establishment}</div>}
+                      </div>
+                      <span className={`shrink-0 text-sm font-semibold ${cortado ? 'text-gray-500 line-through' : 'text-gray-100'}`} style={DISPLAY}>
+                        {fmtBRL(item.amount)}
+                      </span>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
