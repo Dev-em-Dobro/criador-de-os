@@ -278,6 +278,17 @@ body::after {
   outline-offset: 2px;
 }
 
+/* ---- Cursor de ponteiro em controles clicáveis ----
+   O Tailwind 4 removeu o `cursor: pointer` padrão de <button>. Restauramos aqui
+   para TODOS os botões/controles do OS de uma vez (mesmo espírito da regra de
+   :focus-visible acima — comportamento consistente sem tocar em cada componente).
+   Desabilitados ficam de fora: mantêm o cursor default ou o `cursor-not-allowed`
+   que alguns botões já declaram via utility. */
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-rise { animation: none; }
   .status-dot { animation: none; }
