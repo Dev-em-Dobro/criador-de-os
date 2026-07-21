@@ -36,6 +36,8 @@ interface RoleSpec {
 const ROLES: RoleSpec[] = [
   { role: 'app_auth', envVar: 'AUTH_DATABASE_URL', smokeTest: 'SELECT count(*) FROM "user"' },
   { role: 'app_query', envVar: 'QUERY_DATABASE_URL', smokeTest: 'SELECT count(*) FROM v_visao_geral' },
+  { role: 'app_ingest', envVar: 'INGEST_DATABASE_URL', smokeTest: 'SELECT count(*) FROM referencias' },
+  { role: 'app_content', envVar: 'CONTENT_DATABASE_URL', smokeTest: 'SELECT count(*) FROM conteudo_posts' },
 ];
 
 /** Monta a connection string do role trocando SÓ user:senha na URL do owner. */

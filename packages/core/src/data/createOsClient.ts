@@ -105,10 +105,14 @@ export function createOsClient(config: OsClientConfig): OsClient & {
     },
 
     async signOut(): Promise<void> {
+      // Corpo `{}` obrigatório: com `Content-Type: application/json` e corpo vazio,
+      // o Better Auth tenta parsear JSON do nada e responde 400 ("Invalid JSON in
+      // request body"), deixando a sessão ativa. Um objeto vazio satisfaz o parser.
       await fetch(joinUrl(authBase, '/sign-out'), {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
     },
   };

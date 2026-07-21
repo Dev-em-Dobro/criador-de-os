@@ -22,3 +22,24 @@ SELECT
   leads_prev,
   period
 FROM metricas_visao_geral;
+
+-- v_conteudo_posts: expõe os cards do board "Conteúdo" (Instagram) por estado.
+-- Só as colunas que o card consome; `id` vira text para servir de key estável no
+-- front. As colunas internas (referencia_id, gancho, pauta, roteiro, timestamps)
+-- NÃO são expostas — contrato mínimo, igual à v_visao_geral.
+-- Colunas novas (briefing_*) vão no FINAL: CREATE OR REPLACE VIEW no Postgres só
+-- permite ACRESCENTAR colunas ao fim da lista existente, nunca inserir no meio.
+CREATE OR REPLACE VIEW v_conteudo_posts AS
+SELECT
+  id::text AS id,
+  titulo,
+  capa_url,
+  data_programada,
+  cta_final,
+  link_presente_notion,
+  estado,
+  formato,
+  briefing_url,
+  briefing,
+  refs_links
+FROM conteudo_posts;

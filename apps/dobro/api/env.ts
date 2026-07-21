@@ -61,6 +61,8 @@ export function getDatabaseUrl(): string {
 // role, o boot ABORTA — JAMAIS caímos no owner num deploy real.
 let warnedAuthUrl = false;
 let warnedQueryUrl = false;
+let warnedIngestUrl = false;
+let warnedContentUrl = false;
 
 /** true quando rodando em produção (deploy real). */
 function isProduction(): boolean {
@@ -115,6 +117,90 @@ export function getQueryDatabaseUrl(): string {
     warnedQueryUrl = true;
   }
   return getDatabaseUrl();
+}
+
+/**
+ * Connection string do role `app_ingest` (INSERT só na tabela `referencias`).
+ * Usada pelo webhook do Telegram (`/api/telegram/webhook`). Produção: fail-closed.
+ * Fallback DEV: owner (WARN único) — a ingestão funciona sem provisionar o role.
+ */
+export function getIngestDatabaseUrl(): string {
+  const url = process.env.INGEST_DATABASE_URL?.trim();
+  if (url) return url;
+  if (isProduction()) {
+    throw new Error(
+      '[env] INGEST_DATABASE_URL ausente em produção. O webhook NÃO pode usar a ' +
+        'connection string OWNER (a defesa de role app_ingest ficaria inativa). ' +
+        'Rode `pnpm db:provision-roles` e defina INGEST_DATABASE_URL.',
+    );
+  }
+  if (!warnedIngestUrl) {
+    console.warn(
+      '[env] INGEST_DATABASE_URL ausente — o webhook do Telegram usará a connection ' +
+        'string OWNER (fallback de DEV). A defesa de role (app_ingest) NÃO está ativa; ' +
+        'defina INGEST_DATABASE_URL em produção.',
+    );
+    warnedIngestUrl = true;
+  }
+  return getDatabaseUrl();
+}
+
+/**
+ * Connection string do role `app_content` (SELECT/INSERT/UPDATE/DELETE só na
+ * tabela `conteudo_posts`). Usada pelas rotas autenticadas `/api/conteudo` (o
+ * criador cadastra/edita o cronograma pela tela). Produção: fail-closed.
+ * Fallback DEV: owner (WARN único).
+ */
+export function getContentDatabaseUrl(): string {
+  const url = process.env.CONTENT_DATABASE_URL?.trim();
+  if (url) return url;
+  // Fail-closed: em produção JAMAIS cair no owner. Sem o role, aborta o boot.
+  if (isProduction()) {
+    throw new Error(
+      '[env] CONTENT_DATABASE_URL ausente em produção. As rotas /api/conteudo NÃO ' +
+        'podem usar a connection string OWNER (a defesa de role app_content ficaria ' +
+        'inativa). Rode `pnpm db:provision-roles` e defina CONTENT_DATABASE_URL.',
+    );
+  }
+  if (!warnedContentUrl) {
+    console.warn(
+      '[env] CONTENT_DATABASE_URL ausente — /api/conteudo usará a connection string OWNER ' +
+        '(fallback de DEV). A defesa de role (app_content) NÃO está ativa; defina ' +
+        'CONTENT_DATABASE_URL em produção.',
+    );
+    warnedContentUrl = true;
+  }
+  return getDatabaseUrl();
+}
+
+/** Token do bot do Telegram (BotFather). Opcional — só para replies/setWebhook. */
+export function getTelegramBotToken(): string | undefined {
+  return process.env.TELEGRAM_BOT_TOKEN?.trim() || undefined;
+}
+
+/**
+ * Secret token do webhook do Telegram. O `setWebhook` o configura e o Telegram
+ * o devolve em todo request; o endpoint valida por ele. Sem valor → webhook 401.
+ */
+export function getTelegramWebhookSecret(): string | undefined {
+  return process.env.TELEGRAM_WEBHOOK_SECRET?.trim() || undefined;
+}
+
+/**
+ * Chave Anthropic da agência (fallback DEV/BYOK) — usada pelo pipeline de conteúdo.
+ * Null se ausente (o script de processamento sai limpo). Server-side, nunca no bundle.
+ */
+export function getAgencyAnthropicKey(): string | null {
+  return process.env.ANTHROPIC_API_KEY?.trim() || null;
+}
+
+/**
+ * Token do Apify — para buscar o conteúdo real de posts do Instagram (legenda,
+ * formato, métricas). Opcional: sem ele o fetch cai no fallback frágil e o
+ * teardown fica sem embasamento. Server-side, nunca no bundle.
+ */
+export function getApifyToken(): string | undefined {
+  return process.env.APIFY_TOKEN?.trim() || undefined;
 }
 
 /** Segredo que assina as sessões do Better Auth. Server-side. */

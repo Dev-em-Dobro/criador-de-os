@@ -44,6 +44,24 @@ export const kanbanBoardConfigSchema = z
     titleField: z.string().min(1).optional(),
     /** Campo opcional exibido como etiqueta de agrupamento no card (ex.: projeto). */
     groupBy: z.string().min(1).optional(),
+    /** Campo cujo valor (URL) vira a imagem de capa no topo do card. */
+    imageField: z.string().min(1).optional(),
+    /** Campo de data exibido no card (formatado como data legível). */
+    dateField: z.string().min(1).optional(),
+    /** Campo exibido como selo/badge no topo do card (ex.: formato do post). */
+    badgeField: z.string().min(1).optional(),
+    /** Campo cujo valor (URL) vira um link de ação no rodapé do card. */
+    linkField: z.string().min(1).optional(),
+    /** Rótulo do link de `linkField` (default: 'Abrir'). */
+    linkLabel: z.string().min(1).optional(),
+    /** Campos extras exibidos como linhas "rótulo: valor" no corpo do card. */
+    metaFields: z
+      .array(
+        z
+          .object({ field: z.string().min(1), label: z.string().min(1).optional() })
+          .strict(),
+      )
+      .optional(),
   })
   .strict();
 

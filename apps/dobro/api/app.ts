@@ -15,6 +15,12 @@
 
 import { Hono } from 'hono';
 import { auth } from './auth';
+import { handleTelegramWebhook } from './telegram';
+import {
+  handleCriarConteudo,
+  handleAtualizarConteudo,
+  handleRemoverConteudo,
+} from './conteudo';
 import { dbQuery } from '../db/client';
 import {
   buildSecureQuery,
@@ -30,6 +36,18 @@ app.get('/api/health', (c) => c.json({ ok: true }));
 // --- Better Auth: todas as rotas /api/auth/** ---
 // O handler do Better Auth cuida de sign-in/up/session/sign-out e dos cookies.
 app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
+
+// --- Ingestão do Telegram (webhook PÚBLICO, validado por secret token) ---
+// Não passa pela sessão do Better Auth: a defesa é o `secret_token` do setWebhook
+// (header X-Telegram-Bot-Api-Secret-Token). Grava em `referencias` via app_ingest.
+app.post('/api/telegram/webhook', (c) => handleTelegramWebhook(c));
+
+// --- Cronograma de Conteúdo (ESCRITA autenticada) ---
+// Auth-first (fail-closed) dentro de cada handler; grava `conteudo_posts` via o
+// role app_content. É como o criador cadastra/edita o cronograma pela tela.
+app.post('/api/conteudo', (c) => handleCriarConteudo(c));
+app.patch('/api/conteudo/:id', (c) => handleAtualizarConteudo(c));
+app.delete('/api/conteudo/:id', (c) => handleRemoverConteudo(c));
 
 // --- Endpoint de query genérico SEGURO ---
 app.post('/api/query', async (c) => {

@@ -37,6 +37,12 @@ export interface BlockActions {
   updateDoc?: (id: string, patch: Record<string, unknown>) => Promise<void>;
   /** Força um refetch dos dados. */
   reload?: () => void;
+  /**
+   * Navega para outra rota do app (SPA, via react-router). Injetado pelo
+   * ManifestRouter. Permite a um bloco levar o usuário a outra tela do manifesto
+   * (ex.: um botão "Editar" que abre uma rota dedicada, compartilhável por URL).
+   */
+  navigate?: (to: string) => void;
 }
 
 /** Props que TODO bloco recebe. `TConfig` é a forma do `binding.config` daquele bloco. */

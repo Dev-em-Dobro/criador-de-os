@@ -8,6 +8,20 @@
       "when": 1783892200916,
       "tag": "0000_mute_lethal_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784380447101,
+      "tag": "0001_overjoyed_menace",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784647627686,
+      "tag": "0002_bouncy_jack_power",
+      "breakpoints": true
     }
   ]
 }

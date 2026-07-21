@@ -18,9 +18,18 @@
     "db:provision-roles": "tsx db/provision-roles.ts",
     "db:setup": "pnpm db:generate && pnpm db:migrate && pnpm db:seed",
     "test:smoke": "tsx api/scripts/smoke-e2e.ts",
+    "test:telegram": "tsx api/scripts/smoke-telegram.ts",
+    "conteudo:processar": "tsx api/scripts/processar-referencias.ts",
+    "referencias:list": "tsx api/scripts/list-referencias.ts",
+    "referencias:reset": "tsx api/scripts/reset-referencia.ts",
+    "ig:fetch": "tsx api/scripts/test-ig-fetch.ts",
+    "telegram:set-webhook": "tsx api/scripts/telegram-set-webhook.ts",
+    "telegram:delete-webhook": "tsx api/scripts/telegram-delete-webhook.ts",
+    "telegram:webhook-info": "tsx api/scripts/telegram-webhook-info.ts",
     "auth:create-user": "tsx api/scripts/create-user.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
     "@hono/node-server": "^2.0.8",
     "@neondatabase/serverless": "^1.1.0",
     "@os/blocks": "workspace:*",

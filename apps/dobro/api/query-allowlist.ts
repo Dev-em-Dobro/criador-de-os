@@ -37,6 +37,22 @@ const ALLOWED_VIEWS: Record<string, AllowedView> = {
       'period',
     ],
   },
+  v_conteudo_posts: {
+    view: 'v_conteudo_posts',
+    columns: [
+      'id',
+      'titulo',
+      'capa_url',
+      'data_programada',
+      'cta_final',
+      'link_presente_notion',
+      'briefing_url',
+      'briefing',
+      'refs_links',
+      'estado',
+      'formato',
+    ],
+  },
 };
 
 /** Retorna a entrada de allowlist para uma view, ou `undefined` se não permitida. */

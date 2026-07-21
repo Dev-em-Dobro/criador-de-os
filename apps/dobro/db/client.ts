@@ -8,7 +8,13 @@
 
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { getDatabaseUrl, getAuthDatabaseUrl, getQueryDatabaseUrl } from '../api/env';
+import {
+  getDatabaseUrl,
+  getAuthDatabaseUrl,
+  getQueryDatabaseUrl,
+  getIngestDatabaseUrl,
+  getContentDatabaseUrl,
+} from '../api/env';
 import * as schema from './schema';
 
 // `neon(url)` só monta o client HTTP (não abre conexão até a 1ª query), então
@@ -32,6 +38,19 @@ export const dbAuth = drizzle(neon(getAuthDatabaseUrl()), { schema });
  * Fallback DEV: owner (com WARN em env.ts).
  */
 export const dbQuery = drizzle(neon(getQueryDatabaseUrl()), { schema });
+
+/**
+ * Client do webhook do Telegram — role `app_ingest` (INSERT só em `referencias`).
+ * Fallback DEV: owner (com WARN em env.ts).
+ */
+export const dbIngest = drizzle(neon(getIngestDatabaseUrl()), { schema });
+
+/**
+ * Client das rotas `/api/conteudo` — role `app_content` (SELECT/INSERT/UPDATE/
+ * DELETE só em `conteudo_posts`). É o que o criador usa para cadastrar/editar o
+ * cronograma pela tela. Fallback DEV: owner (com WARN em env.ts).
+ */
+export const dbContent = drizzle(neon(getContentDatabaseUrl()), { schema });
 
 export type Db = typeof db;
 export { schema };

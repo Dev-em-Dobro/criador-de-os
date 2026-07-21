@@ -157,26 +157,128 @@ export const dobroManifest: ClientManifest = {
         ],
       },
 
-      // 3) GUIA — folha direta com doc-viewer (texto puro de config, sem dados)
+      // 3) CONTEÚDO — grupo com 2 sub-abas (rotas próprias, compartilháveis):
+      //      · Painel     (/conteudo/painel)     → dashboard: métricas + agenda + lista.
+      //      · Cronograma (/conteudo/cronograma) → página de edição da semana.
+      //    Ambas leem os posts REAIS de v_conteudo_posts (allowlist). A rota base
+      //    /conteudo redireciona para /conteudo/painel (primeira aba).
       {
-        key: 'guia',
-        label: 'Guia',
-        icon: 'FileText',
-        route: '/guia',
-        view: {
-          block: 'doc-viewer',
-          title: 'Sobre este OS',
-          subtitle: 'Documento de exemplo renderizado por config',
-          config: {
-            heading: 'Como este OS é montado',
-            body: [
-              'Esta tela inteira é descrita por um manifesto (dados), não por código React. Menus, sub-abas, telas e dados vêm todos do arquivo manifest.ts.',
-              'O motor (ManifestRouter) gera as rotas, alimenta o shell e, para cada rota, resolve o bloco no registry e injeta config + dados resolvidos pelo DataAdapter.',
-              'Nesta fatia (1B), os dados são estáticos (embutidos no manifesto). A fatia 1C liga o DataAdapter à API do app (Neon) para os tipos query e rest.',
-            ],
+        key: 'conteudo',
+        label: 'Conteúdo',
+        icon: 'CalendarDays',
+        route: '/conteudo',
+        tabs: [
+          {
+            id: 'painel',
+            label: 'Painel',
+            icon: 'LayoutDashboard',
+            view: {
+              block: 'custom:conteudo-dashboard',
+              title: 'Conteúdo — Instagram',
+              subtitle: 'Seu painel — próximos posts, crescimento e agenda',
+              config: {
+                titleField: 'titulo',
+                dateField: 'data_programada',
+                formatField: 'formato',
+                statusField: 'estado',
+                linkField: 'link_presente_notion',
+                linkLabel: 'Presente',
+                resumoLabel: 'Resumo',
+                newPostLabel: 'Novo post',
+                updateScheduleLabel: 'Atualizar cronograma',
+                limit: 6,
+                statusMap: {
+                  rascunho: { label: 'Rascunho', tone: 'progress' },
+                  pronto: { label: 'Pronto', tone: 'ready' },
+                  publicado: { label: 'Publicado', tone: 'done' },
+                },
+                // MÉTRICAS do perfil (@devemdobro). Engajamento e melhores posts são
+                // dado REAL coletado do Instagram (18/07). Seguidores e crescimento
+                // ficam `null` de propósito — só entram quando a conta for conectada
+                // (token de Insights): a UI mostra "conectar", nunca número inventado.
+                metrics: {
+                  updatedAt: '2026-07-18',
+                  source: 'seed',
+                  followers: { current: null, series: null },
+                  growth: { week: null, month: null, q3: null, h6: null, y1: null },
+                  engagement: {
+                    windowDays: 7,
+                    interactions: 4654,
+                    avgPerPost: 465,
+                    postsCount: 10,
+                    best: {
+                      title: 'CEO da Microsoft: ainda vale aprender a programar',
+                      likes: 1653,
+                      comments: 161,
+                      permalink: 'https://www.instagram.com/p/Da1JPvuj0e5/',
+                    },
+                  },
+                  topPosts: [
+                    { title: 'CEO da Microsoft — "comenta CONCEITO"', type: 'Carrossel', likes: 1653, comments: 161, date: '2026-07-15', permalink: 'https://www.instagram.com/p/Da1JPvuj0e5/' },
+                    { title: '"Pular etapas" (meme)', type: 'Imagem', likes: 1180, comments: 40, date: '2026-07-12', permalink: 'https://www.instagram.com/p/DasjinluD4b/' },
+                    { title: 'Claude Max — "comenta MAX"', type: 'Carrossel', likes: 351, comments: 67, date: '2026-07-14', permalink: 'https://www.instagram.com/p/Daxih3zDo17/' },
+                    { title: 'Segurança no código — "comenta SEGURANÇA"', type: 'Carrossel', likes: 178, comments: 90, date: '2026-07-14', permalink: 'https://www.instagram.com/p/Dayg3t6D4K2/' },
+                    { title: 'Loop de autoavaliação — "comenta LOOP"', type: 'Carrossel', likes: 175, comments: 112, date: '2026-07-16', permalink: 'https://www.instagram.com/p/Da3rHqMCW72/' },
+                  ],
+                },
+              },
+              dataSource: {
+                kind: 'query',
+                view: 'v_conteudo_posts',
+                select: [
+                  'id',
+                  'titulo',
+                  'capa_url',
+                  'data_programada',
+                  'cta_final',
+                  'link_presente_notion',
+                  'estado',
+                  'formato',
+                ],
+                orderBy: [{ field: 'data_programada', dir: 'asc' }],
+                limit: 100,
+              },
+            },
           },
-          // Sem dataSource: bloco puramente de config.
-        },
+          {
+            id: 'cronograma',
+            label: 'Cronograma',
+            icon: 'ClipboardList',
+            view: {
+              block: 'custom:conteudo-cronograma',
+              title: 'Cronograma',
+              subtitle: 'Monte a semana — adicione, edite ou remova postagens',
+              config: {
+                titleField: 'titulo',
+                dateField: 'data_programada',
+                formatField: 'formato',
+                statusField: 'estado',
+              },
+              // Mesmo dataSource do painel: o editor precisa dos posts para
+              // preencher os dias e detectar edições. Aqui também trazemos os
+              // campos de briefing (só usados na tela de edição do cronograma).
+              dataSource: {
+                kind: 'query',
+                view: 'v_conteudo_posts',
+                select: [
+                  'id',
+                  'titulo',
+                  'capa_url',
+                  'data_programada',
+                  'cta_final',
+                  'link_presente_notion',
+                  'briefing_url',
+                  'briefing',
+                  'refs_links',
+                  'estado',
+                  'formato',
+                ],
+                orderBy: [{ field: 'data_programada', dir: 'asc' }],
+                limit: 100,
+              },
+            },
+          },
+        ],
       },
     ],
   },

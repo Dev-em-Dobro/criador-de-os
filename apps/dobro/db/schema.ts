@@ -17,9 +17,11 @@ import {
   boolean,
   doublePrecision,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
+  uuid,
 } from 'drizzle-orm/pg-core';
 
 // ============================================================
@@ -104,6 +106,93 @@ export const metricasVisaoGeral = pgTable('metricas_visao_geral', {
   leadsPrev: integer('leads_prev').notNull(),
   /** Período de agregação: 'weekly' | 'monthly' | 'quarterly' (bate com Period do core). */
   period: text('period').notNull(),
+  updatedAt: timestamp('updated_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
+// ============================================================
+// Conteúdo / Social — pipeline de posts do Instagram (Fatia 1)
+// ============================================================
+
+/**
+ * Referências capturadas de um canal (ex.: Telegram): um conteúdo que foi bem e
+ * serve de inspiração. A ingestão (webhook) grava aqui; o pipeline analisa "por
+ * que foi bem" e gera um rascunho em `conteudo_posts`. A API NUNCA lê esta
+ * tabela direto — quando exposta, será por uma view read-only na allowlist.
+ */
+export const referencias = pgTable('referencias', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  /** Canal de origem: 'telegram' | 'whatsapp' | 'manual'. */
+  canal: text('canal').notNull(),
+  /** URL de origem (ex.: link do post no Instagram). */
+  origemUrl: text('origem_url'),
+  /** Tipo do conteúdo capturado: 'link' | 'imagem' | 'texto'. */
+  tipo: text('tipo').notNull().default('link'),
+  /** Formato da referência: 'carrossel' | 'reels' | null (a detectar). */
+  formatoRef: text('formato_ref'),
+  /** Conteúdo bruto capturado (legenda/texto). */
+  conteudoBruto: text('conteudo_bruto'),
+  /** Observação de quem mandou a referência (sinal valioso). */
+  notaTime: text('nota_time'),
+  /** URL da capa/thumbnail da referência. */
+  capaUrl: text('capa_url'),
+  /** Métricas da referência no momento da captura (json livre). */
+  metricasRef: jsonb('metricas_ref'),
+  /** Teardown: por que o conteúdo foi bem (preenchido pelo pipeline). */
+  analise: text('analise'),
+  /** Estado de processamento: 'pendente' | 'processada'. */
+  status: text('status').notNull().default('pendente'),
+  createdAt: timestamp('created_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
+/**
+ * Posts de conteúdo (Instagram) exibidos no board "Conteúdo". Cada linha é um
+ * card: título, capa, data programada, CTA, link do presente e estado. A view
+ * read-only `v_conteudo_posts` (allowlist) é a ÚNICA forma da API ler isto.
+ */
+export const conteudoPosts = pgTable('conteudo_posts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  /** Referência que originou este rascunho (null se criado à mão). */
+  referenciaId: uuid('referencia_id').references(() => referencias.id, {
+    onDelete: 'set null',
+  }),
+  titulo: text('titulo').notNull(),
+  /** URL da imagem de capa do post. */
+  capaUrl: text('capa_url'),
+  /** Data/hora programada de publicação. */
+  dataProgramada: timestamp('data_programada'),
+  /** Frase final de CTA. */
+  ctaFinal: text('cta_final'),
+  /** Link do presente entregue (ex.: página no Notion). */
+  linkPresenteNotion: text('link_presente_notion'),
+  /** Briefing (planejamento) — link do Notion da postagem. */
+  briefingUrl: text('briefing_url'),
+  /** Briefing (planejamento) — texto do briefing (alternativa/complemento ao link). */
+  briefing: text('briefing'),
+  /** Briefing (planejamento) — links de referência, um por linha. */
+  refsLinks: text('refs_links'),
+  /** Estado no board: 'rascunho' | 'pronto' | 'publicado'. */
+  estado: text('estado').notNull().default('rascunho'),
+  /** Plataforma: 'instagram' (multi-plataforma no futuro). */
+  plataforma: text('plataforma').notNull().default('instagram'),
+  /** Formato: 'carrossel' | 'reels'. */
+  formato: text('formato').notNull().default('carrossel'),
+  /** Gancho aprovado. */
+  gancho: text('gancho'),
+  /** Pauta/roteiro em AIDA (texto). */
+  pauta: text('pauta'),
+  /** Legenda (caption) do post. */
+  legenda: text('legenda'),
+  /** Hashtags. */
+  hashtags: text('hashtags'),
+  /** Estrutura por formato: slides (carrossel) ou cenas (reels). */
+  roteiro: jsonb('roteiro'),
+  createdAt: timestamp('created_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
   updatedAt: timestamp('updated_at')
     .$defaultFn(() => new Date())
     .notNull(),

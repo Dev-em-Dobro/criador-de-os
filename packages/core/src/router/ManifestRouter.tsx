@@ -70,12 +70,14 @@ function BindingView({
   client,
   period,
   clientId,
+  navigate,
 }: {
   binding: BlockBinding;
   registry: BlockRegistry;
   client?: OsClient;
   period: Period;
   clientId: string;
+  navigate: (to: string) => void;
 }) {
   // Hooks SEMPRE no topo (regras dos hooks): resolvemos os dados antes de
   // qualquer early-return baseado no registro do bloco.
@@ -109,7 +111,9 @@ function BindingView({
     error: resolved.error,
     period,
     clientId,
-    actions: resolved.actions,
+    // `navigate` (react-router) é mesclado às ações de dados (reload/updateDoc),
+    // dando ao bloco navegação SPA sem acoplá-lo ao router.
+    actions: { ...resolved.actions, navigate },
   };
 
   // O bloco pode ser `React.lazy` (code-split por bloco): renderizamos dentro de
@@ -245,6 +249,7 @@ export function ManifestRouter({
                     client={client}
                     period={effectivePeriod}
                     clientId={clientId}
+                    navigate={navigate}
                   />
                 }
               />
@@ -270,6 +275,7 @@ export function ManifestRouter({
                         client={client}
                         period={effectivePeriod}
                         clientId={clientId}
+                        navigate={navigate}
                       />
                     }
                   />

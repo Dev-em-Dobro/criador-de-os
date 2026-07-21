@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { OsApp, createOsClient } from '@os/core';
 import { dobroManifest } from './manifest';
 import { registry } from './registry';
+import { UserFooter } from './UserFooter';
 import './index.css';
 
 const root = document.getElementById('root');
@@ -18,6 +19,11 @@ const client = createOsClient(dobroManifest.dataApi);
 // auth.enabled (AuthGate) e renderiza tudo.
 createRoot(root).render(
   <StrictMode>
-    <OsApp manifest={dobroManifest} registry={registry} client={client} />
+    <OsApp
+      manifest={dobroManifest}
+      registry={registry}
+      client={client}
+      navFooter={<UserFooter client={client} />}
+    />
   </StrictMode>,
 );
