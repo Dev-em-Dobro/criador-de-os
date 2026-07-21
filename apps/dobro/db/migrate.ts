@@ -17,7 +17,7 @@ import { migrate } from 'drizzle-orm/neon-http/migrator';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getDatabaseUrl } from '../api/env';
+import { getDatabaseUrl } from '../server/env';
 
 const here = dirname(fileURLToPath(import.meta.url));
 

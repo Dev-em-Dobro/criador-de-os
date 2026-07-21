@@ -6,7 +6,7 @@
  */
 
 import { neon } from '@neondatabase/serverless';
-import { getDatabaseUrl } from '../api/env';
+import { getDatabaseUrl } from '../server/env';
 
 async function main(): Promise<void> {
   const sql = neon(getDatabaseUrl());

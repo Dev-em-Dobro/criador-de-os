@@ -19,7 +19,7 @@ import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getDatabaseUrl } from '../api/env';
+import { getDatabaseUrl } from '../server/env';
 
 const here = dirname(fileURLToPath(import.meta.url));
 // apps/dobro/db → apps/dobro → apps → raiz do monorepo (onde vive o .env canônico).

@@ -14,7 +14,7 @@ import {
   getQueryDatabaseUrl,
   getIngestDatabaseUrl,
   getContentDatabaseUrl,
-} from '../api/env';
+} from '../server/env';
 import * as schema from './schema';
 
 // `neon(url)` só monta o client HTTP (não abre conexão até a 1ª query), então

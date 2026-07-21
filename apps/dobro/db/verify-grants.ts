@@ -22,7 +22,7 @@
  */
 
 import { neon } from '@neondatabase/serverless';
-import { getDatabaseUrl } from '../api/env';
+import { getDatabaseUrl } from '../server/env';
 
 const sql = neon(getDatabaseUrl());
 
