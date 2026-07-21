@@ -9,8 +9,8 @@
 
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { dbAuth, schema } from '../db/client';
-import { getAuthSecret, getAuthUrl } from './env';
+import { dbAuth, schema } from '../db/client.js';
+import { getAuthSecret, getAuthUrl } from './env.js';
 
 export const auth = betterAuth({
   secret: getAuthSecret(),

@@ -19,9 +19,9 @@
 
 import type { Context } from 'hono';
 import { eq } from 'drizzle-orm';
-import { auth } from './auth';
-import { dbContent } from '../db/client';
-import { conteudoPosts } from '../db/schema';
+import { auth } from './auth.js';
+import { dbContent } from '../db/client.js';
+import { conteudoPosts } from '../db/schema.js';
 
 // --- Contrato fechado de valores (defesa 2) ---
 const FORMATOS = ['carrossel', 'reels', 'story', 'post'] as const;

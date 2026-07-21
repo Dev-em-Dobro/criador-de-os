@@ -19,9 +19,9 @@
  */
 
 import type { Context } from 'hono';
-import { dbIngest } from '../db/client';
-import { referencias } from '../db/schema';
-import { getTelegramBotToken, getTelegramWebhookSecret } from './env';
+import { dbIngest } from '../db/client.js';
+import { referencias } from '../db/schema.js';
+import { getTelegramBotToken, getTelegramWebhookSecret } from './env.js';
 
 /** Casca mínima de um update do Telegram (só o que usamos). */
 interface TelegramMessage {

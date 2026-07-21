@@ -16,7 +16,7 @@
  */
 
 import { sql, type SQL } from 'drizzle-orm';
-import { getAllowedView, isKnownColumn, type AllowedView } from './query-allowlist';
+import { getAllowedView, isKnownColumn, type AllowedView } from './query-allowlist.js';
 
 /** Conjunto FECHADO de operadores aceitos (espelha FilterOp do core). */
 const ALLOWED_OPS = ['=', '!=', '>', '>=', '<', '<=', 'in', 'like'] as const;

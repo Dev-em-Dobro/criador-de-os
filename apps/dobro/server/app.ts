@@ -14,19 +14,19 @@
  */
 
 import { Hono } from 'hono';
-import { auth } from './auth';
-import { handleTelegramWebhook } from './telegram';
+import { auth } from './auth.js';
+import { handleTelegramWebhook } from './telegram.js';
 import {
   handleCriarConteudo,
   handleAtualizarConteudo,
   handleRemoverConteudo,
-} from './conteudo';
-import { dbQuery } from '../db/client';
+} from './conteudo.js';
+import { dbQuery } from '../db/client.js';
 import {
   buildSecureQuery,
   QueryValidationError,
   type QueryRequest,
-} from './query-builder';
+} from './query-builder.js';
 
 export const app = new Hono();
 

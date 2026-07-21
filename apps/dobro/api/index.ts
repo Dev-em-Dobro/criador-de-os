@@ -14,10 +14,13 @@
  * SÓ este entry — senão `api/conteudo.ts`, `api/query`, etc. virariam rotas
  * soltas e atropelariam as rotas do Hono.
  */
-import { handle } from 'hono/vercel';
-import { app } from '../server/app';
+import { getRequestListener } from '@hono/node-server';
+import { app } from '../server/app.js';
 
-// Runtime Node (não Edge): Better Auth e os drivers Neon usam APIs de Node.
+// Runtime Node (não Edge): Better Auth e os drivers Neon usam APIs de Node, e o
+// env.ts lê `.env` com node:fs. O `handle` do `hono/vercel` é pro runtime Edge
+// (retorna um `Response` que o runtime Node não envia → request pendura); então
+// adaptamos o `app.fetch` (Web) ao handler Node (req, res) com getRequestListener.
 export const runtime = 'nodejs';
 
-export default handle(app);
+export default getRequestListener(app.fetch);

@@ -14,8 +14,8 @@ import {
   getQueryDatabaseUrl,
   getIngestDatabaseUrl,
   getContentDatabaseUrl,
-} from '../server/env';
-import * as schema from './schema';
+} from '../server/env.js';
+import * as schema from './schema.js';
 
 // `neon(url)` só monta o client HTTP (não abre conexão até a 1ª query), então
 // manter três instâncias por papel é barato. Cada uma carrega o privilégio da
