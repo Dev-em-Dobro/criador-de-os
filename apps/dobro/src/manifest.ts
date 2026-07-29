@@ -185,6 +185,7 @@ export const dobroManifest: ClientManifest = {
                 linkLabel: 'Presente',
                 resumoLabel: 'Resumo',
                 newPostLabel: 'Novo post',
+                generateLabel: 'Gerar com IA',
                 updateScheduleLabel: 'Atualizar cronograma',
                 limit: 6,
                 statusMap: {
@@ -234,8 +235,15 @@ export const dobroManifest: ClientManifest = {
                   'link_presente_notion',
                   'estado',
                   'formato',
+                  'gancho',
+                  'legenda',
+                  'hashtags',
+                  'roteiro',
                 ],
-                orderBy: [{ field: 'data_programada', dir: 'asc' }],
+                orderBy: [
+                  { field: 'data_programada', dir: 'asc' },
+                  { field: 'id', dir: 'asc' }, // desempate estável: sem isto a ordem embaralha a cada refresh
+                ],
                 limit: 100,
               },
             },
@@ -272,9 +280,70 @@ export const dobroManifest: ClientManifest = {
                   'refs_links',
                   'estado',
                   'formato',
+                  'gancho',
+                  'legenda',
+                  'hashtags',
+                  'roteiro',
                 ],
-                orderBy: [{ field: 'data_programada', dir: 'asc' }],
+                orderBy: [
+                  { field: 'data_programada', dir: 'asc' },
+                  { field: 'id', dir: 'asc' }, // desempate estável: sem isto a ordem embaralha a cada refresh
+                ],
                 limit: 100,
+              },
+            },
+          },
+          {
+            id: 'desempenho',
+            label: 'Desempenho',
+            icon: 'BarChart3',
+            view: {
+              block: 'custom:conteudo-desempenho',
+              title: 'Resumo de desempenho',
+              subtitle: 'Como cada conteúdo se saiu — taxas e classificação automáticas',
+              config: {
+                // Benchmarks por formato (a aba "Referências" da planilha): [limite
+                // saudável, limite forte] em decimal (0,5% = 0,005). Edite aqui se o
+                // time criar benchmarks próprios — a classificação recalcula sozinha.
+                benchmarks: {
+                  reel: {
+                    compartilhamentos: [0.005, 0.015],
+                    salvamentos: [0.003, 0.01],
+                    retencao: [0.5, 0.7],
+                  },
+                  carrossel: {
+                    compartilhamentos: [0.003, 0.01],
+                    salvamentos: [0.005, 0.02],
+                  },
+                  post: {
+                    compartilhamentos: [0.002, 0.007],
+                    salvamentos: [0.002, 0.007],
+                  },
+                },
+              },
+              dataSource: {
+                kind: 'query',
+                view: 'v_conteudo_desempenho',
+                select: [
+                  'id',
+                  'post_id',
+                  'data',
+                  'formato',
+                  'tema',
+                  'alcance',
+                  'visualizacoes',
+                  'curtidas',
+                  'comentarios',
+                  'compartilhamentos',
+                  'salvamentos',
+                  'visitas_perfil',
+                  'seguidores',
+                  'duracao_s',
+                  'tempo_medio_s',
+                  'permalink',
+                ],
+                orderBy: [{ field: 'data', dir: 'desc' }],
+                limit: 200,
               },
             },
           },

@@ -64,6 +64,12 @@ export interface RefInput {
 export interface GerarInput {
   referencia?: RefInput | null;
   tema?: string | null;
+  /**
+   * Força o formato do NOSSO post, sobrepondo o padrão "mantém o formato da
+   * referência". Útil para adaptar um reels de referência em carrossel (ou
+   * vice-versa). Ausente/null → o modelo decide (mantém o da referência).
+   */
+  formatoAlvo?: 'carrossel' | 'reels' | null;
 }
 
 /** Tool que FORÇA a saída estruturada do post (o modelo a chama ao terminar). */
@@ -128,6 +134,9 @@ const REGRAS_AIDA = [
   '  frases}, na ordem AIDA: slide 1 = gancho (Atenção); meio inicial = Interesse',
   '  (o problema do público); meio final = Desejo (valor/transformação); último',
   '  = Ação (CTA).',
+  '- DESTAQUE no título: em cada `titulo` de slide, envolva 1 a 3 palavras-chave',
+  '  (as mais fortes) entre `**` — o app pinta de amarelo. Ex.: `Não é **falta de',
+  '  conteúdo**`. Use com moderação, só o que realmente importa.',
   '- Se REELS: preencha `cenas` (4 a 7), cada uma {tempo, fala, texto_tela}, com o',
   '  gancho nos primeiros 3s e ritmo de retenção.',
   '- `legenda`: 2 a 4 frases + chamada pra ação suave (sem hashtags aqui).',
@@ -138,9 +147,32 @@ const REGRAS_AIDA = [
   'OBRIGATÓRIO: o array (`slides` no carrossel, `cenas` no reels) NUNCA pode vir',
   'vazio — é o conteúdo principal do post. Preencha TODOS os itens.',
   '',
+  'PROIBIDÍSSIMO (deixa com cara de texto gerado por IA): em NENHUM campo use',
+  'travessão "—" nem meia-risca "–". Reescreva com vírgula, ponto, dois-pontos ou',
+  'parênteses, ou quebre em duas frases. Evite também reticências "…" decorativas.',
+  'Hífen "-" só em palavras compostas (ex.: bem-estar).',
+  '',
   'Ao terminar, chame `publish_draft` UMA vez com todos os campos. Preencha SÓ',
   '`slides` OU `cenas`, conforme o formato. Não escreva o post como texto solto.',
 ];
+
+/**
+ * Instrução do FORMATO do nosso post. Se `formatoAlvo` vier setado, FIXA o
+ * formato (e manda adaptar mesmo que a referência seja de outro tipo); senão,
+ * mantém o comportamento padrão (segue o formato da referência).
+ */
+function formatoInstrucao(formatoAlvo?: 'carrossel' | 'reels' | null): string[] {
+  if (formatoAlvo === 'carrossel' || formatoAlvo === 'reels') {
+    const preenche = formatoAlvo === 'carrossel' ? '`slides`' : '`cenas`';
+    const vazio = formatoAlvo === 'carrossel' ? '`cenas`' : '`slides`';
+    return [
+      `O formato do NOSSO post está FIXADO: \`formato\` = '${formatoAlvo}'. Se a`,
+      `referência for de outro tipo (ex.: um reels), ADAPTE a ideia para`,
+      `'${formatoAlvo}' — preencha ${preenche} e deixe ${vazio} vazio.`,
+    ];
+  }
+  return ['Por padrão mantenha o formato da referência; adapte só se houver razão clara.'];
+}
 
 function buildPrompt(input: GerarInput): string {
   const ref = input.referencia;
@@ -163,8 +195,8 @@ function buildPrompt(input: GerarInput): string {
       'ganho, prova social...), estrutura e por que prende. Se faltar dado da',
       'referência, infira pelo tema/nota e deixe claro que é hipótese.',
       '',
-      "## Passo 2 — Decida o FORMATO do nosso (`formato`: 'carrossel' | 'reels')",
-      'Por padrão mantenha o formato da referência; adapte só se houver razão clara.',
+      "## Passo 2 — FORMATO do nosso (`formato`: 'carrossel' | 'reels')",
+      ...formatoInstrucao(input.formatoAlvo),
       '',
       '## Passo 3 — Crie o post em AIDA (original, não copie)',
       ...REGRAS_AIDA,
@@ -181,7 +213,7 @@ function buildPrompt(input: GerarInput): string {
     'livre (sem referência) e qual ângulo você escolheu.',
     '',
     "## Formato (`formato`: 'carrossel' | 'reels')",
-    'Escolha o formato que melhor serve o tema.',
+    ...(input.formatoAlvo ? formatoInstrucao(input.formatoAlvo) : ['Escolha o formato que melhor serve o tema.']),
     '',
     '## Post em AIDA',
     ...REGRAS_AIDA,
@@ -229,22 +261,43 @@ function stripTags(s: string): string {
   return (s ?? '').replace(/<\/?[a-zA-Z_][^>]*>/g, '').trim();
 }
 
+/**
+ * TRAVA DURA: remove travessão "—" e meia-risca "–" (cara de texto de IA). Converte
+ * em vírgula e limpa a pontuação resultante. Garante "em hipótese alguma" mesmo se
+ * o modelo ignorar a regra do prompt.
+ */
+function semTravessao(s: string): string {
+  return (s ?? '')
+    .replace(/\s*[—–]\s*/g, ', ')
+    .replace(/\s*,\s*,/g, ',')
+    .replace(/\s+([.,!?;:])/g, '$1')
+    .replace(/,\s*([.!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/[\s,]+$/g, '')
+    .trim();
+}
+
+/** Limpa tags vazadas E travessões de uma vez. */
+function cleanTexto(s: string): string {
+  return semTravessao(stripTags(s));
+}
+
 /** Normaliza o resultado: coage o formato e limpa vazamentos de tags nos textos. */
 function normalizeDraft(d: DraftResult): DraftResult {
   const formato: 'carrossel' | 'reels' = d.formato === 'reels' ? 'reels' : 'carrossel';
   return {
     ...d,
     formato,
-    analise: stripTags(d.analise),
-    titulo: stripTags(d.titulo),
-    gancho: stripTags(d.gancho),
-    legenda: stripTags(d.legenda),
-    cta_final: stripTags(d.cta_final),
-    slides: (d.slides ?? []).map((s) => ({ titulo: stripTags(s.titulo), corpo: stripTags(s.corpo) })),
+    analise: cleanTexto(d.analise),
+    titulo: cleanTexto(d.titulo),
+    gancho: cleanTexto(d.gancho),
+    legenda: cleanTexto(d.legenda),
+    cta_final: cleanTexto(d.cta_final),
+    slides: (d.slides ?? []).map((s) => ({ titulo: cleanTexto(s.titulo), corpo: cleanTexto(s.corpo) })),
     cenas: (d.cenas ?? []).map((c) => ({
-      tempo: stripTags(c.tempo),
-      fala: stripTags(c.fala),
-      texto_tela: stripTags(c.texto_tela),
+      tempo: cleanTexto(c.tempo),
+      fala: cleanTexto(c.fala),
+      texto_tela: cleanTexto(c.texto_tela),
     })),
   };
 }
@@ -253,10 +306,10 @@ function normalizeDraft(d: DraftResult): DraftResult {
 function montarPauta(d: DraftResult): string {
   const linhas = [`Gancho: ${d.gancho}`];
   if (d.formato === 'carrossel') {
-    (d.slides ?? []).forEach((s, i) => linhas.push(`Slide ${i + 1} — ${s.titulo}: ${s.corpo}`));
+    (d.slides ?? []).forEach((s, i) => linhas.push(`Slide ${i + 1}: ${s.titulo}. ${s.corpo}`));
   } else {
     (d.cenas ?? []).forEach((c, i) =>
-      linhas.push(`Cena ${i + 1} [${c.tempo}] — ${c.texto_tela} | fala: ${c.fala}`),
+      linhas.push(`Cena ${i + 1} [${c.tempo}]: ${c.texto_tela} | fala: ${c.fala}`),
     );
   }
   linhas.push(`CTA: ${d.cta_final}`);
@@ -314,11 +367,11 @@ export interface CriarRascunhoResult {
 export async function criarRascunho(
   database: Database,
   apiKey: string,
-  opts: { referenciaId?: string; tema?: string } = {},
+  opts: { referenciaId?: string; tema?: string; formatoAlvo?: 'carrossel' | 'reels' } = {},
 ): Promise<CriarRascunhoResult> {
   // Tema livre: gera sem referência.
   if (opts.tema && opts.tema.trim()) {
-    const draft = await gerarRascunho({ tema: opts.tema.trim() }, apiKey);
+    const draft = await gerarRascunho({ tema: opts.tema.trim(), formatoAlvo: opts.formatoAlvo }, apiKey);
     const id = await inserirRascunhoPost(database, draft, null);
     return { created: true, id, titulo: draft.titulo, formato: draft.formato };
   }
@@ -376,6 +429,7 @@ export async function criarRascunho(
         formatoRef,
         metricas,
       },
+      formatoAlvo: opts.formatoAlvo,
     },
     apiKey,
   );

@@ -197,3 +197,58 @@ export const conteudoPosts = pgTable('conteudo_posts', {
     .$defaultFn(() => new Date())
     .notNull(),
 });
+
+/**
+ * Desempenho por conteúdo publicado (Instagram) — a "aba Instagram" da planilha
+ * de acompanhamento, dentro do OS. Cada linha é UM post medido: os números crus
+ * que hoje a criadora digita na mão (alcance, salvamentos, compartilhamentos…).
+ *
+ * As TAXAS (curtidas/alcance, retenção…) e a CLASSIFICAÇÃO (Forte/Saudável/
+ * Abaixo) NÃO ficam aqui: são derivadas — calculadas na tela a partir destes
+ * valores + os benchmarks do manifesto. Guardamos só o sinal cru (Fase 0,
+ * entrada manual). Fase 1 preenche estes mesmos campos automaticamente via o
+ * token de Insights do Instagram — sem mudar o schema.
+ *
+ * `permalink`/`media_id` já existem (nullable) para, no futuro, casar a linha
+ * com o post real e sincronizar. A view read-only `v_conteudo_desempenho`
+ * (allowlist) é a ÚNICA forma da API ler isto.
+ */
+export const conteudoDesempenho = pgTable('conteudo_desempenho', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  /** Card do cronograma que originou este post (null se medido avulso). */
+  postId: uuid('post_id').references(() => conteudoPosts.id, {
+    onDelete: 'set null',
+  }),
+  /** Data de publicação do conteúdo. */
+  data: timestamp('data'),
+  /** Formato: 'reel' | 'carrossel' | 'post' | 'story'. */
+  formato: text('formato').notNull().default('reel'),
+  /** Tema/descrição curta do conteúdo (da legenda ou digitado). */
+  tema: text('tema'),
+  /** Alcance (contas alcançadas) — base das taxas. */
+  alcance: integer('alcance'),
+  /** Visualizações/plays. */
+  visualizacoes: integer('visualizacoes'),
+  curtidas: integer('curtidas'),
+  comentarios: integer('comentarios'),
+  compartilhamentos: integer('compartilhamentos'),
+  salvamentos: integer('salvamentos'),
+  /** Visitas ao perfil vindas do post. */
+  visitasPerfil: integer('visitas_perfil'),
+  /** Seguidores ganhos a partir do post. */
+  seguidores: integer('seguidores'),
+  /** Duração do vídeo em segundos (reels/vídeo). */
+  duracaoS: integer('duracao_s'),
+  /** Tempo médio assistido em segundos (reels) — base da retenção. */
+  tempoMedioS: doublePrecision('tempo_medio_s'),
+  /** Permalink do post real (p/ Fase 1 — sync via Insights). */
+  permalink: text('permalink'),
+  /** ID da mídia no Instagram (p/ Fase 1 — sync via Insights). */
+  mediaId: text('media_id'),
+  createdAt: timestamp('created_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+  updatedAt: timestamp('updated_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+});

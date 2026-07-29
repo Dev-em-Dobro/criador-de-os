@@ -11,8 +11,10 @@
 import { createRegistry } from '@os/core';
 import { registerDefaultBlocks } from '@os/blocks';
 import { conteudoDashboard, conteudoCronograma } from './blocks/ConteudoDashboard';
+import { conteudoDesempenho } from './blocks/ConteudoDesempenho';
 
 export const registry = createRegistry();
 registerDefaultBlocks(registry);
 registry.register(conteudoDashboard);
 registry.register(conteudoCronograma);
+registry.register(conteudoDesempenho);

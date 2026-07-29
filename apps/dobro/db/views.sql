@@ -41,5 +41,35 @@ SELECT
   formato,
   briefing_url,
   briefing,
-  refs_links
+  refs_links,
+  gancho,
+  pauta,
+  legenda,
+  hashtags,
+  roteiro
 FROM conteudo_posts;
+
+-- v_conteudo_desempenho: expõe os números crus de cada post medido (a "aba
+-- Instagram" da planilha, dentro do OS). Passthrough magro: SÓ os valores de
+-- entrada + permalink. As TAXAS e a CLASSIFICAÇÃO (Forte/Saudável/Abaixo) são
+-- DERIVADAS na tela, a partir destes valores + os benchmarks do manifesto —
+-- por isso não vivem aqui. `id`/`post_id` viram text (key estável no front).
+CREATE OR REPLACE VIEW v_conteudo_desempenho AS
+SELECT
+  id::text AS id,
+  post_id::text AS post_id,
+  data,
+  formato,
+  tema,
+  alcance,
+  visualizacoes,
+  curtidas,
+  comentarios,
+  compartilhamentos,
+  salvamentos,
+  visitas_perfil,
+  seguidores,
+  duracao_s,
+  tempo_medio_s,
+  permalink
+FROM conteudo_desempenho;

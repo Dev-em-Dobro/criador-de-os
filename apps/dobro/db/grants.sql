@@ -35,6 +35,9 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_content') THEN
     CREATE ROLE app_content NOLOGIN;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_pipeline') THEN
+    CREATE ROLE app_pipeline NOLOGIN;
+  END IF;
 END
 $$;
 
@@ -43,10 +46,12 @@ REVOKE ALL ON ALL TABLES IN SCHEMA public FROM app_auth;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM app_query;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM app_ingest;
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM app_content;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM app_pipeline;
 REVOKE ALL ON SCHEMA public FROM app_auth;
 REVOKE ALL ON SCHEMA public FROM app_query;
 REVOKE ALL ON SCHEMA public FROM app_ingest;
 REVOKE ALL ON SCHEMA public FROM app_content;
+REVOKE ALL ON SCHEMA public FROM app_pipeline;
 
 -- 3) O Neon concede SELECT ao pseudo-role PUBLIC nas tabelas/views por padrão.
 --    Revogamos de PUBLIC para que só os GRANTs explícitos abaixo valham — senão
@@ -60,12 +65,15 @@ REVOKE SELECT ON v_visao_geral FROM PUBLIC;
 REVOKE SELECT ON conteudo_posts FROM PUBLIC;
 REVOKE SELECT ON referencias FROM PUBLIC;
 REVOKE SELECT ON v_conteudo_posts FROM PUBLIC;
+REVOKE SELECT ON conteudo_desempenho FROM PUBLIC;
+REVOKE SELECT ON v_conteudo_desempenho FROM PUBLIC;
 
 -- 4) USAGE no schema para todos (sem isto não enxergam nenhum objeto).
 GRANT USAGE ON SCHEMA public TO app_auth;
 GRANT USAGE ON SCHEMA public TO app_query;
 GRANT USAGE ON SCHEMA public TO app_ingest;
 GRANT USAGE ON SCHEMA public TO app_content;
+GRANT USAGE ON SCHEMA public TO app_pipeline;
 
 -- 5) app_auth: CRUD SÓ nas tabelas do Better Auth (login escreve sessão/conta).
 --    Sem acesso a v_* nem à tabela de negócio.
@@ -79,6 +87,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON verification TO app_auth;
 --    app_query lê a view SEM ter acesso à tabela crua `metricas_visao_geral`.
 GRANT SELECT ON v_visao_geral TO app_query;
 GRANT SELECT ON v_conteudo_posts TO app_query;
+GRANT SELECT ON v_conteudo_desempenho TO app_query;
 
 -- 6b) app_ingest: escreve SÓ na tabela `referencias` (o webhook do Telegram grava
 --     as inspirações). SELECT junto para dedupe futuro por origem_url. Nada mais —
@@ -90,10 +99,24 @@ GRANT SELECT, INSERT ON referencias TO app_ingest;
 --     RETURNING/echo do que gravou. Não lê auth nem referencias, não toca as views.
 GRANT SELECT, INSERT, UPDATE, DELETE ON conteudo_posts TO app_content;
 
+-- 6d) app_content também cuida do DESEMPENHO por post (a criadora digita/edita os
+--     números pela tela /conteudo/desempenho, via as mesmas rotas autenticadas).
+GRANT SELECT, INSERT, UPDATE, DELETE ON conteudo_desempenho TO app_content;
+
+-- 6e) app_pipeline: o gerador de IA (rota autenticada /api/conteudo/gerar). Lê/semeia
+--     a referência (para o "a partir de link") e a marca como processada; grava o
+--     rascunho em `conteudo_posts`. Menos privilégio que o owner do script admin:
+--     não deleta nada e não toca auth nem as views.
+--       · referencias    → SELECT/INSERT/UPDATE (semeia link, lê pendente, marca processada)
+--       · conteudo_posts  → SELECT/INSERT (grava o rascunho; SELECT p/ o RETURNING)
+GRANT SELECT, INSERT, UPDATE ON referencias    TO app_pipeline;
+GRANT SELECT, INSERT         ON conteudo_posts TO app_pipeline;
+
 -- 7) Permite ao owner assumir cada role (SET ROLE) — necessário para TESTAR a
 --    defesa com db/verify-grants.ts. Em produção, a API usa a connection string
 --    própria de cada role (não SET ROLE).
-GRANT app_auth    TO neondb_owner;
-GRANT app_query   TO neondb_owner;
-GRANT app_ingest  TO neondb_owner;
-GRANT app_content TO neondb_owner;
+GRANT app_auth     TO neondb_owner;
+GRANT app_query    TO neondb_owner;
+GRANT app_ingest   TO neondb_owner;
+GRANT app_content  TO neondb_owner;
+GRANT app_pipeline TO neondb_owner;

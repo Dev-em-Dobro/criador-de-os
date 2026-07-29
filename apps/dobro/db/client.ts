@@ -14,6 +14,7 @@ import {
   getQueryDatabaseUrl,
   getIngestDatabaseUrl,
   getContentDatabaseUrl,
+  getPipelineDatabaseUrl,
 } from '../server/env.js';
 import * as schema from './schema.js';
 
@@ -51,6 +52,13 @@ export const dbIngest = drizzle(neon(getIngestDatabaseUrl()), { schema });
  * cronograma pela tela. Fallback DEV: owner (com WARN em env.ts).
  */
 export const dbContent = drizzle(neon(getContentDatabaseUrl()), { schema });
+
+/**
+ * Client da rota `/api/conteudo/gerar` — role `app_pipeline` (SELECT/INSERT/UPDATE
+ * em `referencias` + SELECT/INSERT em `conteudo_posts`). É o que o gerador de IA
+ * usa ao criar um rascunho pela tela. Fallback DEV: owner (com WARN em env.ts).
+ */
+export const dbPipeline = drizzle(neon(getPipelineDatabaseUrl()), { schema });
 
 export type Db = typeof db;
 export { schema };

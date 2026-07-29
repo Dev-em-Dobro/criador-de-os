@@ -63,6 +63,7 @@ let warnedAuthUrl = false;
 let warnedQueryUrl = false;
 let warnedIngestUrl = false;
 let warnedContentUrl = false;
+let warnedPipelineUrl = false;
 
 /** true quando rodando em produção (deploy real). */
 function isProduction(): boolean {
@@ -173,6 +174,34 @@ export function getContentDatabaseUrl(): string {
   return getDatabaseUrl();
 }
 
+/**
+ * Connection string do role `app_pipeline` (SELECT/INSERT/UPDATE em `referencias`
+ * + SELECT/INSERT em `conteudo_posts`). Usada pela rota autenticada
+ * `/api/conteudo/gerar` (o criador gera um rascunho com IA pela tela). Produção:
+ * fail-closed. Fallback DEV: owner (WARN único).
+ */
+export function getPipelineDatabaseUrl(): string {
+  const url = process.env.PIPELINE_DATABASE_URL?.trim();
+  if (url) return url;
+  // Fail-closed: em produção JAMAIS cair no owner. Sem o role, aborta o boot.
+  if (isProduction()) {
+    throw new Error(
+      '[env] PIPELINE_DATABASE_URL ausente em produção. A rota /api/conteudo/gerar NÃO ' +
+        'pode usar a connection string OWNER (a defesa de role app_pipeline ficaria ' +
+        'inativa). Rode `pnpm db:provision-roles` e defina PIPELINE_DATABASE_URL.',
+    );
+  }
+  if (!warnedPipelineUrl) {
+    console.warn(
+      '[env] PIPELINE_DATABASE_URL ausente — /api/conteudo/gerar usará a connection string ' +
+        'OWNER (fallback de DEV). A defesa de role (app_pipeline) NÃO está ativa; defina ' +
+        'PIPELINE_DATABASE_URL em produção.',
+    );
+    warnedPipelineUrl = true;
+  }
+  return getDatabaseUrl();
+}
+
 /** Token do bot do Telegram (BotFather). Opcional — só para replies/setWebhook. */
 export function getTelegramBotToken(): string | undefined {
   return process.env.TELEGRAM_BOT_TOKEN?.trim() || undefined;
@@ -201,6 +230,30 @@ export function getAgencyAnthropicKey(): string | null {
  */
 export function getApifyToken(): string | undefined {
   return process.env.APIFY_TOKEN?.trim() || undefined;
+}
+
+/**
+ * Token da Instagram Graph API de Insights (BYOK do cliente). Puxa alcance/
+ * salvamentos/compartilhamentos/retenção de cada post publicado — a Fase 1 do
+ * "Resumo de desempenho" (`/conteudo/desempenho`). Opcional: sem ele o botão
+ * "Sincronizar" fica indisponível e a entrada segue manual. Server-side, nunca
+ * no bundle. Aceita `META_APP_TOKEN` (nome usado no .env do cliente) ou
+ * `INSTAGRAM_INSIGHTS_TOKEN`. Token de longa duração (60 dias) ou de System User.
+ */
+export function getInstagramInsightsToken(): string | undefined {
+  return (
+    process.env.META_APP_TOKEN?.trim() ||
+    process.env.INSTAGRAM_INSIGHTS_TOKEN?.trim() ||
+    undefined
+  );
+}
+
+/**
+ * IG user id (conta business `@devemdobro`) cujo desempenho sincronizamos.
+ * Opcional: se ausente, a sincronização autodescobre a conta a partir do token.
+ */
+export function getInstagramIgUserId(): string | undefined {
+  return process.env.INSTAGRAM_IG_USER_ID?.trim() || undefined;
 }
 
 /** Segredo que assina as sessões do Better Auth. Server-side. */

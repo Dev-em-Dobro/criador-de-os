@@ -21,6 +21,12 @@ import {
   handleAtualizarConteudo,
   handleRemoverConteudo,
 } from './conteudo.js';
+import { handleGerarConteudo } from './conteudo-gerar.js';
+import {
+  handleCriarDesempenho,
+  handleAtualizarDesempenho,
+  handleRemoverDesempenho,
+} from './desempenho.js';
 import { dbQuery } from '../db/client.js';
 import {
   buildSecureQuery,
@@ -45,6 +51,16 @@ app.post('/api/telegram/webhook', (c) => handleTelegramWebhook(c));
 // --- Cronograma de Conteúdo (ESCRITA autenticada) ---
 // Auth-first (fail-closed) dentro de cada handler; grava `conteudo_posts` via o
 // role app_content. É como o criador cadastra/edita o cronograma pela tela.
+// Desempenho por post (segmento estático `desempenho` — tem prioridade sobre o
+// `:id` param abaixo). Registrado ANTES para deixar a intenção explícita.
+app.post('/api/conteudo/desempenho', (c) => handleCriarDesempenho(c));
+app.patch('/api/conteudo/desempenho/:id', (c) => handleAtualizarDesempenho(c));
+app.delete('/api/conteudo/desempenho/:id', (c) => handleRemoverDesempenho(c));
+
+// Geração de rascunho com IA (segmento estático `gerar` — prioridade sobre `:id`).
+// Auth-first; gera carrossel/reels em AIDA a partir de tema/link, via role app_pipeline.
+app.post('/api/conteudo/gerar', (c) => handleGerarConteudo(c));
+
 app.post('/api/conteudo', (c) => handleCriarConteudo(c));
 app.patch('/api/conteudo/:id', (c) => handleAtualizarConteudo(c));
 app.delete('/api/conteudo/:id', (c) => handleRemoverConteudo(c));
