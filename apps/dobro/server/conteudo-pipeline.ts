@@ -16,9 +16,9 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { eq } from 'drizzle-orm';
-import { db } from '../db/client';
-import { referencias, conteudoPosts } from '../db/schema';
-import { fetchInstagramContent } from './instagram';
+import { db } from '../db/client.js';
+import { referencias, conteudoPosts } from '../db/schema.js';
+import { fetchInstagramContent } from './instagram.js';
 
 /** Client Drizzle (owner OU role de menor privilégio) — injetado nas escritas. */
 type Database = typeof db;
