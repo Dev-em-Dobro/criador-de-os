@@ -289,19 +289,107 @@ function ClassePill({ classe }: { classe: Classe }) {
   );
 }
 
-/** Card grande de contagem por classificação (o "Resumo"). */
-function ResumoCard({ classe, count }: { classe: Classe; count: number }) {
+/** Card grande de contagem por classificação (o "Resumo") — clicável p/ filtrar a lista. */
+function ResumoCard({
+  classe,
+  count,
+  active,
+  onClick,
+}: {
+  classe: Classe;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
   const t = CLASSE_TONE[classe];
+  const clickable = count > 0;
   return (
-    <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
-      <div className="flex items-center gap-2">
-        <span className={`h-2 w-2 rounded-full ${t.dot}`} aria-hidden="true" />
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t.label}</span>
+    <button
+      type="button"
+      onClick={clickable ? onClick : undefined}
+      disabled={!clickable}
+      aria-pressed={active}
+      title={clickable ? `Filtrar por ${t.label}` : undefined}
+      className={`rounded-2xl border p-5 text-left shadow-sm transition-all ${
+        active
+          ? 'border-blue-500/60 bg-gray-800 ring-2 ring-blue-500/30'
+          : 'border-gray-700/50 bg-gray-800/60'
+      } ${clickable ? 'cursor-pointer hover:border-gray-600' : 'cursor-default opacity-70'}`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2">
+          <span className={`h-2 w-2 rounded-full ${t.dot}`} aria-hidden="true" />
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{t.label}</span>
+        </span>
+        {active && (
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-300">filtrando</span>
+        )}
       </div>
       <div className="mt-2 text-3xl font-bold text-gray-100" style={DISPLAY}>
         {count}
       </div>
       <div className="mt-0.5 text-xs text-gray-500">conteúdo{count === 1 ? '' : 's'}</div>
+    </button>
+  );
+}
+
+// ============================================================
+// Filtro de período (padrão: últimos 7 dias)
+// ============================================================
+
+/** Presets do filtro: [rótulo, nº de dias | null p/ "tudo"]. */
+const PERIODOS: ReadonlyArray<readonly [string, number | null]> = [
+  ['7 dias', 7],
+  ['14 dias', 14],
+  ['30 dias', 30],
+  ['90 dias', 90],
+  ['Tudo', null],
+];
+
+/** Período padrão da aba, em dias (null = tudo). */
+const PERIODO_PADRAO = 7;
+
+/**
+ * Início do dia (00:00 local) de `dias` atrás — corte inclusivo do filtro.
+ * Ex.: dias=7 hoje 29/07 → 23/07 00:00 (janela dos últimos 7 dias corridos).
+ */
+function cortePeriodo(dias: number): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - (dias - 1));
+  return d;
+}
+
+/** Segmented control de período. */
+function PeriodPicker({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+}) {
+  return (
+    <div
+      className="inline-flex items-center rounded-xl border border-gray-700/60 bg-gray-800/40 p-0.5"
+      role="group"
+      aria-label="Período avaliado"
+    >
+      {PERIODOS.map(([label, days]) => {
+        const active = value === days;
+        return (
+          <button
+            key={label}
+            type="button"
+            onClick={() => onChange(days)}
+            aria-pressed={active}
+            className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+              active ? 'bg-blue-500 text-white shadow-sm shadow-blue-500/25' : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -909,9 +997,13 @@ function ConteudoDesempenhoBlock({ config, ctx }: BlockProps<ConteudoDesempenhoC
   const reload = ctx.actions.reload;
 
   const bench = config.benchmarks ?? DEFAULT_BENCH;
-  const rows = useMemo(() => {
+
+  // Período avaliado (padrão: últimos 7 dias). null = tudo.
+  const [periodDays, setPeriodDays] = useState<number | null>(PERIODO_PADRAO);
+
+  // Todas as medições, mais recentes primeiro (sem data vai ao fim).
+  const sortedRows = useMemo(() => {
     const list = asRows(data);
-    // Mais recentes primeiro (por data; sem data vai ao fim).
     return [...list].sort((a, b) => {
       const da = str(a.data);
       const db = str(b.data);
@@ -921,6 +1013,20 @@ function ConteudoDesempenhoBlock({ config, ctx }: BlockProps<ConteudoDesempenhoC
       return db.localeCompare(da);
     });
   }, [data]);
+
+  // Recorte pelo período: só as linhas COM data dentro da janela (as sem data
+  // só aparecem em "Tudo"). É o que a tela avalia — resumo, médias e lista.
+  const { rows, cutoffLabel } = useMemo(() => {
+    if (periodDays == null) return { rows: sortedRows, cutoffLabel: null as string | null };
+    const corte = cortePeriodo(periodDays).getTime();
+    const filtered = sortedRows.filter((r) => {
+      const s = str(r.data);
+      if (!s) return false;
+      const t = new Date(s).getTime();
+      return Number.isFinite(t) && t >= corte;
+    });
+    return { rows: filtered, cutoffLabel: fmtData(cortePeriodo(periodDays).toISOString()) };
+  }, [sortedRows, periodDays]);
 
   const derived = useMemo(() => rows.map((r) => derive(r, bench)), [rows, bench]);
 
@@ -938,6 +1044,11 @@ function ConteudoDesempenhoBlock({ config, ctx }: BlockProps<ConteudoDesempenhoC
   // Editor (modal): null = fechado; senão o form inicial.
   const [editing, setEditing] = useState<FormState | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Filtro por classificação (clique nos cards do resumo). null = todas as classes.
+  const [classeFiltro, setClasseFiltro] = useState<Classe | null>(null);
+  const toggleClasse = useCallback((c: Classe) => {
+    setClasseFiltro((prev) => (prev === c ? null : c));
+  }, []);
 
   const onSaved = useCallback(() => {
     setEditing(null);
@@ -988,7 +1099,13 @@ function ConteudoDesempenhoBlock({ config, ctx }: BlockProps<ConteudoDesempenhoC
     );
   }
 
+  const allTotal = sortedRows.length;
   const total = rows.length;
+  const periodoLabel = PERIODOS.find(([, d]) => d === periodDays)?.[0] ?? 'Tudo';
+
+  // Lista visível: aplica o filtro por classificação (mantém o pareamento row↔derived).
+  const pares = rows.map((r, i) => ({ r, d: derived[i], id: str(r.id) || `row-${i}` }));
+  const visible = classeFiltro ? pares.filter((p) => p.d.geral === classeFiltro) : pares;
 
   return (
     <div className="space-y-8">
@@ -998,32 +1115,80 @@ function ConteudoDesempenhoBlock({ config, ctx }: BlockProps<ConteudoDesempenhoC
           subtitle="Como cada conteúdo se saiu — taxas e classificação calculadas automaticamente."
           icon="📊"
         />
-        {addBtn}
+        <div className="flex flex-wrap items-center gap-2">
+          <PeriodPicker value={periodDays} onChange={setPeriodDays} />
+          {addBtn}
+        </div>
       </div>
 
-      {total === 0 ? (
+      {allTotal === 0 ? (
         <EmptyState
           icon="📈"
           message="Nenhuma medição ainda. Clique em “Adicionar medição” e cole os números de um post — as taxas e a classificação saem sozinhas."
+        />
+      ) : total === 0 ? (
+        <EmptyState
+          icon="🗓️"
+          message={`Nenhum conteúdo nos ${periodoLabel === 'Tudo' ? 'registros' : `últimos ${periodoLabel}`}. Troque o período acima ou sincronize os posts recentes.`}
         />
       ) : (
         <>
           {/* 1) RESUMO — contagem por classificação */}
           <div>
-            <SectionLabel>Resumo do período</SectionLabel>
+            <SectionLabel
+              aside={
+                <span className="text-[11px] font-medium text-gray-500">
+                  {periodDays == null
+                    ? 'todos os conteúdos'
+                    : `últimos ${periodoLabel}${cutoffLabel ? ` · desde ${cutoffLabel}` : ''}`}
+                </span>
+              }
+            >
+              Resumo do período
+            </SectionLabel>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <ResumoCard classe="forte" count={resumo.forte} />
-              <ResumoCard classe="saudavel" count={resumo.saudavel} />
-              <ResumoCard classe="abaixo" count={resumo.abaixo} />
-              <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Total medido</div>
+              <ResumoCard
+                classe="forte"
+                count={resumo.forte}
+                active={classeFiltro === 'forte'}
+                onClick={() => toggleClasse('forte')}
+              />
+              <ResumoCard
+                classe="saudavel"
+                count={resumo.saudavel}
+                active={classeFiltro === 'saudavel'}
+                onClick={() => toggleClasse('saudavel')}
+              />
+              <ResumoCard
+                classe="abaixo"
+                count={resumo.abaixo}
+                active={classeFiltro === 'abaixo'}
+                onClick={() => toggleClasse('abaixo')}
+              />
+              <button
+                type="button"
+                onClick={() => setClasseFiltro(null)}
+                aria-pressed={classeFiltro === null}
+                title="Mostrar todos"
+                className={`rounded-2xl border p-5 text-left shadow-sm transition-all ${
+                  classeFiltro === null
+                    ? 'border-blue-500/60 bg-gray-800 ring-2 ring-blue-500/30'
+                    : 'cursor-pointer border-gray-700/50 bg-gray-800/60 hover:border-gray-600'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Total medido</span>
+                  {classeFiltro !== null && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-300">ver todos</span>
+                  )}
+                </div>
                 <div className="mt-2 text-3xl font-bold text-gray-100" style={DISPLAY}>
                   {total}
                 </div>
                 <div className="mt-0.5 text-xs text-gray-500">
                   {resumo.na > 0 ? `${resumo.na} sem referência` : 'conteúdos'}
                 </div>
-              </div>
+              </button>
             </div>
           </div>
 
@@ -1041,22 +1206,43 @@ function ConteudoDesempenhoBlock({ config, ctx }: BlockProps<ConteudoDesempenhoC
 
           {/* 3) CONTEÚDOS — cartões 2-up, expansíveis, com prévia do post */}
           <div>
-            <SectionLabel>Conteúdos medidos</SectionLabel>
-            <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
-              {rows.map((r, i) => {
-                const id = str(r.id);
-                return (
+            <SectionLabel
+              aside={
+                classeFiltro ? (
+                  <button
+                    type="button"
+                    onClick={() => setClasseFiltro(null)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-gray-600/50 px-2.5 py-1 text-[11px] font-medium text-gray-300 transition-colors hover:bg-gray-700/50"
+                    title="Limpar filtro"
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${CLASSE_TONE[classeFiltro].dot}`} aria-hidden="true" />
+                    {CLASSE_TONE[classeFiltro].label}
+                    <span className="text-gray-500" aria-hidden="true">✕</span>
+                  </button>
+                ) : undefined
+              }
+            >
+              Conteúdos medidos{classeFiltro ? ` · ${visible.length}` : ''}
+            </SectionLabel>
+            {visible.length === 0 ? (
+              <EmptyState
+                icon="🔍"
+                message={`Nenhum conteúdo "${classeFiltro ? CLASSE_TONE[classeFiltro].label : ''}" neste período. Clique de novo no card (ou em “Total medido”) para limpar o filtro.`}
+              />
+            ) : (
+              <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
+                {visible.map(({ r, d, id }) => (
                   <ContentCard
-                    key={id || i}
+                    key={id}
                     row={r}
-                    d={derived[i]}
-                    busy={busyId === id}
+                    d={d}
+                    busy={busyId === str(r.id)}
                     onEdit={() => setEditing(formFromRow(r))}
-                    onDelete={() => onDelete(id)}
+                    onDelete={() => onDelete(str(r.id))}
                   />
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </>
       )}
