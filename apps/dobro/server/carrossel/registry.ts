@@ -12,7 +12,7 @@ import { skynet } from './carrosseis/skynet';
 import { iaPensar } from './carrosseis/ia-pensar';
 import { ohMyGit } from './carrosseis/oh-my-git';
 import { ufcRobosChina } from './carrosseis/ufc-robos-china';
-import { flexboxAdventure } from './carrosseis/flexbox-adventure';
+import { elevatorSaga } from './carrosseis/elevator-saga';
 
 const CARROSSEIS: Record<string, Carrossel> = {
   [gta6.slug]: gta6,
@@ -24,7 +24,7 @@ const CARROSSEIS: Record<string, Carrossel> = {
   [iaPensar.slug]: iaPensar,
   [ohMyGit.slug]: ohMyGit,
   [ufcRobosChina.slug]: ufcRobosChina,
-  [flexboxAdventure.slug]: flexboxAdventure,
+  [elevatorSaga.slug]: elevatorSaga,
 };
 
 export function getCarrossel(slug: string): Carrossel | undefined {

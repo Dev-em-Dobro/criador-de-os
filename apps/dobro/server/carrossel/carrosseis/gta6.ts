@@ -16,6 +16,7 @@ export const gta6: Carrossel = {
     {
       variant: 'photo',
       cover: true,
+      semFundo: true,
       titulo: 'Clone do site do\nGTA 6 em **2 horas**',
       corpo: 'Passa pro lado que eu te mostro como fazer o seu de graça',
     },
@@ -84,7 +85,7 @@ export const gta6: Carrossel = {
       video: true,
       tipo: 'cta',
       logo: 'DEV EM DOBRO',
-      titulo: 'Comenta **GTA** e te ensino a fazer do zero',
+      titulo: 'Comenta **MANDA** e te ensino a fazer do zero',
     },
   ],
   legenda:
@@ -92,10 +93,10 @@ export const gta6: Carrossel = {
     'O site de divulgação do jogo ficou muito bom, então resolvemos montar a nossa versão pra te ensinar. E o melhor: dá ' +
     'pra fazer mesmo sem saber programar, em umas 2 horas usando IA. O que antes levaria semanas ou meses pra um dev iniciante.\n\n' +
     'O vídeo do fundo saiu de graça no Meta AI, o scroll no GSAP, e o refino foi com IA no editor.\n\n' +
-    'Comenta GTA e te ensino a fazer do zero. 👇',
+    'Comenta MANDA e te ensino a fazer do zero. 👇',
   hashtags:
     'programação desenvolvimentoweb htmlcssjs gsap metaai inteligenciaartificial devemdobro projetodev frontend aprenderprogramar gta6',
-  ctaFinal: 'Comenta GTA e te ensino a fazer do zero.',
+  ctaFinal: 'Comenta MANDA e te ensino a fazer do zero.',
   briefing:
     'Padrão JARVIS copiando a referência. Slide 2: sem "Rockstar caprichou/virou referência" (não inventar); ideia = ' +
     'recriamos o nosso e ensinamos, dá pra fazer sem saber programar em ~2h com IA. Slide 7 (resultado): sem link do ' +

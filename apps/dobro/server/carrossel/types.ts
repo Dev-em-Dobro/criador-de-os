@@ -49,9 +49,14 @@ export interface Slide {
   /** Slide de CTA (logo + título + botão). */
   tipo?: 'cta';
   logo?: string;
+  /** CTA "rico" (estilo @devemdobro): @ abaixo do nome no logo. Ex.: '@devemdobro'. */
+  handle?: string;
+  /** Botão pill branco. Se presente num CTA, ativa o layout rico (centralizado). */
   botao?: string;
   /** Capa: imagem de fundo cheia (usa a `bgImage` do carrossel). */
   cover?: boolean;
+  /** Capa sem imagem: ignora a `bgImage` e usa o gradiente JARVIS de fallback. */
+  semFundo?: boolean;
   /** Sangria de imagem desfocada no topo (slides escuros). */
   topbleed?: boolean;
   /** Placeholder de vídeo (fundo escuro + selo). */

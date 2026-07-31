@@ -2,7 +2,7 @@
  * apps/dobro — carrossel "Devo ler o código gerado por IA ou não?".
  * Opinião/debate. Posição: SIM, sempre, mas com intenção (não entender cada
  * caractere). Ler é como você aprende, pega bug e fica no controle do projeto.
- * Padrão JARVIS (novo design), 8 slides, AIDA. Fecha no CTA da campanha (GTA).
+ * Padrão JARVIS (novo design), 8 slides, AIDA. Fecha no CTA da campanha (MANDA).
  *
  * Regras de copy (ver memória copy-carrossel-convencoes): SEM travessão; nunca
  * inventar nome de método/produto. Capa preta (sem asset). carrossel:render.
@@ -76,7 +76,7 @@ export const lerCodigoIa: Carrossel = {
       variant: 'purple',
       tipo: 'cta',
       logo: '@devemdobro',
-      titulo: 'Comenta **GTA** que\nte ensino a fazer\nesse projeto com IA\ndo jeito certo',
+      titulo: 'Comenta **MANDA** que\nte ensino a fazer\nesse projeto com IA\ndo jeito certo',
     },
   ],
   legenda:
@@ -86,11 +86,11 @@ export const lerCodigoIa: Carrossel = {
     'verdade. Cada mudança é uma aula.\n\n' +
     'O segredo é ler com intenção: foca no que muda o comportamento, pula o boilerplate, e o que você não ' +
     'consegue explicar, não entra.\n\n' +
-    'É isso que separa usar IA de muleta de usar IA de alavanca. Quer treinar num projeto real? Comenta GTA ' +
+    'É isso que separa usar IA de muleta de usar IA de alavanca. Quer treinar num projeto real? Comenta MANDA ' +
     'que te ensino a fazer esse projeto com IA do jeito certo. 👇',
   hashtags:
     'programação inteligenciaartificial vibecoding cursor produtividadedev devemdobro programarcomia aprenderprogramar carreiratech revisãodecodigo',
-  ctaFinal: 'Comenta GTA que te ensino a fazer esse projeto com IA, do jeito certo.',
+  ctaFinal: 'Comenta MANDA que te ensino a fazer esse projeto com IA, do jeito certo.',
   briefing:
     'Opinião/debate. Pergunta: ler o código gerado por IA ou não? Posição: SIM, sempre, mas com intenção (não ' +
     'entender cada caractere). Slide 4 = por que ler (bug, aprende, controle, prompt melhor); slide 5 = o ' +

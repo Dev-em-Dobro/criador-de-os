@@ -75,7 +75,7 @@ export const iaPensar: Carrossel = {
       variant: 'purple',
       tipo: 'cta',
       logo: '@devemdobro',
-      titulo: 'Comenta **GTA** e eu\nte ensino a fazer',
+      titulo: 'Comenta **MANDA** e eu\nte ensino a fazer',
     },
   ],
   legenda:
@@ -86,10 +86,10 @@ export const iaPensar: Carrossel = {
     'O segredo é continuar no comando: pensa antes de pedir, entende cada resposta, planeja em vez de delegar, ' +
     'e de vez em quando resolve algo na unha pra manter o músculo.\n\n' +
     'É a diferença entre usar IA de muleta e de alavanca. Quer treinar isso num projeto de verdade? Comenta ' +
-    'GTA que eu te ensino a construir do zero. 👇',
+    'MANDA que eu te ensino a construir do zero. 👇',
   hashtags:
     'programação inteligenciaartificial vibecoding produtividadedev devemdobro programarcomia aprenderprogramar pensamentocritico carreiratech cursor',
-  ctaFinal: 'Comenta GTA e eu te ensino a construir um projeto de verdade com IA, do zero.',
+  ctaFinal: 'Comenta MANDA e eu te ensino a construir um projeto de verdade com IA, do zero.',
   briefing:
     'Tema: usar IA pra programar sem atrofiar o raciocínio. Posição: a IA não te deixa burro; o hábito de ' +
     'aceitar sem entender sim. Bem usada, deixa mais afiado. Slide 4 = 4 hábitos (pensa antes, entende, ' +

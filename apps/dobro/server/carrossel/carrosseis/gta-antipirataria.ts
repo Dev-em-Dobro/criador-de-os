@@ -82,7 +82,7 @@ export const gtaAntipirataria: Carrossel = {
       video: true,
       tipo: 'cta',
       logo: 'DEV EM DOBRO',
-      titulo: 'Comenta **GTA** e a gente\nconstrói isso ao vivo',
+      titulo: 'Comenta **MANDA** e a gente\nconstrói isso ao vivo',
     },
   ],
   legenda:
@@ -93,10 +93,10 @@ export const gtaAntipirataria: Carrossel = {
     'sem parar até dar enjoo.\n\n' +
     'Por trás da brincadeira tem uma aula real de lógica: detecção contínua, camadas independentes, degradar em vez de ' +
     'travar. E é isso que a gente vai construir do zero, ao vivo, num evento: você programando junto comigo.\n\n' +
-    'Comenta GTA e eu te chamo. Salva pra não esquecer e marca aquele amigo que curte games. 👇',
+    'Comenta MANDA e eu te chamo. Salva pra não esquecer e marca aquele amigo que curte games. 👇',
   hashtags:
     'programação logicadeprogramacao games gta rockstar antipirataria devemdobro projetodev aprenderprogramar desenvolvimentodesoftware',
-  ctaFinal: 'Comenta GTA e a gente constrói esse projeto do zero, ao vivo, no evento.',
+  ctaFinal: 'Comenta MANDA e a gente constrói esse projeto do zero, ao vivo, no evento.',
   briefing:
     'Padrão JARVIS copiando a referência (8 slides, Ubuntu Mono). Fatos conferidos: Vice City (chuva 25%/missão, cidade ' +
     'fantasma aos 40 min, proteção em 2 camadas) e GTA IV (câmera bêbada). Sem inventar nome/data do evento (definir e ' +

@@ -68,7 +68,7 @@ export const viciar: Carrossel = {
     {
       variant: 'dark',
       eyebrow: 'Um projeto que vicia',
-      titulo: 'A gente clonou o\n**site do GTA 6**',
+      titulo: 'A gente clonou o\n**site desse jogo**',
       terminal: ['✓ do zero, em 2 horas', '✓ HTML, CSS, JS e IA no fluxo'],
       corpo: 'Hero animada, scroll de cinema. Um projeto que dá vontade de mostrar, e de já começar o próximo.',
     },
@@ -83,7 +83,7 @@ export const viciar: Carrossel = {
       video: true,
       tipo: 'cta',
       logo: 'DEV EM DOBRO',
-      titulo: 'Comenta **GTA** e eu\nte ensino a fazer',
+      titulo: 'Comenta **QUERO** e eu\nte ensino a fazer',
     },
   ],
   legenda:
@@ -91,11 +91,11 @@ export const viciar: Carrossel = {
     'Comigo foi assim: o dia que um projeto MEU apareceu funcionando na tela, virou chave. Cada "tentei e deu ' +
     'certo" puxava o próximo. É dopamina, não força de vontade.\n\n' +
     'Com IA no fluxo, esse ciclo ficou mais rápido: você constrói projeto de verdade em horas e aprende no ' +
-    'processo. Foi assim que a gente clonou o site do GTA 6 em 2 horas.\n\n' +
-    'Quer construir ESSE projeto junto com a gente, do zero e ao vivo? Comenta GTA e eu te ensino a fazer. 👇',
+    'processo. Foi assim que a gente clonou o site desse jogo em 2 horas.\n\n' +
+    'Quer construir ESSE projeto junto com a gente, do zero e ao vivo? Comenta QUERO e eu te ensino a fazer. 👇',
   hashtags:
     'programação aprenderaprogramar projetodev desenvolvimentoweb inteligenciaartificial devemdobro programadoriniciante htmlcssjs primeiroprojeto gta6',
-  ctaFinal: 'Comenta GTA e eu te ensino a construir o projeto do zero com IA.',
+  ctaFinal: 'Comenta QUERO e eu te ensino a construir o projeto do zero com IA.',
   briefing:
     'Adaptação do NOSSO reels "como se viciar em programar" no padrão JARVIS (novo design). Tese: o que mais ' +
     'vicia é construir PROJETO legal (não decorar sintaxe / ver aula). Fecha no CTA da campanha do GTA 6. ' +

@@ -27,7 +27,7 @@ const CSS = `
   .dark h1,.photo h1,.purple h1{color:#fff;} .light h1{color:#1a1330;}
   .hl{color:#a78bfa;} .light .hl{color:#6d3ad6;}
   .cta .hl{color:#f5c518;}
-  .cover h1{font-size:46px;line-height:1.04;}
+  .cover h1{font-size:36.8px;line-height:1.04;}
   .body{font-size:12.5px;line-height:1.55;margin-top:10px;position:relative;z-index:2;}
   .dark .body{color:#b8b2cc;} .light .body{color:#6f6885;} .photo .body,.purple .body{color:#ece9f6;}
   .top{position:relative;z-index:2;} .grow{flex:1;}
@@ -61,6 +61,15 @@ const CSS = `
   .logo .ig svg{width:100%;height:100%;display:block;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}
   .logo .ig svg .f{fill:currentColor;stroke:none;}
   .cta-btn{position:relative;z-index:2;margin-top:14px;align-self:flex-start;background:#fff;color:#5b21b6;font-weight:700;font-size:15px;padding:11px 18px;border-radius:11px;}
+  .cta-rich{align-items:center;text-align:center;}
+  .cta-rich .logo{justify-content:center;}
+  .cta-rich h1{font-size:26.5px;line-height:1.18;}
+  .cta-rich .cta-btn{align-self:center;margin-top:20px;border-radius:999px;font-size:16px;padding:13px 22px;}
+  .cta-rich .body{margin-top:16px;max-width:300px;font-size:13px;}
+  .logo-cta{align-items:center;gap:11px;}
+  .logo-cta .lc{display:flex;flex-direction:column;line-height:1.18;text-align:left;}
+  .logo-cta .nm{font-size:15px;font-weight:700;color:#fff;letter-spacing:.02em;}
+  .logo-cta .lc-sub{font-size:12px;font-weight:400;color:rgba(255,255,255,.72);letter-spacing:.02em;}
   .chev{position:absolute;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;z-index:3;}
   .chev.l{left:6px;} .chev.r{right:6px;}
   .dark .chev,.photo .chev,.purple .chev{background:rgba(255,255,255,.1);color:rgba(255,255,255,.55);}
@@ -105,12 +114,12 @@ function foot(i: number, n: number): string {
 /** Renderiza um slide a partir da definição. */
 function renderSlide(s: Slide, i: number, n: number, bg: string): string {
   const isLast = i === n - 1;
-  const cls = ['slide', s.variant, s.layout === 'center' ? 'center' : '', s.cover ? 'cover' : '', s.tipo === 'cta' ? 'cta' : ''].filter(Boolean).join(' ');
+  const cls = ['slide', s.variant, s.layout === 'center' ? 'center' : '', s.cover ? 'cover' : '', s.tipo === 'cta' ? 'cta' : '', s.tipo === 'cta' && s.botao ? 'cta-rich' : ''].filter(Boolean).join(' ');
   const parts: string[] = [];
 
   // Fundo
   if (s.cover) {
-    const coverBg = bg
+    const coverBg = bg && !s.semFundo
       ? `background-image:url('${bg}')`
       : 'background:radial-gradient(120% 95% at 60% 8%,#3a1d4d 0%,#1a0f26 55%,#070410 100%)';
     parts.push(`<div class="imgbg" style="${coverBg}"></div><div class="scrim"></div>`);
@@ -128,11 +137,18 @@ function renderSlide(s: Slide, i: number, n: number, bg: string): string {
 
   // Conteúdo
   if (s.tipo === 'cta') {
-    if (s.logo) parts.push(`<div class="logo"${s.video ? ' style="margin-top:24px"' : ''}><span class="ig"><svg viewBox="0 0 24 24">${iconInner('instagram')}</svg></span> ${s.logo}</div>`);
+    if (s.logo) {
+      const ig = `<span class="ig"><svg viewBox="0 0 24 24">${iconInner('instagram')}</svg></span>`;
+      const inner = s.handle
+        ? `${ig}<span class="lc"><span class="nm">${s.logo}</span><span class="lc-sub">${s.handle}</span></span>`
+        : `${ig} ${s.logo}`;
+      parts.push(`<div class="logo${s.handle ? ' logo-cta' : ''}"${s.video ? ' style="margin-top:24px"' : ''}>${inner}</div>`);
+    }
     parts.push('<div class="grow"></div>');
     parts.push(`<h1>${realce(s.titulo)}</h1>`);
-    if (s.corpo) parts.push(`<div class="body">${realce(s.corpo)}</div>`);
     if (s.botao) parts.push(`<div class="cta-btn">${s.botao}</div>`);
+    if (s.corpo) parts.push(`<div class="body">${realce(s.corpo)}</div>`);
+    if (s.botao) parts.push('<div class="grow"></div>');
   } else if (s.layout === 'center') {
     if (s.icone) parts.push(`<div class="ico ico-lg"><svg viewBox="0 0 24 24">${iconInner(s.icone)}</svg></div>`);
     parts.push(`<h1>${realce(s.titulo)}</h1>`);

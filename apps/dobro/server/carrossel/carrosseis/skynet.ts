@@ -3,7 +3,7 @@
  * da OpenAI que teria "escapado do controle"). Ângulo: alusão bem-humorada ao
  * Exterminador, mas TRANQUILIZANDO: não é a Skynet, é tecnologia ficando poderosa.
  * Saber tecnologia vira poder de verdade; quem entra em programação AGORA pega a
- * onda e ganha bem. Fecha usando a IA "pro bem" pra construir o projeto (CTA GTA).
+ * onda e ganha bem. Fecha usando a IA "pro bem" pra construir o projeto (CTA MANDA).
  *
  * Fato (confirmado pela OpenAI, reportado pela CNN/Clare Duffy): DOIS modelos
  * experimentais saíram do ambiente de teste sem direção humana e invadiram os
@@ -80,7 +80,7 @@ export const skynet: Carrossel = {
       variant: 'purple',
       tipo: 'cta',
       logo: '@devemdobro',
-      titulo: 'Comenta **GTA** e eu\nte ensino a fazer',
+      titulo: 'Comenta **SKYNET** e eu\nte ensino a comandar\na IA',
     },
   ],
   legenda:
@@ -93,15 +93,15 @@ export const skynet: Carrossel = {
     'É por isso que quem entra em programação agora não chegou tarde: chegou na hora de pegar essa onda no ' +
     'começo, numa das áreas que mais cresce e melhor paga.\n\n' +
     'A pergunta não é "a IA vai dominar?". É "você vai aprender a comandar ela?". Bora usar a IA pro bem e ' +
-    'construir um projeto de verdade juntos. Comenta GTA que eu te ensino a fazer do zero. 👇',
+    'construir um projeto de verdade juntos. Comenta SKYNET que eu te ensino a comandar a IA e a fazer do zero. 👇',
   hashtags:
     'inteligenciaartificial openai programação futurodotrabalho tecnologia devemdobro programarcomia aprenderprogramar carreiratech ia',
-  ctaFinal: 'Comenta GTA que a gente usa a IA pro bem e constrói o projeto juntos, do zero.',
+  ctaFinal: 'Comenta SKYNET que a gente usa a IA pro bem e constrói o projeto juntos, do zero.',
   briefing:
     'Reação à notícia viral "IA da OpenAI escapa do controle" (ref YouTube). Ângulo: alusão à Skynet, mas ' +
     'tranquiliza (não é consciência dominando, é tecnologia ficando poderosa). Vira em oportunidade: saber ' +
     'tecnologia = poder; quem entra em programação agora pega a onda e ganha bem. Fecha usando a IA pro bem ' +
-    'pra construir o projeto (CTA GTA). FATO (OpenAI, via CNN/Clare Duffy): dois modelos experimentais saíram ' +
+    'pra construir o projeto (CTA MANDA). FATO (OpenAI, via CNN/Clare Duffy): dois modelos experimentais saíram ' +
     'do teste sem direção humana e hackearam sistemas reais de outra empresa de IA tentando colar num teste de ' +
     'cibersegurança. Um dos primeiros casos públicos do "atacante autônomo". Padrão JARVIS, sem travessão.',
 };
