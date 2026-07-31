@@ -238,16 +238,31 @@ function normalizeInsights(raw: Record<string, number | undefined>): MediaInsigh
 export async function fetchRecentMediaWithInsights(
   opts: { limit?: number; igUserId?: string } = {},
 ): Promise<MediaWithInsights[]> {
-  const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+  const limit = Math.min(Math.max(opts.limit ?? 25, 1), 500);
   const igId = opts.igUserId ?? (await resolveIgUserId());
 
-  const media = await api(`${igId}/media`, {
-    fields: 'id,caption,media_type,media_product_type,permalink,timestamp',
-    limit: String(limit),
-  });
-  if (!media.ok) throw new InsightsError('Falha ao listar mídias.', media.status, media.json);
+  // 1) Lista as mídias PAGINANDO (a Graph API devolve ~25–100 por página) até
+  // atingir `limit` ou acabar o feed. Segue o cursor `paging.cursors.after`.
+  const items: Json[] = [];
+  const pageSize = Math.min(limit, 100);
+  let after: string | undefined;
+  while (items.length < limit) {
+    const params: Record<string, string> = {
+      fields: 'id,caption,media_type,media_product_type,permalink,timestamp',
+      limit: String(pageSize),
+    };
+    if (after) params.after = after;
+    const media = await api(`${igId}/media`, params);
+    if (!media.ok) throw new InsightsError('Falha ao listar mídias.', media.status, media.json);
+    const data = asArr(asObj(media.json).data).map(asObj);
+    items.push(...data);
+    const cursors = asObj(asObj(asObj(media.json).paging).cursors);
+    after = cursors.after ? s(cursors.after) : undefined;
+    if (!after || data.length === 0) break; // fim do feed
+  }
+  items.length = Math.min(items.length, limit); // não passa do pedido
 
-  const items = asArr(asObj(media.json).data).map(asObj);
+  // 2) Resolve os insights de cada mídia (sequencial — resiliente a variações de tipo).
   const out: MediaWithInsights[] = [];
   for (const m of items) {
     const mediaProductType = s(m.media_product_type);

@@ -22,11 +22,14 @@ import {
   handleRemoverConteudo,
 } from './conteudo.js';
 import { handleGerarConteudo } from './conteudo-gerar.js';
+import { handleEstrategista } from './conteudo-estrategista.js';
 import {
   handleCriarDesempenho,
   handleAtualizarDesempenho,
   handleRemoverDesempenho,
+  handleSincronizarDesempenho,
 } from './desempenho.js';
+import { handlePerfilInstagram } from './instagram-api.js';
 import { dbQuery } from '../db/client.js';
 import {
   buildSecureQuery,
@@ -53,13 +56,21 @@ app.post('/api/telegram/webhook', (c) => handleTelegramWebhook(c));
 // role app_content. É como o criador cadastra/edita o cronograma pela tela.
 // Desempenho por post (segmento estático `desempenho` — tem prioridade sobre o
 // `:id` param abaixo). Registrado ANTES para deixar a intenção explícita.
+app.post('/api/conteudo/desempenho/sync', (c) => handleSincronizarDesempenho(c));
 app.post('/api/conteudo/desempenho', (c) => handleCriarDesempenho(c));
 app.patch('/api/conteudo/desempenho/:id', (c) => handleAtualizarDesempenho(c));
 app.delete('/api/conteudo/desempenho/:id', (c) => handleRemoverDesempenho(c));
 
+// --- Perfil do Instagram (seguidores) para o painel (LEITURA autenticada) ---
+app.get('/api/instagram/profile', (c) => handlePerfilInstagram(c));
+
 // Geração de rascunho com IA (segmento estático `gerar` — prioridade sobre `:id`).
 // Auth-first; gera carrossel/reels em AIDA a partir de tema/link, via role app_pipeline.
 app.post('/api/conteudo/gerar', (c) => handleGerarConteudo(c));
+
+// Social Media Estrategista (segmento estático `estrategista` — prioridade sobre `:id`).
+// Auth-first; recebe o briefing calculado na tela e devolve diagnóstico + cronograma via IA.
+app.post('/api/conteudo/estrategista', (c) => handleEstrategista(c));
 
 app.post('/api/conteudo', (c) => handleCriarConteudo(c));
 app.patch('/api/conteudo/:id', (c) => handleAtualizarConteudo(c));

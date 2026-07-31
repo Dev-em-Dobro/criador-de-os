@@ -23,6 +23,9 @@ import { eq } from 'drizzle-orm';
 import { auth } from './auth.js';
 import { dbContent } from '../db/client.js';
 import { conteudoDesempenho } from '../db/schema.js';
+import { syncDesempenhoFromInsights } from './desempenho-sync.js';
+import { getInstagramInsightsToken } from './env.js';
+import { InsightsError } from './instagram-insights.js';
 
 // --- Contrato fechado de valores (defesa 2) ---
 const FORMATOS = ['reel', 'carrossel', 'post', 'story'] as const;
@@ -254,5 +257,50 @@ export async function handleRemoverDesempenho(c: Context): Promise<Response> {
   } catch (err) {
     console.error('[desempenho] erro ao remover:', err instanceof Error ? err.message : err);
     return c.json({ error: 'Erro ao remover a medição' }, 500);
+  }
+}
+
+/**
+ * POST /api/conteudo/desempenho/sync — puxa os números REAIS dos últimos posts
+ * do Instagram (Graph API de Insights) e faz UPSERT em `conteudo_desempenho`.
+ * Auth-first. Sem token no servidor → 503 claro (a entrada segue manual). Erro da
+ * API do Instagram (token expirado/permissão) → 422 com mensagem, nunca 500 cru.
+ * Escreve via `app_content`. Body opcional: `{ limit }` (default 25, máx 50 — a
+ * function serverless tem teto de tempo; para lotes maiores use o script admin).
+ */
+export async function handleSincronizarDesempenho(c: Context): Promise<Response> {
+  if (!(await getSession(c))) return c.json({ error: 'Não autenticado' }, 401);
+
+  if (!getInstagramInsightsToken()) {
+    return c.json(
+      { error: 'Sincronização não configurada (defina META_APP_TOKEN no servidor).' },
+      503,
+    );
+  }
+
+  let body: unknown = {};
+  try {
+    body = await c.req.json();
+  } catch {
+    /* corpo opcional — segue com default */
+  }
+  const rawLimit = Number((body as { limit?: unknown })?.limit);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 50) : 25;
+
+  try {
+    const r = await syncDesempenhoFromInsights(dbContent, { limit });
+    return c.json({
+      inserted: r.inserted,
+      updated: r.updated,
+      total: r.total,
+      followers: r.profile.followersCount ?? null,
+      username: r.profile.username ?? null,
+    });
+  } catch (err) {
+    if (err instanceof InsightsError) {
+      return c.json({ error: `Instagram: ${err.message}` }, 422);
+    }
+    console.error('[desempenho:sync] erro:', err instanceof Error ? err.message : err);
+    return c.json({ error: 'Erro ao sincronizar com o Instagram' }, 500);
   }
 }

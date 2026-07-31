@@ -24,6 +24,7 @@ import type { ReactNode } from 'react';
 import { SectionHeader, EmptyState, SkeletonCards } from '@os/core';
 import type { BlockDefinition, BlockProps } from '@os/core';
 import { GuiaMetricas } from './ConteudoGuiaMetricas';
+import { ConteudoAnalise } from './ConteudoAnalise';
 
 // ============================================================
 // Helpers (locais — o bloco não importa internals de @os/blocks)
@@ -682,13 +683,19 @@ function EditorModal({
 interface FormatAvg {
   formato: string;
   count: number;
-  metrics: Array<{ label: string; avg: number | null; classe: Classe }>;
+  metrics: Array<{ label: string; avg: number | null; classe: Classe; bench?: Threshold }>;
 }
 
 function mean(vals: Array<number | null>): number | null {
   const ok = vals.filter((v): v is number => v != null && Number.isFinite(v));
   if (ok.length === 0) return null;
   return ok.reduce((a, b) => a + b, 0) / ok.length;
+}
+
+/** Faixa de meta [saudável, forte] → "0,3%–1%". null/ausente vira ''. */
+function fmtFaixa(b: Threshold | undefined): string {
+  if (!b) return '';
+  return `${fmtRate(b[0])}–${fmtRate(b[1])}`;
 }
 
 function buildFormatAverages(
@@ -713,12 +720,12 @@ function buildFormatAverages(
     const compart = mean(idxs.map((i) => derived[i].taxaCompart));
     const salv = mean(idxs.map((i) => derived[i].taxaSalv));
     const metrics: FormatAvg['metrics'] = [
-      { label: 'Compart.', avg: compart, classe: classify(compart, b?.compartilhamentos) },
-      { label: 'Salvamentos', avg: salv, classe: classify(salv, b?.salvamentos) },
+      { label: 'Compart.', avg: compart, classe: classify(compart, b?.compartilhamentos), bench: b?.compartilhamentos },
+      { label: 'Salvamentos', avg: salv, classe: classify(salv, b?.salvamentos), bench: b?.salvamentos },
     ];
     if (fmt === 'reel') {
       const ret = mean(idxs.map((i) => derived[i].retencao));
-      metrics.push({ label: 'Retenção', avg: ret, classe: classify(ret, b?.retencao) });
+      metrics.push({ label: 'Retenção', avg: ret, classe: classify(ret, b?.retencao), bench: b?.retencao });
     }
     out.push({ formato: fmt, count: idxs.length, metrics });
   }
@@ -745,6 +752,14 @@ function FormatAveragesCard({ fa }: { fa: FormatAvg }) {
             <span className="text-xs text-gray-400">{m.label}</span>
             <span className="flex items-center gap-2">
               <span className="text-sm font-semibold text-gray-100 tabular-nums">{fmtRate(m.avg)}</span>
+              {m.bench && (
+                <span
+                  className="whitespace-nowrap text-[11px] text-gray-500 tabular-nums"
+                  title={`Meta: Saudável a partir de ${fmtRate(m.bench[0])}, Forte a partir de ${fmtRate(m.bench[1])}`}
+                >
+                  meta {fmtFaixa(m.bench)}
+                </span>
+              )}
               <span
                 className={`h-2 w-2 rounded-full ${CLASSE_TONE[m.classe].dot}`}
                 title={CLASSE_TONE[m.classe].label}
@@ -789,17 +804,20 @@ function MetricInline({ label, value, classe }: { label: string; value: string; 
   );
 }
 
-/** Célula de número no painel expandido (valor cru + taxa opcional + classe). */
+/** Célula de número no painel expandido (valor cru + taxa opcional + classe + meta). */
 function Stat({
   label,
   raw,
   rate,
   classe,
+  meta,
 }: {
   label: string;
   raw: string;
   rate?: string;
   classe?: Classe;
+  /** Faixa de meta (Saudável–Forte) já formatada, ex.: "0,5%–2%". */
+  meta?: string;
 }) {
   return (
     <div className="rounded-lg border border-gray-700/40 bg-gray-900/40 px-3 py-2">
@@ -811,6 +829,7 @@ function Stat({
       </div>
       <div className="mt-0.5 text-sm font-semibold text-gray-100 tabular-nums">{raw}</div>
       {rate && <div className="text-[11px] text-gray-400 tabular-nums">{rate} do alcance</div>}
+      {meta && <div className="text-[11px] text-gray-500 tabular-nums">meta {meta}</div>}
     </div>
   );
 }
@@ -818,18 +837,21 @@ function Stat({
 function ContentCard({
   row,
   d,
+  bench,
   busy,
   onEdit,
   onDelete,
 }: {
   row: Row;
   d: Derived;
+  bench: Record<string, FormatBenchmarks>;
   busy: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const formato = str(row.formato).toLowerCase();
+  const b = bench[formato];
   const tema = str(row.tema) || 'Sem tema';
   const permalink = str(row.permalink);
   const embedUrl = permalink ? instagramEmbedUrl(permalink) : null;
@@ -937,12 +959,14 @@ function ContentCard({
                 raw={fmtInt(num(row.compartilhamentos))}
                 rate={fmtRate(d.taxaCompart)}
                 classe={d.classeCompart}
+                meta={fmtFaixa(b?.compartilhamentos) || undefined}
               />
               <Stat
                 label="Salvamentos"
                 raw={fmtInt(num(row.salvamentos))}
                 rate={fmtRate(d.taxaSalv)}
                 classe={d.classeSalv}
+                meta={fmtFaixa(b?.salvamentos) || undefined}
               />
               <Stat label="Visitas perfil" raw={fmtInt(num(row.visitas_perfil))} rate={fmtRate(d.taxaPerfil)} />
               <Stat label="Seguidores" raw={fmtInt(num(row.seguidores))} rate={fmtRate(d.conversaoSeg)} />
@@ -950,7 +974,12 @@ function ContentCard({
                 <>
                   <Stat label="Duração" raw={fmtSeg(row.duracao_s)} />
                   <Stat label="Tempo médio" raw={fmtSeg(row.tempo_medio_s)} />
-                  <Stat label="Retenção" raw={fmtRate(d.retencao)} classe={d.classeRetencao} />
+                  <Stat
+                    label="Retenção"
+                    raw={fmtRate(d.retencao)}
+                    classe={d.classeRetencao}
+                    meta={fmtFaixa(b?.retencao) || undefined}
+                  />
                 </>
               )}
             </div>
@@ -1050,6 +1079,34 @@ function ConteudoDesempenhoBlock({ config, ctx }: BlockProps<ConteudoDesempenhoC
     setClasseFiltro((prev) => (prev === c ? null : c));
   }, []);
 
+  // Sincronização com o Instagram (puxa os números reais dos últimos posts).
+  const [sincronizando, setSincronizando] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<{ tone: 'ok' | 'erro'; text: string } | null>(null);
+
+  const sincronizar = useCallback(async () => {
+    setSincronizando(true);
+    setSyncMsg(null);
+    try {
+      const r = (await apiJson('/api/conteudo/desempenho/sync', 'POST', { limit: 25 })) as {
+        inserted: number;
+        updated: number;
+        total: number;
+        followers: number | null;
+      };
+      setSyncMsg({
+        tone: 'ok',
+        text:
+          `Sincronizado do Instagram: ${r.total} posts (${r.inserted} novos, ${r.updated} atualizados)` +
+          `${r.followers != null ? ` · ${r.followers.toLocaleString('pt-BR')} seguidores` : ''}.`,
+      });
+      reload?.();
+    } catch (e) {
+      setSyncMsg({ tone: 'erro', text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSincronizando(false);
+    }
+  }, [reload]);
+
   const onSaved = useCallback(() => {
     setEditing(null);
     if (reload) reload();
@@ -1117,9 +1174,36 @@ function ConteudoDesempenhoBlock({ config, ctx }: BlockProps<ConteudoDesempenhoC
         />
         <div className="flex flex-wrap items-center gap-2">
           <PeriodPicker value={periodDays} onChange={setPeriodDays} />
+          <button
+            type="button"
+            onClick={sincronizar}
+            disabled={sincronizando}
+            title="Puxar alcance, salvamentos, views etc. dos últimos posts do Instagram"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-gray-700 px-3.5 py-2 text-sm font-medium text-gray-200 transition-colors hover:bg-gray-700/50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span aria-hidden="true" className={sincronizando ? 'inline-block animate-spin' : ''}>↻</span>
+            {sincronizando ? 'Sincronizando…' : 'Sincronizar'}
+          </button>
           {addBtn}
         </div>
       </div>
+
+      {syncMsg && (
+        <div
+          role="status"
+          className={`flex items-start gap-2 rounded-xl border px-4 py-2.5 text-sm ${
+            syncMsg.tone === 'ok'
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+              : 'border-red-500/30 bg-red-500/10 text-red-200'
+          }`}
+        >
+          <span aria-hidden="true">{syncMsg.tone === 'ok' ? '✅' : '⚠️'}</span>
+          <span>{syncMsg.text}</span>
+        </div>
+      )}
+
+      {/* ANÁLISE — "o que funciona pro nosso perfil" (Lead Score, todo o histórico). */}
+      {allTotal > 0 && <ConteudoAnalise rows={sortedRows} />}
 
       {allTotal === 0 ? (
         <EmptyState
@@ -1236,6 +1320,7 @@ function ConteudoDesempenhoBlock({ config, ctx }: BlockProps<ConteudoDesempenhoC
                     key={id}
                     row={r}
                     d={d}
+                    bench={bench}
                     busy={busyId === str(r.id)}
                     onEdit={() => setEditing(formFromRow(r))}
                     onDelete={() => onDelete(str(r.id))}

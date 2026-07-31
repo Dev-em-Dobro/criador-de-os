@@ -221,15 +221,6 @@ const FORMAT_TONES: Record<string, { chip: string; text: string }> = {
 
 const FORMAT_FALLBACK = { chip: 'bg-gray-600/20', text: 'text-gray-300' };
 
-/** As 5 janelas de crescimento pedidas, na ordem de exibição. */
-const GROWTH_PERIODS = [
-  { key: 'week', label: 'Semana' },
-  { key: 'month', label: 'Mês' },
-  { key: 'q3', label: '3 meses' },
-  { key: 'h6', label: '6 meses' },
-  { key: 'y1', label: '1 ano' },
-] as const;
-
 /** Opções de formato/estado do editor de cronograma (bate com o backend). */
 const FORMATO_OPTS: ReadonlyArray<[string, string]> = [
   ['carrossel', 'Carrossel'],
@@ -389,32 +380,6 @@ function FollowersHero({
         <div className="relative mt-4 h-20 w-full text-white/90">
           <AreaChart series={series} className="h-full w-full" />
         </div>
-      )}
-    </div>
-  );
-}
-
-/** Card de uma janela de crescimento. "—" quando ainda não há dado. */
-function GrowthCard({ label, delta }: { label: string; delta: GrowthDelta | null | undefined }) {
-  const has = delta != null && Number.isFinite(delta.deltaPct);
-  const up = has && delta!.deltaPct >= 0;
-  return (
-    <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-4 shadow-sm">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{label}</div>
-      {has ? (
-        <>
-          <div className={`mt-1.5 text-xl font-bold ${up ? 'text-emerald-300' : 'text-red-300'}`} style={DISPLAY}>
-            {fmtPct(delta!.deltaPct)}
-          </div>
-          <div className="mt-0.5 text-xs text-gray-500">
-            {delta!.deltaAbs >= 0 ? '+' : ''}{fmtInt(delta!.deltaAbs)} seguidores
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="mt-1.5 text-xl font-bold text-gray-600" style={DISPLAY}>—</div>
-          <div className="mt-0.5 text-xs text-gray-600">aguardando conexão</div>
-        </>
       )}
     </div>
   );
@@ -838,7 +803,6 @@ interface SchedRow {
   origDay: string | null;
   /** Snapshot serializado dos campos p/ detectar edição (vazio p/ novos). */
   orig: string;
-  markedDelete: boolean;
 }
 
 function snapshot(
@@ -894,7 +858,6 @@ function buildRows(posts: Row[], fields: FieldMap): SchedRow[] {
       ...fieldsVal,
       origDay: day,
       orig: snapshot(fieldsVal),
-      markedDelete: false,
     };
   });
 }
@@ -952,25 +915,49 @@ function SchedulePage({
   fields,
   focusDay,
   onBack,
-  onSaved,
 }: {
   posts: Row[];
   fields: FieldMap;
   focusDay: Date;
   onBack: () => void;
-  onSaved: () => void;
 }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(focusDay));
   const [rows, setRows] = useState<SchedRow[]>(() => buildRows(posts, fields));
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   // Cards com a área de briefing/refs expandida (colapsada por padrão).
   const [openBriefing, setOpenBriefing] = useState<Set<string>>(() => new Set());
   // Cards com o EDITOR expandido (colapsado por padrão — resumo compacto até clicar).
   const [openEditor, setOpenEditor] = useState<Set<string>>(() => new Set());
-  // Feedback do auto-save por card ('saving' | 'saved' | 'error') — status/data/hora.
+  // Feedback do auto-save por card ('saving' | 'saved' | 'error').
   const [saveFx, setSaveFx] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
   const counter = useRef(0);
+  // Espelho de `rows` p/ ler o estado ATUAL dentro de saves assíncronos (sem stale closure).
+  const rowsRef = useRef(rows);
+  useEffect(() => {
+    rowsRef.current = rows;
+  }, [rows]);
+  // Linhas com um POST de criação em voo — trava p/ não criar o mesmo post 2x.
+  const creatingRef = useRef<Set<string>>(new Set());
+
+  /** Marca o feedback de save de um card (some sozinho no timeout p/ 'saved'/'error'). */
+  const setFx = useCallback((key: string, v: 'saving' | 'saved' | 'error' | null) => {
+    setSaveFx((prev) => {
+      const next = { ...prev };
+      if (v == null) delete next[key];
+      else next[key] = v;
+      return next;
+    });
+    if (v === 'saved' || v === 'error') {
+      window.setTimeout(
+        () => setSaveFx((prev) => {
+          if (prev[key] !== v) return prev;
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        }),
+        v === 'saved' ? 1600 : 2600,
+      );
+    }
+  }, []);
   // Prévia estilo Instagram (post cru, com roteiro) — null = fechada.
   const [igPreview, setIgPreview] = useState<Row | null>(null);
   // Mapa id → linha crua (traz roteiro/legenda/hashtags do post salvo p/ o preview).
@@ -1023,33 +1010,153 @@ function SchedulePage({
       hora: '',
       origDay: null,
       orig: '',
-      markedDelete: false,
     };
     setRows((rs) => [...rs, nova]);
     setOpenEditor((prev) => new Set(prev).add(key)); // post novo já abre pronto p/ editar
   }, []);
 
-  const removeRow = useCallback((key: string) => {
-    setRows((rs) =>
-      rs.flatMap((r) => {
-        if (r.key !== key) return [r];
-        if (r.id) return [{ ...r, markedDelete: true }]; // existente → marca p/ deletar
-        return []; // novo → some da lista
-      }),
-    );
-  }, []);
+  /**
+   * Remove a postagem NA HORA (igual à troca de status), sem esperar o "Salvar".
+   * Post novo (sem id) só some da lista. Existente é excluído no banco
+   * imediatamente — como isso é irreversível (≠ status), pede confirmação antes.
+   * Otimista: some da tela na hora e volta à posição original se o DELETE falhar.
+   */
+  const removeRow = useCallback(
+    async (key: string) => {
+      const idx = rows.findIndex((r) => r.key === key);
+      if (idx < 0) return;
+      const alvo = rows[idx];
+      if (!alvo.id) {
+        setRows((rs) => rs.filter((r) => r.key !== key)); // novo → some da lista
+        return;
+      }
+      const nome = alvo.titulo.trim() || 'sem título';
+      if (!window.confirm(`Excluir "${nome}"? Esta ação não pode ser desfeita.`)) return;
+      setRows((rs) => rs.filter((r) => r.key !== key)); // otimista
+      try {
+        await apiJson(`/api/conteudo/${alvo.id}`, 'DELETE');
+      } catch (e) {
+        setRows((rs) => {
+          const arr = [...rs];
+          arr.splice(Math.min(idx, arr.length), 0, alvo); // reverte na posição original
+          return arr;
+        });
+        window.alert(`Não consegui excluir: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    },
+    [rows],
+  );
 
   const isChanged = useCallback(
     (r: SchedRow) => r.orig !== snapshot(r),
     [],
   );
 
+  /** Corpo (PostInput) de UM post a partir da linha — usado no POST e no PATCH. */
+  function rowToPayload(r: SchedRow): PostInput {
+    return {
+      titulo: r.titulo.trim(),
+      formato: r.formato,
+      estado: r.estado,
+      dataProgramada: combineDataHora(r.day, r.hora),
+      ctaFinal: r.cta.trim() || null,
+      linkPresenteNotion: r.link.trim() || null,
+      briefingUrl: r.briefingUrl.trim() || null,
+      briefing: r.briefing.trim() || null,
+      refsLinks: r.refs.trim() || null,
+    };
+  }
+
   /**
-   * Auto-save de campos rápidos (status, data, hora) assim que mudam, sem esperar
-   * o botão "Salvar". Otimista: reflete na tela na hora e reverte se o PATCH
-   * falhar. Post novo (sem id) ainda não existe no banco → persiste no create do
-   * lote. `applyOrig` marca os campos como já salvos no snapshot, SEM apagar
-   * outras edições pendentes do card (título, formato, briefing…).
+   * Post novo (sem id) nasce no banco no PRIMEIRO save que já tenha título (o
+   * backend exige título). Envia a linha inteira, guarda o id devolvido e marca
+   * o snapshot como salvo. Trava por `creatingRef` p/ não criar 2x. Em caso de
+   * sucesso, reconcilia via `flushRow` o que tenha sido editado durante o POST.
+   */
+  async function ensureCreated(key: string, extra: Partial<SchedRow> = {}) {
+    if (creatingRef.current.has(key)) return;
+    const base = rowsRef.current.find((r) => r.key === key);
+    if (!base || base.id) return;
+    const r = { ...base, ...extra };
+    if (!r.titulo.trim()) return; // sem título o post ainda não pode existir
+    creatingRef.current.add(key);
+    setFx(key, 'saving');
+    const enviado = snapshot(r);
+    try {
+      const res = (await apiJson('/api/conteudo', 'POST', rowToPayload(r))) as
+        | { created?: Array<{ id?: string }> }
+        | null;
+      const novoId = res?.created?.[0]?.id;
+      if (!novoId) throw new Error('resposta sem id');
+      setRows((rs) => rs.map((x) => (x.key === key ? { ...x, id: novoId, orig: enviado } : x)));
+      setFx(key, 'saved');
+      window.setTimeout(() => void flushRow(key), 0); // salva edições feitas durante o POST
+    } catch (e) {
+      setFx(key, 'error');
+      window.alert(`Não consegui salvar: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      creatingRef.current.delete(key);
+    }
+  }
+
+  /**
+   * Grava (PATCH parcial) só os campos que mudaram desde o último save,
+   * comparando o snapshot atual com `orig`. Usado no blur dos textos e na
+   * reconciliação pós-criação. Título esvaziado em post existente é proibido
+   * pelo banco → reverte e avisa. Nunca cria (só toca linhas com id).
+   */
+  async function flushRow(key: string) {
+    const r = rowsRef.current.find((x) => x.key === key);
+    if (!r || !r.id) return;
+    let orig: unknown[];
+    try {
+      const parsed = JSON.parse(r.orig || '[]');
+      orig = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      orig = [];
+    }
+    const cur = JSON.parse(snapshot(r)) as unknown[];
+    if (cur[0] !== orig[0] && !r.titulo.trim()) {
+      patchRow(key, { titulo: String(orig[0] ?? '') }); // desfaz o título vazio
+      setFx(key, 'error');
+      window.alert('O título não pode ficar vazio.');
+      return;
+    }
+    const patch: Record<string, unknown> = {};
+    if (cur[0] !== orig[0]) patch.titulo = r.titulo.trim();
+    if (cur[1] !== orig[1]) patch.formato = r.formato;
+    if (cur[2] !== orig[2]) patch.estado = r.estado;
+    if (cur[3] !== orig[3]) patch.ctaFinal = r.cta.trim() || null;
+    if (cur[4] !== orig[4]) patch.linkPresenteNotion = r.link.trim() || null;
+    if (cur[5] !== orig[5]) patch.briefingUrl = r.briefingUrl.trim() || null;
+    if (cur[6] !== orig[6]) patch.briefing = r.briefing.trim() || null;
+    if (cur[7] !== orig[7]) patch.refsLinks = r.refs.trim() || null;
+    if (cur[8] !== orig[8] || cur[9] !== orig[9]) patch.dataProgramada = combineDataHora(r.day, r.hora);
+    if (Object.keys(patch).length === 0) return; // nada mudou
+    setFx(key, 'saving');
+    try {
+      await apiJson(`/api/conteudo/${r.id}`, 'PATCH', patch);
+      setRows((rs) => rs.map((x) => (x.key === key ? { ...x, orig: JSON.stringify(cur) } : x)));
+      setFx(key, 'saved');
+    } catch (e) {
+      setFx(key, 'error');
+      window.alert(`Não consegui salvar: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  /** Blur de um campo de texto → cria (se novo) ou grava (se existente) na hora. */
+  function commitRow(key: string) {
+    const r = rowsRef.current.find((x) => x.key === key);
+    if (!r) return;
+    if (!r.id) return void ensureCreated(key);
+    return void flushRow(key);
+  }
+
+  /**
+   * Auto-save de campos que mudam por CLIQUE (status, formato, data, hora):
+   * grava na hora. Otimista: reflete na tela e reverte se o PATCH falhar.
+   * `applyOrig` marca só o índice tocado como salvo no snapshot, sem apagar
+   * edições de texto ainda pendentes. Post novo (sem id) nasce via `ensureCreated`.
    */
   async function autoSave(
     r: SchedRow,
@@ -1064,15 +1171,11 @@ function SchedulePage({
       antRec[k] = rec[k];
     }
     patchRow(r.key, local); // otimista
-    if (!r.id) return; // post novo: persiste no create do lote
-    const fx = (v: 'saving' | 'saved' | 'error' | null) =>
-      setSaveFx((prev) => {
-        const next = { ...prev };
-        if (v == null) delete next[r.key];
-        else next[r.key] = v;
-        return next;
-      });
-    fx('saving');
+    if (!r.id) {
+      void ensureCreated(r.key, local); // post novo: nasce agora (se já tiver título)
+      return;
+    }
+    setFx(r.key, 'saving');
     try {
       await apiJson(`/api/conteudo/${r.id}`, 'PATCH', serverPatch);
       setRows((rs) =>
@@ -1091,12 +1194,10 @@ function SchedulePage({
           return row;
         }),
       );
-      fx('saved');
-      window.setTimeout(() => fx(null), 1600);
+      setFx(r.key, 'saved');
     } catch (e) {
       patchRow(r.key, anterior); // reverte
-      fx('error');
-      window.setTimeout(() => fx(null), 2600);
+      setFx(r.key, 'error');
       window.alert(`Não consegui salvar: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
@@ -1130,60 +1231,12 @@ function SchedulePage({
   const firstKey = localDayKey(weekStart);
   const lastKey = localDayKey(weekEnd);
 
-  // Diffs pendentes (para o rótulo do botão e o disabled).
-  const creates = rows.filter((r) => !r.id && !r.markedDelete && r.titulo.trim());
-  const updates = rows.filter((r) => r.id && !r.markedDelete && isChanged(r));
-  const deletes = rows.filter((r) => r.id && r.markedDelete);
-  const pending = creates.length + updates.length + deletes.length;
-
   // Posts SEM data no momento (existentes ou recém-esvaziados) — seção p/ agendar.
-  const semData = rows.filter((r) => !r.markedDelete && r.day === null);
+  const semData = rows.filter((r) => r.day === null);
   // Posts em OUTRAS semanas (fora da janela atual) — só um aviso/contagem.
   const foraSemana = rows.filter(
-    (r) => !r.markedDelete && r.day && (r.day < firstKey || r.day > lastKey),
+    (r) => r.day && (r.day < firstKey || r.day > lastKey),
   ).length;
-
-  async function salvar() {
-    setSaving(true);
-    setError(null);
-    try {
-      if (creates.length) {
-        const payload: PostInput[] = creates.map((r) => ({
-          titulo: r.titulo.trim(),
-          formato: r.formato,
-          estado: r.estado,
-          ctaFinal: r.cta.trim() || null,
-          linkPresenteNotion: r.link.trim() || null,
-          dataProgramada: combineDataHora(r.day, r.hora),
-          briefingUrl: r.briefingUrl.trim() || null,
-          briefing: r.briefing.trim() || null,
-          refsLinks: r.refs.trim() || null,
-        }));
-        await apiJson('/api/conteudo', 'POST', { posts: payload });
-      }
-      for (const r of updates) {
-        const patch: PostInput = {
-          titulo: r.titulo.trim(),
-          formato: r.formato,
-          estado: r.estado,
-          ctaFinal: r.cta.trim() || null,
-          linkPresenteNotion: r.link.trim() || null,
-          dataProgramada: combineDataHora(r.day, r.hora),
-          briefingUrl: r.briefingUrl.trim() || null,
-          briefing: r.briefing.trim() || null,
-          refsLinks: r.refs.trim() || null,
-        };
-        await apiJson(`/api/conteudo/${r.id}`, 'PATCH', patch);
-      }
-      for (const r of deletes) {
-        await apiJson(`/api/conteudo/${r.id}`, 'DELETE');
-      }
-      onSaved();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setSaving(false);
-    }
-  }
 
   const weekLabel = `${weekStart.getDate()} ${MESES_ABBR[weekStart.getMonth()]} – ${weekEnd.getDate()} ${MESES_ABBR[weekEnd.getMonth()]}`;
   const navBtn =
@@ -1287,6 +1340,7 @@ function SchedulePage({
                 value={r.titulo}
                 placeholder="Título da postagem"
                 onChange={(e) => patchRow(r.key, { titulo: e.target.value })}
+                onBlur={() => commitRow(r.key)}
                 className="flex-1 font-medium"
               />
               <button
@@ -1384,6 +1438,7 @@ function SchedulePage({
                       value={r.briefingUrl}
                       placeholder="https://notion.so/…"
                       onChange={(e) => patchRow(r.key, { briefingUrl: e.target.value })}
+                      onBlur={() => commitRow(r.key)}
                       className="mt-1"
                     />
                   </label>
@@ -1394,6 +1449,7 @@ function SchedulePage({
                       rows={4}
                       placeholder="Cole aqui o briefing da postagem (ou use o link do Notion acima)."
                       onChange={(e) => patchRow(r.key, { briefing: e.target.value })}
+                      onBlur={() => commitRow(r.key)}
                       className="mt-1"
                     />
                   </label>
@@ -1406,6 +1462,7 @@ function SchedulePage({
                       rows={3}
                       placeholder={'https://instagram.com/p/…\nhttps://…'}
                       onChange={(e) => patchRow(r.key, { refs: e.target.value })}
+                      onBlur={() => commitRow(r.key)}
                       className="mt-1 font-mono text-[13px]"
                     />
                   </label>
@@ -1418,25 +1475,23 @@ function SchedulePage({
     );
   }
 
-  const saveBtn = (
-    <button
-      type="button"
-      onClick={salvar}
-      disabled={saving || pending === 0}
-      className="inline-flex items-center gap-1.5 rounded-xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-500/25 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+  // Selo global de auto-save — deriva do feedback por card (não há mais botão Salvar).
+  const fxValues = Object.values(saveFx);
+  const anySaving = fxValues.includes('saving');
+  const anyError = fxValues.includes('error');
+  const autoSaveBadge = (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium ${
+        anyError
+          ? 'border-red-500/40 bg-red-500/10 text-red-300'
+          : anySaving
+            ? 'border-blue-500/40 bg-blue-500/10 text-blue-300'
+            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+      }`}
+      aria-live="polite"
     >
-      {saving ? 'Salvando…' : `Salvar cronograma${pending ? ` (${pending})` : ''}`}
-    </button>
-  );
-  const cancelBtn = (
-    <button
-      type="button"
-      onClick={onBack}
-      disabled={saving}
-      className="rounded-xl px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700/50 disabled:opacity-50"
-    >
-      Cancelar
-    </button>
+      {anyError ? '⚠️ Erro ao salvar' : anySaving ? '⏳ Salvando…' : '✓ Salvo automaticamente'}
+    </span>
   );
 
   return (
@@ -1452,14 +1507,13 @@ function SchedulePage({
             <span aria-hidden="true">←</span> Voltar ao painel
           </button>
           <div className="flex items-center gap-2">
-            {cancelBtn}
-            {saveBtn}
+            {autoSaveBadge}
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-gray-100" style={DISPLAY}>Cronograma</h2>
-            <p className="text-xs text-gray-500">Adicione, edite ou remova as postagens de cada dia — depois salve.</p>
+            <p className="text-xs text-gray-500">Adicione, edite ou remova as postagens de cada dia — tudo é salvo automaticamente.</p>
           </div>
           <div className="flex items-center gap-2">
             <button type="button" className={navBtn} onClick={() => setWeekStart((w) => addDays(w, -7))} aria-label="Semana anterior">‹</button>
@@ -1474,18 +1528,13 @@ function SchedulePage({
             <button type="button" className={navBtn} onClick={() => setWeekStart((w) => addDays(w, 7))} aria-label="Próxima semana">›</button>
           </div>
         </div>
-        {error && (
-          <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-            {error}
-          </p>
-        )}
       </div>
 
       {/* Corpo: 7 dias + sem-data (largura cheia, alinhado à esquerda). */}
       <div className="space-y-4">
         {weekDays.map((day) => {
           const dayKey = localDayKey(day);
-          const dayRows = rows.filter((r) => !r.markedDelete && r.day === dayKey);
+          const dayRows = rows.filter((r) => r.day === dayKey);
           const isToday = dayKey === localDayKey(new Date());
           return (
             <section key={dayKey} className="rounded-2xl border border-gray-800 bg-gray-900/40 p-4 sm:p-5">
@@ -1527,14 +1576,18 @@ function SchedulePage({
           </section>
         )}
 
-        {/* Ação inferior (repete Salvar para não precisar rolar de volta) */}
+        {/* Rodapé: sem botão Salvar — cada alteração já foi gravada na hora. */}
         <div className="flex items-center justify-between gap-3 border-t border-gray-700/60 pt-4">
-          <span className="text-xs text-gray-500">
-            {pending === 0 ? 'Nenhuma alteração' : `${pending} alteraç${pending === 1 ? 'ão' : 'ões'} pendente${pending === 1 ? '' : 's'}`}
-          </span>
+          <span className="text-xs text-gray-500">Tudo é salvo automaticamente enquanto você edita.</span>
           <div className="flex items-center gap-2">
-            {cancelBtn}
-            {saveBtn}
+            {autoSaveBadge}
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700/50"
+            >
+              Voltar ao painel
+            </button>
           </div>
         </div>
       </div>
@@ -2838,6 +2891,121 @@ function GerarModal({
 }
 
 // ============================================================
+// Relatório da rede — período + KPIs (deriva de v_conteudo_desempenho)
+// ============================================================
+
+/** Número (ou null) a partir de valor cru vindo da view. */
+function numOf(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Presets do filtro de período: [rótulo, nº de dias | null p/ "tudo"]. */
+const PERIODOS: ReadonlyArray<readonly [string, number | null]> = [
+  ['7 dias', 7],
+  ['30 dias', 30],
+  ['90 dias', 90],
+  ['Tudo', null],
+];
+const PERIODO_PADRAO = 7;
+
+/** Início do dia (00:00 local) de `dias` atrás — corte inclusivo. */
+function cortePeriodo(dias: number): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - dias + 1);
+  return d;
+}
+
+function PeriodPicker({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (v: number | null) => void;
+}) {
+  return (
+    <div className="inline-flex rounded-xl border border-gray-700/60 bg-gray-800/60 p-0.5">
+      {PERIODOS.map(([label, days]) => {
+        const active = value === days;
+        return (
+          <button
+            key={label}
+            type="button"
+            onClick={() => onChange(days)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              active ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'
+            }`}
+            aria-pressed={active}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Setinha de variação vs. o período anterior (↑ verde cresceu · ↓ vermelho caiu). */
+function DeltaBadge({ pct }: { pct: number }) {
+  const flat = Math.abs(pct) < 0.05;
+  const up = pct > 0;
+  const tone = flat ? 'text-gray-400' : up ? 'text-emerald-400' : 'text-red-400';
+  const arrow = flat ? '→' : up ? '↑' : '↓';
+  const abs = Math.abs(pct);
+  const txt =
+    abs >= 100
+      ? Math.round(abs).toLocaleString('pt-BR')
+      : abs.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-xs font-semibold ${tone}`}
+      title="variação vs. o período anterior"
+    >
+      <span aria-hidden="true">{arrow}</span>
+      {txt}%
+    </span>
+  );
+}
+
+/** Card de KPI compacto do relatório (rótulo + número + variação vs. período anterior + dica). */
+function KpiMini({
+  icon,
+  label,
+  value,
+  hint,
+  delta,
+}: {
+  icon?: string;
+  label: string;
+  value: string;
+  hint?: string;
+  /** % de variação vs. o período anterior; null/undefined = sem comparação. */
+  delta?: number | null;
+}) {
+  return (
+    <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
+      {icon && (
+        <span className="text-lg" aria-hidden="true">
+          {icon}
+        </span>
+      )}
+      <div className={`text-xs font-medium uppercase tracking-wide text-gray-400 ${icon ? 'mt-3' : ''}`}>
+        {label}
+      </div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span className="text-2xl text-gray-100" style={DISPLAY}>
+          {value}
+        </span>
+        {delta != null && <DeltaBadge pct={delta} />}
+      </div>
+      {hint && <div className="mt-0.5 text-xs text-gray-500">{hint}</div>}
+    </div>
+  );
+}
+
+// ============================================================
 // Bloco
 // ============================================================
 
@@ -2849,10 +3017,8 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
   const formatField = config.formatField ?? 'formato';
   const statusField = config.statusField ?? 'estado';
   const statusMap = config.statusMap ?? DEFAULT_STATUS;
-  const resumoLabel = config.resumoLabel ?? 'Resumo';
   const generateLabel = config.generateLabel ?? 'Gerar com IA';
   const scheduleLabel = config.updateScheduleLabel ?? 'Atualizar cronograma';
-  const limit = config.limit ?? 6;
   const metrics = config.metrics;
 
   const fields: FieldMap = useMemo(
@@ -2895,6 +3061,126 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
   // Gerador de IA: modal aberto? + mensagem de sucesso transiente.
   const [gerarOpen, setGerarOpen] = useState(false);
   const [gerarMsg, setGerarMsg] = useState<string | null>(null);
+
+  // Seguidores AO VIVO do Instagram — sobrepõe o seed quando o token está
+  // configurado no servidor. Silencioso: sem token/erro, o card cai pro estado
+  // "Conecte o Instagram" do seed (nunca quebra a tela).
+  const [igFollowers, setIgFollowers] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/instagram/profile', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (alive && j && j.connected && typeof j.followersCount === 'number') {
+          setIgFollowers(j.followersCount);
+        }
+      })
+      .catch(() => {
+        /* silencioso */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Relatório da rede: métricas reais dos posts sincronizados (v_conteudo_desempenho),
+  // agregadas pelo período escolhido — mesma fonte da tela de Desempenho.
+  const [periodDays, setPeriodDays] = useState<number | null>(PERIODO_PADRAO);
+  const [desempRows, setDesempRows] = useState<Row[]>([]);
+  useEffect(() => {
+    let alive = true;
+    apiJson('/api/query', 'POST', {
+      view: 'v_conteudo_desempenho',
+      select: [
+        'id',
+        'data',
+        'formato',
+        'tema',
+        'alcance',
+        'visualizacoes',
+        'curtidas',
+        'comentarios',
+        'compartilhamentos',
+        'salvamentos',
+        'seguidores',
+        'permalink',
+      ],
+      orderBy: [{ field: 'data', dir: 'desc' }],
+      limit: 300,
+    })
+      .then((res) => {
+        const rows = asRows((res as { data?: unknown } | null)?.data);
+        if (alive) setDesempRows(rows);
+      })
+      .catch(() => {
+        /* silencioso — o relatório mostra estado vazio */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const report = useMemo(() => {
+    const interDe = (r: Row) =>
+      (numOf(r.curtidas) ?? 0) +
+      (numOf(r.comentarios) ?? 0) +
+      (numOf(r.compartilhamentos) ?? 0) +
+      (numOf(r.salvamentos) ?? 0);
+    const agg = (rows: Row[]) => ({
+      count: rows.length,
+      views: rows.reduce((a, r) => a + (numOf(r.visualizacoes) ?? 0), 0),
+      reach: rows.reduce((a, r) => a + (numOf(r.alcance) ?? 0), 0),
+      interacoes: rows.reduce((a, r) => a + interDe(r), 0),
+      novosSeg: rows.reduce((a, r) => a + (numOf(r.seguidores) ?? 0), 0),
+    });
+    const tsOf = (r: Row) => {
+      const s = toText(r.data);
+      if (!s) return null;
+      const t = new Date(s).getTime();
+      return Number.isFinite(t) ? t : null;
+    };
+    const topDe = (rows: Row[]) =>
+      rows
+        .map((r) => ({ r, inter: interDe(r) }))
+        .sort((a, b) => b.inter - a.inter)
+        .slice(0, 5);
+
+    // "Tudo" → não há janela anterior equivalente p/ comparar.
+    if (periodDays == null) {
+      return {
+        ...agg(desempRows),
+        top: topDe(desempRows),
+        delta: { views: null, reach: null, interacoes: null, novosSeg: null, count: null },
+      };
+    }
+
+    // Janela atual [curStart, agora] vs. janela anterior [prevStart, curStart).
+    const curStart = cortePeriodo(periodDays).getTime();
+    const prevStart = cortePeriodo(periodDays * 2).getTime();
+    const curRows: Row[] = [];
+    const prevRows: Row[] = [];
+    for (const r of desempRows) {
+      const t = tsOf(r);
+      if (t == null) continue;
+      if (t >= curStart) curRows.push(r);
+      else if (t >= prevStart) prevRows.push(r);
+    }
+    const cur = agg(curRows);
+    const prev = agg(prevRows);
+    // Sem base (período anterior = 0) → null (não mostra setinha).
+    const pct = (c: number, p: number) => (p === 0 ? null : ((c - p) / p) * 100);
+    return {
+      ...cur,
+      top: topDe(curRows),
+      delta: {
+        views: pct(cur.views, prev.views),
+        reach: pct(cur.reach, prev.reach),
+        interacoes: pct(cur.interacoes, prev.interacoes),
+        novosSeg: pct(cur.novosSeg, prev.novosSeg),
+        count: pct(cur.count, prev.count),
+      },
+    };
+  }, [desempRows, periodDays]);
 
   const reload = ctx.actions.reload;
   const onGerado = useCallback(
@@ -2973,15 +3259,6 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
     );
   }
 
-  const resumo = posts.slice(0, limit);
-
-  const growth = metrics?.growth ?? {};
-  const followersConnected = metrics?.followers?.current != null;
-  const eng = metrics?.engagement;
-  const topPosts = metrics?.topPosts ?? [];
-  const coletaData = metrics?.updatedAt ? parseDate(metrics.updatedAt) : null;
-  const coletaLabel = coletaData ? fmtDiaMes(coletaData) : null;
-
   // Segmento Agenda | Lista.
   const viewToggle = (
     <div className="inline-flex rounded-xl border border-gray-700/60 bg-gray-800/60 p-0.5">
@@ -3017,152 +3294,84 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
         </div>
       )}
 
-      {metrics && (
-        <>
-          {/* ===== Crescimento do perfil ===== */}
-          <SectionLabel
-            aside={
-              !followersConnected ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-300">
-                  🔌 Conecte o Instagram para ativar
-                </span>
-              ) : undefined
-            }
-          >
-            Crescimento do perfil
-          </SectionLabel>
+      {/* ===== Relatório da rede (período) ===== */}
+      <SectionLabel aside={<PeriodPicker value={periodDays} onChange={setPeriodDays} />}>
+        Relatório da rede
+      </SectionLabel>
 
-          <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <FollowersHero
-              current={metrics.followers?.current}
-              series={metrics.followers?.series}
-              week={growth.week}
-            />
-            {/* Curtidas + comentários agregados (dado real), à direita do herói */}
-            <div className="grid grid-cols-1 gap-4">
-              <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
-                <span className="grid h-11 w-11 place-items-center rounded-xl bg-rose-500/10 text-lg text-rose-400" aria-hidden="true">❤️</span>
-                <div className="mt-4 text-xs font-medium uppercase tracking-wide text-gray-400">
-                  Interações{eng?.windowDays ? ` · ${eng.windowDays} dias` : ''}
-                </div>
-                <div className="mt-1 text-2xl text-gray-100" style={DISPLAY}>
-                  {eng?.interactions != null ? fmtCompact(eng.interactions) : '—'}
-                </div>
-                <div className="mt-0.5 text-xs text-gray-500">
-                  {eng?.postsCount != null ? `${eng.postsCount} posts` : ''}
-                  {eng?.avgPerPost != null ? ` · ~${fmtInt(eng.avgPerPost)}/post` : ''}
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <FollowersHero current={igFollowers ?? metrics?.followers?.current} series={null} week={null} />
+        <KpiMini
+          icon="📈"
+          label="Novos seguidores"
+          value={fmtCompact(report.novosSeg)}
+          hint="vindos dos posts do período"
+          delta={report.delta.novosSeg}
+        />
+      </div>
 
-          {/* 5 janelas de crescimento pedidas */}
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {GROWTH_PERIODS.map((p) => (
-              <GrowthCard key={p.key} label={p.label} delta={growth[p.key]} />
-            ))}
-          </div>
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <KpiMini icon="👁️" label="Visualizações" value={fmtCompact(report.views)} delta={report.delta.views} />
+        <KpiMini icon="🎯" label="Alcance" value={fmtCompact(report.reach)} delta={report.delta.reach} />
+        <KpiMini icon="❤️" label="Interações" value={fmtCompact(report.interacoes)} delta={report.delta.interacoes} />
+        <KpiMini icon="📝" label="Posts no período" value={fmtInt(report.count)} delta={report.delta.count} />
+      </div>
 
-          {/* ===== Engajamento / melhores posts (dado real) ===== */}
-          {(topPosts.length > 0 || eng?.best) && (
-            <>
-              <SectionLabel
-                aside={
-                  coletaLabel ? (
-                    <span className="text-[11px] text-gray-500">
-                      {metrics.source === 'live' ? 'ao vivo' : 'coletado'} em {coletaLabel}
-                    </span>
-                  ) : undefined
-                }
-              >
-                Melhores posts
-              </SectionLabel>
-              <div className="mb-6 overflow-hidden rounded-2xl border border-gray-700/50 bg-gray-800/60 shadow-sm">
-                <ul className="divide-y divide-gray-700/50">
-                  {topPosts.map((p, i) => {
-                    const type = (p.type ?? '').toLowerCase();
-                    const fmtTone = FORMAT_TONES[type] ?? FORMAT_FALLBACK;
-                    const abbr = (p.type?.slice(0, 2) || '••').toUpperCase();
-                    const total = (p.likes ?? 0) + (p.comments ?? 0);
-                    const d = p.date ? parseDate(p.date) : null;
-                    const inner = (
-                      <>
-                        <span className="grid h-9 w-9 shrink-0 place-items-center text-[11px] font-bold text-gray-500">
-                          {i + 1}
-                        </span>
-                        <span
-                          className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[11px] font-bold ${fmtTone.chip} ${fmtTone.text}`}
-                          title={p.type || undefined}
-                          aria-hidden="true"
-                        >
-                          {abbr}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-gray-100">{p.title}</span>
-                          <span className="mt-0.5 block text-xs text-gray-500">
-                            {d ? fmtDiaMes(d) : ''}
-                            {p.type ? `${d ? ' · ' : ''}${p.type}` : ''}
-                          </span>
-                        </span>
-                        <span className="flex shrink-0 items-center gap-3 text-xs text-gray-400">
-                          <span className="inline-flex items-center gap-1"><span aria-hidden="true">❤️</span>{fmtCompact(p.likes ?? 0)}</span>
-                          <span className="inline-flex items-center gap-1"><span aria-hidden="true">💬</span>{fmtInt(p.comments ?? 0)}</span>
-                          <span className="hidden font-semibold text-gray-200 sm:inline" style={DISPLAY}>{fmtCompact(total)}</span>
-                        </span>
-                      </>
-                    );
-                    const cls = 'flex items-center gap-3 px-3 py-3 transition-colors hover:bg-gray-700/30';
-                    return (
-                      <li key={p.permalink || p.title || i}>
-                        {p.permalink ? (
-                          <a href={p.permalink} target="_blank" rel="noreferrer" className={cls}>
-                            {inner}
-                          </a>
-                        ) : (
-                          <div className={cls}>{inner}</div>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            </>
-          )}
-        </>
-      )}
-
-      {/* ===== Resumo: próximos posts (planejamento) ===== */}
-      <SectionLabel>{resumoLabel}</SectionLabel>
-      {resumo.length === 0 ? (
-        <EmptyState message="Nenhum post por aqui ainda. Clique em “Atualizar cronograma” para começar." />
+      {report.count === 0 ? (
+        <EmptyState
+          icon="📡"
+          message='Sem dados sincronizados neste período. Use "Sincronizar" na aba Desempenho para puxar os posts do Instagram.'
+        />
       ) : (
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {resumo.map((post, i) => {
-            const formato = toText(post[formatField]);
-            const estadoRaw = toText(post[statusField]);
-            const d = parseDate(toText(post[dateField]));
-            return (
-              <article
-                key={toText(post.id) || i}
-                onClick={() => setPreview(post)}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10"
-                title="Ver pré-visualização"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <FormatChip formato={formato} size="md" />
-                  <StatusPill estadoRaw={estadoRaw} statusMap={statusMap} />
-                </div>
-                <h4 className="mt-4 text-base font-semibold leading-snug text-gray-100 line-clamp-2" style={DISPLAY}>
-                  {toText(post[titleField]) || 'Sem título'}
-                </h4>
-                <p className="mt-3 text-xs text-gray-400">
-                  <span className="text-gray-500">Programado: </span>
-                  {d ? fmtDiaMes(d) : '—'}
-                </p>
-              </article>
-            );
-          })}
-        </div>
+        <>
+          <SectionLabel>Top posts do período</SectionLabel>
+          <div className="mb-6 overflow-hidden rounded-2xl border border-gray-700/50 bg-gray-800/60 shadow-sm">
+            <ul className="divide-y divide-gray-700/50">
+              {report.top.map(({ r, inter }, i) => {
+                const formato = toText(r.formato);
+                const permalink = toText(r.permalink);
+                const d = parseDate(toText(r.data));
+                const tema = toText(r.tema) || 'Sem título';
+                const inner = (
+                  <>
+                    <span className="grid h-8 w-6 shrink-0 place-items-center text-[11px] font-bold text-gray-500">
+                      {i + 1}
+                    </span>
+                    <FormatChip formato={formato} size="sm" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-gray-100">{tema}</span>
+                      <span className="mt-0.5 block text-xs text-gray-500">
+                        {d ? fmtDiaMes(d) : ''}
+                        {formato ? `${d ? ' · ' : ''}${formato}` : ''}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-3 text-xs text-gray-400">
+                      <span className="inline-flex items-center gap-1">
+                        <span aria-hidden="true">👁️</span>
+                        {fmtCompact(numOf(r.visualizacoes) ?? 0)}
+                      </span>
+                      <span className="hidden font-semibold text-gray-200 sm:inline" style={DISPLAY}>
+                        {fmtCompact(inter)} inter.
+                      </span>
+                    </span>
+                  </>
+                );
+                const cls = 'flex items-center gap-3 px-3 py-3 transition-colors hover:bg-gray-700/30';
+                return (
+                  <li key={toText(r.id) || i}>
+                    {permalink ? (
+                      <a href={permalink} target="_blank" rel="noreferrer" className={cls}>
+                        {inner}
+                      </a>
+                    ) : (
+                      <div className={cls}>{inner}</div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </>
       )}
 
       {/* ===== Planejamento: Agenda | Lista ===== */}
@@ -3255,7 +3464,7 @@ function ConteudoCronogramaBlock({ config, ctx }: BlockProps<ConteudoDashboardCo
   }
 
   return (
-    <SchedulePage posts={posts} fields={fields} focusDay={new Date()} onBack={goPainel} onSaved={goPainel} />
+    <SchedulePage posts={posts} fields={fields} focusDay={new Date()} onBack={goPainel} />
   );
 }
 
