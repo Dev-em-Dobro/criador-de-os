@@ -19,13 +19,21 @@ export const elevatorSaga: Carrossel = {
   slug: 'elevator-saga',
   titulo: 'Esse jogo ensina Lógica de Programação melhor que muito curso pago',
   gancho: 'Esse jogo ensina Lógica de Programação melhor que muito curso pago',
-  dataProgramada: '2026-07-31T00:00:00.000Z',
+  dataProgramada: '2026-08-03T12:00:00.000Z',
   refsLinks: 'https://play.elevatorsaga.com/',
   slides: [
     {
       variant: 'photo',
       cover: true,
-      titulo: 'Esse jogo ensina\n**Lógica de**\n**Programação**\nmelhor que muito\ncurso pago',
+      titulo: 'Esse jogo ensina\n**lógica de programação**\nmelhor que curso pago',
+    },
+    {
+      variant: 'light',
+      layout: 'center',
+      icone: 'code',
+      eyebrow: 'A promessa é real',
+      titulo: 'É de graça e roda\n**no navegador**',
+      corpo: 'Chama Elevator Saga: você programa a lógica dos elevadores em JavaScript real e vê na hora se funciona ou trava. Sem instalar nada.',
     },
     {
       variant: 'dark',
@@ -38,13 +46,6 @@ export const elevatorSaga: Carrossel = {
       callout: '"E se você aprendesse lógica programando um sistema de verdade e visse na hora se funciona?"',
     },
     {
-      variant: 'light',
-      layout: 'center',
-      icone: 'code',
-      titulo: 'Conheça o\n**Elevator Saga**',
-      corpo: 'Um jogo gratuito onde você programa a lógica dos elevadores em JavaScript pra transportar as pessoas com eficiência.',
-    },
-    {
       variant: 'purple',
       eyebrow: 'Por que funciona',
       titulo: 'Não é quiz,\né código **de verdade**',
@@ -52,14 +53,13 @@ export const elevatorSaga: Carrossel = {
         { icone: 'eye', titulo: 'Você VÊ acontecer', sub: 'Rodou a lógica, o elevador se move na hora (ou trava com gente esperando)' },
         { icone: 'code', titulo: 'JavaScript real', sub: 'Você escreve o código que controla os elevadores, não botão de mentira' },
         { icone: 'map', titulo: 'Fase por fase', sub: 'Cada nível é um desafio de otimização, um de cada vez' },
-        { icone: 'laptop', titulo: 'Direto no navegador', sub: 'Não instala nada, abre e já começa a programar' },
       ],
     },
     {
       variant: 'light',
-      eyebrow: 'O que você treina',
-      titulo: 'A lógica que\n**sustenta tudo**',
-      terminal: ['elevator.on("idle", ...)', 'floor.on("up_button_pressed")', 'elevator.goToFloor(2)', '✓ fila zerada'],
+      eyebrow: 'Salva esse slide',
+      titulo: 'Os 3 comandos que\n**você vai usar**',
+      terminal: ['elevator.on("idle", ...)', 'floor.on("up_button_pressed")', 'elevator.goToFloor(2)'],
       corpo: 'Condicionais, eventos e otimização de algoritmo: a base que vale pra qualquer linguagem.',
     },
     {
@@ -106,6 +106,10 @@ export const elevatorSaga: Carrossel = {
     'javascript logicadeprogramacao programação algoritmo elevatorsaga jogoprogramação devemdobro aprenderprogramar carreiratech desenvolvimentoweb',
   ctaFinal: 'Comenta SAGA que eu te mando o link do jogo e um doc com as infos técnicas de JS, de graça.',
   briefing:
+    '🔮 PREVISÃO DA IA (registrada em 03/08/2026, ANTES de publicar)\n' +
+    'Veredito: alta chance de performar. Score 25/25 no framework Fura a Bolha (a versão anterior tirava 18/25).\n' +
+    'Aposta principal: salvamentos (slide "SALVA ESSE SLIDE" com os 3 comandos) e retenção (o slide 2 confirma o gancho em vez de abrir pelo problema).\n' +
+    '⏳ INSIGHTS A VERIFICAR após publicar hoje (03/08): salvamentos, alcance, retenção/tempo e comentários com "SAGA". Comparar previsão x real.\n\n' +
     'O que é o jogo (pra embasar)\n' +
     'No Elevator Saga você programa a lógica de controle de elevadores (em JavaScript) pra transportar pessoas ' +
     'com eficiência. Cada fase é um desafio de otimização, é lógica de programação e algoritmo aplicados, não ' +

@@ -11,7 +11,7 @@
 import type { Context } from 'hono';
 import { auth } from './auth.js';
 import { getInstagramInsightsToken } from './env.js';
-import { fetchProfile, InsightsError } from './instagram-insights.js';
+import { fetchAccountInsights, fetchProfile, InsightsError } from './instagram-insights.js';
 
 export async function handlePerfilInstagram(c: Context): Promise<Response> {
   if (!(await auth.api.getSession({ headers: c.req.raw.headers }))) {
@@ -32,6 +32,34 @@ export async function handlePerfilInstagram(c: Context): Promise<Response> {
     });
   } catch (err) {
     const motivo = err instanceof InsightsError ? err.message : 'erro ao ler o perfil';
+    return c.json({ connected: false, error: motivo });
+  }
+}
+
+/**
+ * GET /api/instagram/account-insights?dias=7 → métricas de NÍVEL DE CONTA do
+ * período (as mesmas do app: contas alcançadas, visualizações, interações e
+ * seguidores ganhos). É a "visão Conta" do painel. Auth-first (fail-closed).
+ * Sem token → `{ connected:false }` (200, degrada gracioso). A Graph API limita
+ * o range a 30 dias → `dias` é clampeado no core.
+ */
+export async function handleAccountInsights(c: Context): Promise<Response> {
+  if (!(await auth.api.getSession({ headers: c.req.raw.headers }))) {
+    return c.json({ error: 'Não autenticado' }, 401);
+  }
+
+  if (!getInstagramInsightsToken()) {
+    return c.json({ connected: false });
+  }
+
+  const diasRaw = Number(c.req.query('dias'));
+  const dias = Number.isFinite(diasRaw) && diasRaw > 0 ? diasRaw : 7;
+
+  try {
+    const m = await fetchAccountInsights(dias);
+    return c.json({ connected: true, ...m });
+  } catch (err) {
+    const motivo = err instanceof InsightsError ? err.message : 'erro ao ler as métricas da conta';
     return c.json({ connected: false, error: motivo });
   }
 }

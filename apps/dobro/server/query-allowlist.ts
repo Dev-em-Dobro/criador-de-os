@@ -77,6 +77,7 @@ const ALLOWED_VIEWS: Record<string, AllowedView> = {
       'duracao_s',
       'tempo_medio_s',
       'permalink',
+      'estrutura',
     ],
   },
 };

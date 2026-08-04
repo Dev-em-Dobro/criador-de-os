@@ -71,5 +71,6 @@ SELECT
   seguidores,
   duracao_s,
   tempo_medio_s,
-  permalink
+  permalink,
+  estrutura
 FROM conteudo_desempenho;

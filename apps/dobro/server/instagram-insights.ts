@@ -128,6 +128,118 @@ export async function resolveIgUserId(): Promise<string> {
   return id;
 }
 
+/** Métricas de NÍVEL DE CONTA agregadas num período (a "visão Conta" do painel). */
+export interface AccountInsights {
+  /** Dias da janela efetivamente usada (1..30 — a API limita o range a 30 dias). */
+  dias: number;
+  /** Contas ÚNICAS alcançadas no período (deduplicado no range — igual ao app). */
+  reach?: number;
+  /** Visualizações de TODO o conteúdo no período (feed + reels + stories). */
+  views?: number;
+  /** Interações totais (curtidas+coment+compart+salv+…) no período. */
+  interactions?: number;
+  /** Seguidores LÍQUIDOS no período (ganhos − perdidos) — igual ao app do Instagram. */
+  followers?: number;
+  /** Seguidores GANHOS no período (bruto, contas que começaram a seguir). */
+  followersGained?: number;
+  /** Seguidores PERDIDOS no período (unfollows). */
+  followersLost?: number;
+}
+
+/**
+ * Busca as métricas de CONTA (as mesmas do app: contas alcançadas, visualizações,
+ * interações e seguidores ganhos) agregadas nos últimos `dias`. Diferente de somar
+ * os posts publicados: aqui é a atividade da conta no período, incluindo posts
+ * antigos/reels/stories que continuaram rodando — e o alcance é deduplicado.
+ *
+ * A Graph API limita o range a 30 dias → `dias` é clampeado. Resiliente: cada
+ * grupo de métricas num try isolado; o que falhar fica `undefined` (a UI degrada
+ * aquele card, nunca a tela toda).
+ */
+export async function fetchAccountInsights(dias = 7, igUserId?: string): Promise<AccountInsights> {
+  const d = Math.min(Math.max(Math.round(dias), 1), 30);
+  const id = igUserId ?? (await resolveIgUserId());
+  const until = Math.floor(Date.now() / 1000);
+  const since = until - d * 24 * 3600;
+  const su = { since: String(since), until: String(until) };
+  const out: AccountInsights = { dias: d };
+
+  // Agregado no range (total_value): reach dedup, views, interações — numa call.
+  try {
+    const r = await api(`${id}/insights`, {
+      metric: 'reach,views,total_interactions',
+      period: 'day',
+      metric_type: 'total_value',
+      ...su,
+    });
+    if (r.ok) {
+      for (const item of asArr(asObj(r.json).data).map(asObj)) {
+        const v = num(asObj(item.total_value).value);
+        const name = s(item.name);
+        if (name === 'reach') out.reach = v;
+        else if (name === 'views') out.views = v;
+        else if (name === 'total_interactions') out.interactions = v;
+      }
+    }
+  } catch {
+    /* degrada — os cards de conta ficam sem esses números */
+  }
+
+  // Seguidores LÍQUIDOS (ganhos − perdidos), como o "seguidores líquidos" do app.
+  // `follows_and_unfollows` com breakdown `follow_type` devolve:
+  //   FOLLOWER      = ganhos  (bate 1:1 com follower_count somado)
+  //   NON_FOLLOWER  = perdidos (unfollows)
+  // Calibrado 03/08/2026 (@devemdobro): 7d → +1395 −896 = 499 líquido.
+  try {
+    const r = await api(`${id}/insights`, {
+      metric: 'follows_and_unfollows',
+      period: 'day',
+      metric_type: 'total_value',
+      breakdown: 'follow_type',
+      ...su,
+    });
+    if (r.ok) {
+      const item = asArr(asObj(r.json).data).map(asObj)[0];
+      const breakdowns = asArr(asObj(item?.total_value).breakdowns).map(asObj);
+      const results = asArr(breakdowns[0]?.results).map(asObj);
+      let gained: number | undefined;
+      let lost: number | undefined;
+      for (const res of results) {
+        const dim = s(asArr(res.dimension_values)[0]);
+        if (dim === 'FOLLOWER') gained = num(res.value);
+        else if (dim === 'NON_FOLLOWER') lost = num(res.value);
+      }
+      if (gained != null || lost != null) {
+        out.followersGained = gained;
+        out.followersLost = lost;
+        out.followers = (gained ?? 0) - (lost ?? 0);
+      }
+    }
+  } catch {
+    /* degrada — cai no fallback de ganhos brutos abaixo */
+  }
+
+  // Fallback: sem o líquido, usa follower_count (série diária) = ganhos brutos.
+  if (out.followers == null) {
+    try {
+      const r = await api(`${id}/insights`, { metric: 'follower_count', period: 'day', ...su });
+      if (r.ok) {
+        const item = asArr(asObj(r.json).data).map(asObj)[0];
+        if (item) {
+          const vals = asArr(item.values).map(asObj);
+          const ganhos = vals.reduce((a, v) => a + (num(v.value) ?? 0), 0);
+          out.followers = ganhos;
+          out.followersGained = ganhos;
+        }
+      }
+    } catch {
+      /* degrada — o card de novos seguidores fica sem número */
+    }
+  }
+
+  return out;
+}
+
 /** Lê o perfil (username, followers_count, media_count). */
 export async function fetchProfile(igUserId?: string): Promise<ProfileSummary> {
   const id = igUserId ?? (await resolveIgUserId());

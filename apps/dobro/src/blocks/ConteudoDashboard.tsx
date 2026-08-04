@@ -72,17 +72,30 @@ function fmtInt(n: number): string {
   return Math.round(n).toLocaleString('pt-BR');
 }
 
-/** Número compacto (1234 → "1,2 mil"; 12000 → "12 mil"). */
+/** Número compacto (1234 → "1,2 mil"; 12000 → "12 mil"; 1500000 → "1,5 mi"). */
 function fmtCompact(n: number): string {
   if (!Number.isFinite(n)) return '—';
-  if (Math.abs(n) < 1000) return fmtInt(n);
-  const mil = n / 1000;
-  return `${mil.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`;
+  const abs = Math.abs(n);
+  if (abs < 1000) return fmtInt(n);
+  if (abs < 1_000_000) {
+    const mil = n / 1000;
+    return `${mil.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`;
+  }
+  const mi = n / 1_000_000;
+  return `${mi.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`;
 }
 
 /** Δ% assinado ("+12,5%" / "-3%"). */
 function fmtPct(n: number): string {
   return `${n >= 0 ? '+' : ''}${n.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
+}
+
+/** Formato ULTRACOMPACTO p/ metas em cards estreitos (150000 → "150k"; 1000000 → "1M"). */
+function fmtMetaShort(n: number): string {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}M`;
+  if (abs >= 1000) return `${(n / 1000).toLocaleString('pt-BR', { maximumFractionDigits: n % 1000 === 0 ? 0 : 1 })}k`;
+  return fmtInt(n);
 }
 
 // ---- Helpers de DIA (chave 'YYYY-MM-DD', sem drift de fuso) ----
@@ -190,6 +203,47 @@ interface ConteudoDashboardConfig {
   limit?: number;
   statusMap?: Record<string, StatusEntry>;
   metrics?: MetricsConfig;
+  /**
+   * Metas SEMANAIS por indicador do "Relatório da rede". Cada card mostra a meta
+   * ao lado do número, com barra de progresso e "faltam N". Como o relatório tem
+   * filtro de período (7/30/90 dias), a meta é escalada proporcionalmente
+   * (ex.: meta de 500/semana vira 2.000 em 30 dias). Indicadores sem meta
+   * definida seguem mostrando só o número.
+   *
+   * Cada alvo pode ser um número (meta única) OU até três níveis
+   * `{ min, media, alta }`:
+   *   · `min`   — piso a bater (a barra fica azul até aqui);
+   *   · `media` — alvo saudável (tique na barra);
+   *   · `alta`  — meta ambiciosa (a barra completa ao bater; fica verde ao cruzar
+   *     o piso).
+   */
+  metasSemana?: {
+    novosSeguidores?: MetaAlvo;
+    visualizacoes?: MetaAlvo;
+    alcance?: MetaAlvo;
+    interacoes?: MetaAlvo;
+    posts?: MetaAlvo;
+  };
+}
+
+/** Alvo de meta: um número (nível único) ou até três níveis (piso → alvo → stretch). */
+type MetaAlvo = number | { min?: number; media?: number; alta?: number };
+
+/** Meta já escalada ao período, pronta p/ render (null nos campos ausentes). */
+interface MetaEscalada {
+  min: number | null;
+  media: number | null;
+  alta: number | null;
+}
+
+/** Normaliza um alvo (número ou objeto) e escala pelos `mult` do período. */
+function escalaMeta(alvo: MetaAlvo | undefined, mult: number | null): MetaEscalada | null {
+  if (alvo == null || mult == null) return null;
+  const esc = (v: number | undefined) =>
+    v != null && Number.isFinite(v) && v > 0 ? Math.round(v * mult) : null;
+  if (typeof alvo === 'number') return { min: esc(alvo), media: null, alta: null };
+  const r = { min: esc(alvo.min), media: esc(alvo.media), alta: esc(alvo.alta) };
+  return r.min == null && r.media == null && r.alta == null ? null : r;
 }
 
 /** Classes por tom de estado (o azul-base vira roxo no skin do Dobro). */
@@ -2908,7 +2962,26 @@ const PERIODOS: ReadonlyArray<readonly [string, number | null]> = [
   ['90 dias', 90],
   ['Tudo', null],
 ];
+/** Períodos da visão "Conta": a Graph API limita o range de insights a 30 dias. */
+const PERIODOS_CONTA: ReadonlyArray<readonly [string, number | null]> = [
+  ['7 dias', 7],
+  ['30 dias', 30],
+];
 const PERIODO_PADRAO = 7;
+
+/** Resposta de /api/instagram/account-insights (métricas de nível de conta). */
+interface AccountInsightsResp {
+  connected: boolean;
+  dias?: number;
+  reach?: number;
+  views?: number;
+  interactions?: number;
+  /** Seguidores líquidos (ganhos − perdidos) no período. */
+  followers?: number;
+  followersGained?: number;
+  followersLost?: number;
+  error?: string;
+}
 
 /** Início do dia (00:00 local) de `dias` atrás — corte inclusivo. */
 function cortePeriodo(dias: number): Date {
@@ -2921,13 +2994,15 @@ function cortePeriodo(dias: number): Date {
 function PeriodPicker({
   value,
   onChange,
+  options = PERIODOS,
 }: {
   value: number | null;
   onChange: (v: number | null) => void;
+  options?: ReadonlyArray<readonly [string, number | null]>;
 }) {
   return (
     <div className="inline-flex rounded-xl border border-gray-700/60 bg-gray-800/60 p-0.5">
-      {PERIODOS.map(([label, days]) => {
+      {options.map(([label, days]) => {
         const active = value === days;
         return (
           <button
@@ -2943,6 +3018,37 @@ function PeriodPicker({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/** Alterna a FONTE do relatório: atividade da conta × soma dos posts publicados. */
+function SourceToggle({
+  value,
+  onChange,
+}: {
+  value: 'conta' | 'posts';
+  onChange: (v: 'conta' | 'posts') => void;
+}) {
+  const opts: ReadonlyArray<[('conta' | 'posts'), string]> = [
+    ['conta', '📊 Conta'],
+    ['posts', '📝 Posts publicados'],
+  ];
+  return (
+    <div className="inline-flex rounded-xl border border-gray-700/60 bg-gray-800/60 p-0.5">
+      {opts.map(([v, label]) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+            value === v ? 'bg-blue-500 text-white shadow-sm' : 'text-gray-400 hover:text-gray-200'
+          }`}
+          aria-pressed={value === v}
+        >
+          {label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -2976,6 +3082,9 @@ function KpiMini({
   value,
   hint,
   delta,
+  current,
+  goal,
+  goalLabel = 'Meta da semana',
 }: {
   icon?: string;
   label: string;
@@ -2983,7 +3092,15 @@ function KpiMini({
   hint?: string;
   /** % de variação vs. o período anterior; null/undefined = sem comparação. */
   delta?: number | null;
+  /** Valor REAL do indicador (número cru) — usado p/ calcular o progresso da meta. */
+  current?: number;
+  /** Meta (piso/alta) a bater no período. Sem meta (null) → o bloco de meta some. */
+  goal?: MetaEscalada | null;
+  /** Rótulo da meta. Default: "Meta da semana" (muda p/ "Meta em 30d" etc.). */
+  goalLabel?: string;
 }) {
+  const hasGoal =
+    goal != null && current != null && (goal.min != null || goal.media != null || goal.alta != null);
   return (
     <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
       {icon && (
@@ -3001,6 +3118,146 @@ function KpiMini({
         {delta != null && <DeltaBadge pct={delta} />}
       </div>
       {hint && <div className="mt-0.5 text-xs text-gray-500">{hint}</div>}
+      {hasGoal && <GoalBar current={current} goal={goal} label={goalLabel} />}
+    </div>
+  );
+}
+
+/**
+ * Barra de meta com 1 a 3 níveis (mínima → média → alta). O "teto" da barra é o
+ * maior nível; os intermediários viram tiques. O texto abaixo aponta a PRÓXIMA
+ * meta a bater e quanto falta. Com nível único, usa o rótulo passado (`label`).
+ */
+function GoalBar({ current, goal, label }: { current: number; goal: MetaEscalada; label: string }) {
+  const niveis: Array<{ v: number; nome: string }> = [];
+  if (goal.min != null) niveis.push({ v: goal.min, nome: 'mínima' });
+  if (goal.media != null) niveis.push({ v: goal.media, nome: 'média' });
+  if (goal.alta != null) niveis.push({ v: goal.alta, nome: 'alta' });
+  if (niveis.length === 0) return null;
+  niveis.sort((a, b) => a.v - b.v);
+  const multi = niveis.length > 1;
+
+  const piso = niveis[0].v;
+  const teto = niveis[niveis.length - 1].v;
+  const pctFill = teto > 0 ? Math.min(100, Math.max(0, (current / teto) * 100)) : 0;
+  // Cor: verde ao cruzar o piso (ou sem piso definido); azul enquanto persegue.
+  const fillTone = current >= teto ? 'bg-emerald-500' : current >= piso ? 'bg-emerald-400' : 'bg-blue-500';
+
+  // Próximo nível ainda não batido (undefined = bateu todos).
+  const prox = niveis.find((n) => current < n.v);
+  const restante = prox ? Math.max(0, Math.round(prox.v - current)) : 0;
+
+  // Resumo compacto: "150k · 250k · 400k" (multi) ou "Meta da semana: 500" (único).
+  const resumo = multi
+    ? niveis.map((n) => fmtMetaShort(n.v)).join(' · ')
+    : `${label}: ${fmtMetaShort(teto)}`;
+
+  return (
+    <div className="mt-3">
+      <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-gray-700/60">
+        <div className={`h-full rounded-full transition-all ${fillTone}`} style={{ width: `${pctFill}%` }} />
+        {multi &&
+          niveis.slice(0, -1).map((n, i) => (
+            <span
+              key={i}
+              className="absolute top-0 h-full w-px bg-gray-900/70"
+              style={{ left: `${(n.v / teto) * 100}%` }}
+              aria-hidden="true"
+            />
+          ))}
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px]">
+        <span className="text-gray-500">{resumo}</span>
+        {prox ? (
+          <span className="text-amber-300">
+            faltam <span className="font-semibold">{fmtMetaShort(restante)}</span>
+            {multi ? ` p/ ${prox.nome}` : ''}
+          </span>
+        ) : (
+          <span className="font-semibold text-emerald-300">{multi ? 'meta alta batida ✓' : 'meta batida ✓'}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Card "Top 5" de posts por uma métrica (comentários, seguidores…). Cada linha:
+ * rank, formato, título/data e o número da métrica em destaque. Vira link quando
+ * o post tem permalink. Reaproveitado nas duas categorias (captação/seguidores).
+ */
+function TopPostsCard({
+  title,
+  icon,
+  posts,
+  metricIcon,
+  metricLabel,
+  metricOf,
+  emptyHint,
+}: {
+  title: string;
+  icon: string;
+  posts: Row[];
+  metricIcon: string;
+  metricLabel: string;
+  metricOf: (r: Row) => number;
+  emptyHint: string;
+}) {
+  return (
+    <div>
+      <SectionLabel>
+        <span className="mr-1" aria-hidden="true">{icon}</span>
+        {title}
+      </SectionLabel>
+      <div className="mb-6 overflow-hidden rounded-2xl border border-gray-700/50 bg-gray-800/60 shadow-sm">
+        {posts.length === 0 ? (
+          <div className="px-4 py-6 text-center text-sm text-gray-500">{emptyHint}</div>
+        ) : (
+          <ul className="divide-y divide-gray-700/50">
+            {posts.map((r, i) => {
+              const formato = toText(r.formato);
+              const permalink = toText(r.permalink);
+              const d = parseDate(toText(r.data));
+              const tema = toText(r.tema) || 'Sem título';
+              const inner = (
+                <>
+                  <span className="grid h-8 w-6 shrink-0 place-items-center text-[11px] font-bold text-gray-500">
+                    {i + 1}
+                  </span>
+                  <FormatChip formato={formato} size="sm" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-gray-100">{tema}</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">
+                      {d ? fmtDiaMes(d) : ''}
+                      {formato ? `${d ? ' · ' : ''}${formato}` : ''}
+                    </span>
+                  </span>
+                  <span
+                    className="flex shrink-0 items-center gap-1 text-sm font-semibold text-gray-200"
+                    style={DISPLAY}
+                    title={metricLabel}
+                  >
+                    <span aria-hidden="true">{metricIcon}</span>
+                    {fmtCompact(metricOf(r))}
+                  </span>
+                </>
+              );
+              const cls = 'flex items-center gap-3 px-3 py-3 transition-colors hover:bg-gray-700/30';
+              return (
+                <li key={toText(r.id) || i}>
+                  {permalink ? (
+                    <a href={permalink} target="_blank" rel="noreferrer" className={cls}>
+                      {inner}
+                    </a>
+                  ) : (
+                    <div className={cls}>{inner}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -3086,6 +3343,43 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
   // Relatório da rede: métricas reais dos posts sincronizados (v_conteudo_desempenho),
   // agregadas pelo período escolhido — mesma fonte da tela de Desempenho.
   const [periodDays, setPeriodDays] = useState<number | null>(PERIODO_PADRAO);
+  // Fonte do relatório: 'conta' = atividade da conta no período (igual ao app do
+  // Instagram); 'posts' = soma dos posts publicados no período. Default 'conta'.
+  const [fonte, setFonte] = useState<'conta' | 'posts'>('conta');
+  const [contaData, setContaData] = useState<AccountInsightsResp | null>(null);
+  const [contaLoading, setContaLoading] = useState(false);
+
+  // Troca de fonte: ao ir p/ "Conta", normaliza o período (a API só vai até 30d).
+  const trocarFonte = useCallback(
+    (f: 'conta' | 'posts') => {
+      setFonte(f);
+      if (f === 'conta' && periodDays !== 7 && periodDays !== 30) setPeriodDays(30);
+    },
+    [periodDays],
+  );
+
+  // Busca as métricas de CONTA quando a visão "Conta" está ativa (7 ou 30 dias).
+  useEffect(() => {
+    if (fonte !== 'conta') return;
+    const dias = periodDays === 7 ? 7 : 30;
+    let alive = true;
+    setContaLoading(true);
+    fetch(`/api/instagram/account-insights?dias=${dias}`, { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: AccountInsightsResp | null) => {
+        if (alive) setContaData(j);
+      })
+      .catch(() => {
+        if (alive) setContaData(null);
+      })
+      .finally(() => {
+        if (alive) setContaLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [fonte, periodDays]);
+
   const [desempRows, setDesempRows] = useState<Row[]>([]);
   useEffect(() => {
     let alive = true;
@@ -3139,17 +3433,24 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
       const t = new Date(s).getTime();
       return Number.isFinite(t) ? t : null;
     };
-    const topDe = (rows: Row[]) =>
+    // Top 5 por uma métrica (score). Descarta score 0 p/ não listar zeros.
+    const topPor = (rows: Row[], score: (r: Row) => number) =>
       rows
-        .map((r) => ({ r, inter: interDe(r) }))
-        .sort((a, b) => b.inter - a.inter)
-        .slice(0, 5);
+        .map((r) => ({ r, s: score(r) }))
+        .filter((x) => x.s > 0)
+        .sort((a, b) => b.s - a.s)
+        .slice(0, 5)
+        .map((x) => x.r);
+    // "Captação" = comentários (mecanismo "comenta PALAVRA" → lead na lista).
+    const scoreCaptacao = (r: Row) => numOf(r.comentarios) ?? 0;
+    const scoreSeguidores = (r: Row) => numOf(r.seguidores) ?? 0;
 
     // "Tudo" → não há janela anterior equivalente p/ comparar.
     if (periodDays == null) {
       return {
         ...agg(desempRows),
-        top: topDe(desempRows),
+        topCaptacao: topPor(desempRows, scoreCaptacao),
+        topSeguidores: topPor(desempRows, scoreSeguidores),
         delta: { views: null, reach: null, interacoes: null, novosSeg: null, count: null },
       };
     }
@@ -3171,7 +3472,8 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
     const pct = (c: number, p: number) => (p === 0 ? null : ((c - p) / p) * 100);
     return {
       ...cur,
-      top: topDe(curRows),
+      topCaptacao: topPor(curRows, scoreCaptacao),
+      topSeguidores: topPor(curRows, scoreSeguidores),
       delta: {
         views: pct(cur.views, prev.views),
         reach: pct(cur.reach, prev.reach),
@@ -3181,6 +3483,51 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
       },
     };
   }, [desempRows, periodDays]);
+
+  // Metas SEMANAIS (config) escaladas ao período do relatório. "Tudo" (período
+  // aberto) não tem janela definida → sem meta. 7d = "Meta da semana"; demais
+  // períodos escalam a meta e ajustam o rótulo ("Meta em 30d").
+  const metas = config.metasSemana;
+  const metaMult = periodDays == null ? null : periodDays / 7;
+  const metaLabel = periodDays === 7 ? 'Meta da semana' : periodDays != null ? `Meta em ${periodDays}d` : 'Meta';
+  const metaDe = (alvo?: MetaAlvo): MetaEscalada | null => escalaMeta(alvo, metaMult);
+
+  // Valores dos KPIs conforme a FONTE. "Conta" usa as métricas de nível de conta
+  // (deduplicadas, incluem posts antigos/reels/stories); "Posts" soma os posts
+  // publicados no período. `count` (posts publicados) é o mesmo nas duas visões.
+  const kpi =
+    fonte === 'conta'
+      ? {
+          novosSeg: contaData?.followers ?? null,
+          views: contaData?.views ?? null,
+          reach: contaData?.reach ?? null,
+          interacoes: contaData?.interactions ?? null,
+          count: report.count,
+        }
+      : {
+          novosSeg: report.novosSeg,
+          views: report.views,
+          reach: report.reach,
+          interacoes: report.interacoes,
+          count: report.count,
+        };
+  // Na visão "Conta" não há delta (não buscamos a janela anterior); na de "Posts"
+  // usamos o comparativo já calculado no `report`.
+  const kpiDelta =
+    fonte === 'conta'
+      ? { views: null, reach: null, interacoes: null, novosSeg: null, count: null }
+      : report.delta;
+  // Texto/valor de um KPI de conta: "…" enquanto carrega, "—" se veio vazio.
+  const kpiValue = (v: number | null, fmt: (n: number) => string) =>
+    fonte === 'conta' && contaLoading && v == null ? '…' : v == null ? '—' : fmt(v);
+  // Hint do card "Novos seguidores": na visão Conta é o LÍQUIDO, com o detalhe
+  // ganhos/perdidos quando disponível; na de Posts, vindo dos posts.
+  const segHint =
+    fonte === 'conta'
+      ? contaData?.followersGained != null
+        ? `líquido: +${fmtInt(contaData.followersGained)} −${fmtInt(contaData.followersLost ?? 0)}`
+        : 'líquido no período (ganhos − perdidos)'
+      : 'vindos dos posts do período';
 
   const reload = ctx.actions.reload;
   const onGerado = useCallback(
@@ -3294,27 +3641,89 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
         </div>
       )}
 
-      {/* ===== Relatório da rede (período) ===== */}
-      <SectionLabel aside={<PeriodPicker value={periodDays} onChange={setPeriodDays} />}>
+      {/* ===== Relatório da rede (fonte + período) ===== */}
+      <SectionLabel
+        aside={
+          <div className="flex flex-wrap items-center gap-2">
+            <SourceToggle value={fonte} onChange={trocarFonte} />
+            <PeriodPicker
+              value={periodDays}
+              onChange={setPeriodDays}
+              options={fonte === 'conta' ? PERIODOS_CONTA : PERIODOS}
+            />
+          </div>
+        }
+      >
         Relatório da rede
       </SectionLabel>
+
+      <p className="-mt-1 mb-3 text-xs leading-relaxed text-gray-500">
+        {fonte === 'conta'
+          ? 'Atividade da conta no período — inclui posts antigos, reels e stories, e o alcance é de contas únicas (igual ao app do Instagram).'
+          : 'Soma dos posts publicados no período — bom para avaliar o desempenho do conteúdo novo (cada post conta separado).'}
+      </p>
+
+      {fonte === 'conta' && contaData && contaData.connected === false && (
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-200">
+          Não consegui ler as métricas da conta{contaData.error ? `: ${contaData.error}` : ''}. Mostrando o
+          que der; troque para “Posts publicados” para a visão por post.
+        </div>
+      )}
 
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <FollowersHero current={igFollowers ?? metrics?.followers?.current} series={null} week={null} />
         <KpiMini
           icon="📈"
           label="Novos seguidores"
-          value={fmtCompact(report.novosSeg)}
-          hint="vindos dos posts do período"
-          delta={report.delta.novosSeg}
+          value={kpiValue(kpi.novosSeg, fmtCompact)}
+          current={kpi.novosSeg ?? undefined}
+          goal={metaDe(metas?.novosSeguidores)}
+          goalLabel={metaLabel}
+          hint={segHint}
+          delta={kpiDelta.novosSeg}
         />
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiMini icon="👁️" label="Visualizações" value={fmtCompact(report.views)} delta={report.delta.views} />
-        <KpiMini icon="🎯" label="Alcance" value={fmtCompact(report.reach)} delta={report.delta.reach} />
-        <KpiMini icon="❤️" label="Interações" value={fmtCompact(report.interacoes)} delta={report.delta.interacoes} />
-        <KpiMini icon="📝" label="Posts no período" value={fmtInt(report.count)} delta={report.delta.count} />
+        <KpiMini
+          icon="👁️"
+          label="Visualizações"
+          value={kpiValue(kpi.views, fmtCompact)}
+          current={kpi.views ?? undefined}
+          goal={metaDe(metas?.visualizacoes)}
+          goalLabel={metaLabel}
+          hint={fonte === 'conta' ? 'todo o conteúdo' : undefined}
+          delta={kpiDelta.views}
+        />
+        <KpiMini
+          icon="🎯"
+          label={fonte === 'conta' ? 'Contas alcançadas' : 'Alcance'}
+          value={kpiValue(kpi.reach, fmtCompact)}
+          current={kpi.reach ?? undefined}
+          goal={metaDe(metas?.alcance)}
+          goalLabel={metaLabel}
+          hint={fonte === 'conta' ? 'contas únicas' : undefined}
+          delta={kpiDelta.reach}
+        />
+        <KpiMini
+          icon="❤️"
+          label="Interações"
+          value={kpiValue(kpi.interacoes, fmtCompact)}
+          current={kpi.interacoes ?? undefined}
+          goal={metaDe(metas?.interacoes)}
+          goalLabel={metaLabel}
+          delta={kpiDelta.interacoes}
+        />
+        <KpiMini
+          icon="📝"
+          label="Posts no período"
+          value={fmtInt(kpi.count)}
+          current={kpi.count}
+          goal={metaDe(metas?.posts)}
+          goalLabel={metaLabel}
+          hint="posts publicados"
+          delta={kpiDelta.count}
+        />
       </div>
 
       {report.count === 0 ? (
@@ -3323,55 +3732,26 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
           message='Sem dados sincronizados neste período. Use "Sincronizar" na aba Desempenho para puxar os posts do Instagram.'
         />
       ) : (
-        <>
-          <SectionLabel>Top posts do período</SectionLabel>
-          <div className="mb-6 overflow-hidden rounded-2xl border border-gray-700/50 bg-gray-800/60 shadow-sm">
-            <ul className="divide-y divide-gray-700/50">
-              {report.top.map(({ r, inter }, i) => {
-                const formato = toText(r.formato);
-                const permalink = toText(r.permalink);
-                const d = parseDate(toText(r.data));
-                const tema = toText(r.tema) || 'Sem título';
-                const inner = (
-                  <>
-                    <span className="grid h-8 w-6 shrink-0 place-items-center text-[11px] font-bold text-gray-500">
-                      {i + 1}
-                    </span>
-                    <FormatChip formato={formato} size="sm" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-gray-100">{tema}</span>
-                      <span className="mt-0.5 block text-xs text-gray-500">
-                        {d ? fmtDiaMes(d) : ''}
-                        {formato ? `${d ? ' · ' : ''}${formato}` : ''}
-                      </span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-3 text-xs text-gray-400">
-                      <span className="inline-flex items-center gap-1">
-                        <span aria-hidden="true">👁️</span>
-                        {fmtCompact(numOf(r.visualizacoes) ?? 0)}
-                      </span>
-                      <span className="hidden font-semibold text-gray-200 sm:inline" style={DISPLAY}>
-                        {fmtCompact(inter)} inter.
-                      </span>
-                    </span>
-                  </>
-                );
-                const cls = 'flex items-center gap-3 px-3 py-3 transition-colors hover:bg-gray-700/30';
-                return (
-                  <li key={toText(r.id) || i}>
-                    {permalink ? (
-                      <a href={permalink} target="_blank" rel="noreferrer" className={cls}>
-                        {inner}
-                      </a>
-                    ) : (
-                      <div className={cls}>{inner}</div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </>
+        <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
+          <TopPostsCard
+            title="Melhores em captação"
+            icon="💬"
+            posts={report.topCaptacao}
+            metricIcon="💬"
+            metricLabel="comentários"
+            metricOf={(r) => numOf(r.comentarios) ?? 0}
+            emptyHint="Nenhum post com comentários neste período."
+          />
+          <TopPostsCard
+            title="Melhores em seguidores"
+            icon="📈"
+            posts={report.topSeguidores}
+            metricIcon="👤"
+            metricLabel="novos seguidores"
+            metricOf={(r) => numOf(r.seguidores) ?? 0}
+            emptyHint="Nenhum post trouxe seguidores neste período."
+          />
+        </div>
       )}
 
       {/* ===== Planejamento: Agenda | Lista ===== */}

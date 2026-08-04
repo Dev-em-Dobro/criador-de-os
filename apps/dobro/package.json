@@ -23,6 +23,7 @@
     "conteudo:gerar-url": "tsx server/scripts/gerar-de-url.ts",
     "conteudo:agendar": "tsx server/scripts/agendar-post.ts",
     "conteudo:remover": "tsx server/scripts/remover-post.ts",
+    "conteudo:classificar": "tsx server/scripts/classificar-estrutura.ts",
     "carrossel:render": "tsx server/scripts/render-carrossel.ts",
     "referencias:list": "tsx server/scripts/list-referencias.ts",
     "referencias:reset": "tsx server/scripts/reset-referencia.ts",

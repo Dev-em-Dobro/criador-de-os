@@ -22,14 +22,13 @@ import {
   handleRemoverConteudo,
 } from './conteudo.js';
 import { handleGerarConteudo } from './conteudo-gerar.js';
-import { handleEstrategista } from './conteudo-estrategista.js';
 import {
   handleCriarDesempenho,
   handleAtualizarDesempenho,
   handleRemoverDesempenho,
   handleSincronizarDesempenho,
 } from './desempenho.js';
-import { handlePerfilInstagram } from './instagram-api.js';
+import { handlePerfilInstagram, handleAccountInsights } from './instagram-api.js';
 import { dbQuery } from '../db/client.js';
 import {
   buildSecureQuery,
@@ -64,13 +63,14 @@ app.delete('/api/conteudo/desempenho/:id', (c) => handleRemoverDesempenho(c));
 // --- Perfil do Instagram (seguidores) para o painel (LEITURA autenticada) ---
 app.get('/api/instagram/profile', (c) => handlePerfilInstagram(c));
 
+// --- Métricas de NÍVEL DE CONTA do período (visão "Conta" do painel) ---
+// A atividade da conta no período (contas alcançadas, visualizações, interações,
+// seguidores ganhos) — as mesmas do app do Instagram. Auth-first.
+app.get('/api/instagram/account-insights', (c) => handleAccountInsights(c));
+
 // Geração de rascunho com IA (segmento estático `gerar` — prioridade sobre `:id`).
 // Auth-first; gera carrossel/reels em AIDA a partir de tema/link, via role app_pipeline.
 app.post('/api/conteudo/gerar', (c) => handleGerarConteudo(c));
-
-// Social Media Estrategista (segmento estático `estrategista` — prioridade sobre `:id`).
-// Auth-first; recebe o briefing calculado na tela e devolve diagnóstico + cronograma via IA.
-app.post('/api/conteudo/estrategista', (c) => handleEstrategista(c));
 
 app.post('/api/conteudo', (c) => handleCriarConteudo(c));
 app.patch('/api/conteudo/:id', (c) => handleAtualizarConteudo(c));

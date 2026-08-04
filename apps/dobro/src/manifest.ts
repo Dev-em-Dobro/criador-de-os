@@ -193,6 +193,19 @@ export const dobroManifest: ClientManifest = {
                   pronto: { label: 'Pronto', tone: 'ready' },
                   publicado: { label: 'Publicado', tone: 'done' },
                 },
+                // METAS SEMANAIS do "Relatório da rede". Cada card mostra a meta ao
+                // lado do número (barra + "faltam N"). Escalam com o período (7/30/90d).
+                // Alvos com { min, media, alta } têm 3 níveis; número = nível único.
+                // Calibradas 03/08/2026 pela distribuição real das últimas 8 semanas
+                // (mín ≈ bate quase sempre · média ≈ mediana · alta ≈ pico histórico).
+                metasSemana: {
+                  // Novos seguidores é LÍQUIDO (ganhos − perdidos) na visão Conta.
+                  novosSeguidores: { min: 300, media: 600, alta: 1000 },
+                  visualizacoes: { min: 300000, media: 550000, alta: 1000000 },
+                  alcance: { min: 150000, media: 250000, alta: 400000 },
+                  interacoes: { min: 8000, media: 14000, alta: 20000 },
+                  posts: { min: 10, media: 14, alta: 18 },
+                },
                 // MÉTRICAS do perfil (@devemdobro). Engajamento e melhores posts são
                 // dado REAL coletado do Instagram (18/07). Seguidores e crescimento
                 // ficam `null` de propósito — só entram quando a conta for conectada
@@ -354,9 +367,9 @@ export const dobroManifest: ClientManifest = {
             view: {
               block: 'custom:conteudo-estrategista',
               title: 'Estrategista',
-              subtitle: 'A IA lê o desempenho e sugere o que postar na próxima semana',
-              config: { objetivo: 'lead' },
-              // Mesma view do Desempenho: precisa das métricas p/ montar o briefing.
+              subtitle: 'Qual estrutura de carrossel mais rende, pelos números reais',
+              config: { meta: 'seguidores' },
+              // Mesma view do Desempenho: precisa das métricas + a estrutura classificada.
               dataSource: {
                 kind: 'query',
                 view: 'v_conteudo_desempenho',
@@ -377,6 +390,7 @@ export const dobroManifest: ClientManifest = {
                   'duracao_s',
                   'tempo_medio_s',
                   'permalink',
+                  'estrutura',
                 ],
                 orderBy: [{ field: 'data', dir: 'desc' }],
                 limit: 200,

@@ -29,6 +29,13 @@
       "when": 1785277293512,
       "tag": "0003_premium_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785778610858,
+      "tag": "0004_wooden_frank_castle",
+      "breakpoints": true
     }
   ]
 }

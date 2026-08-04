@@ -245,6 +245,12 @@ export const conteudoDesempenho = pgTable('conteudo_desempenho', {
   permalink: text('permalink'),
   /** ID da mídia no Instagram (p/ Fase 1 — sync via Insights). */
   mediaId: text('media_id'),
+  /**
+   * Estrutura narrativa do carrossel, classificada por IA (offline). Um de:
+   * listicle | tutorial | contrarian | storytelling | noticia | pergunta |
+   * venda | conceito | ferramenta. Nullable até a classificação rodar.
+   */
+  estrutura: text('estrutura'),
   createdAt: timestamp('created_at')
     .$defaultFn(() => new Date())
     .notNull(),
