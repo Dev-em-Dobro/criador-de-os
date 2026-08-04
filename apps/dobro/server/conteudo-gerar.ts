@@ -19,7 +19,7 @@ import type { Context } from 'hono';
 import { auth } from './auth.js';
 import { dbPipeline } from '../db/client.js';
 import { referencias } from '../db/schema.js';
-import { criarRascunho } from './conteudo-pipeline.js';
+import { criarRascunho, processarReferenciasPendentes } from './conteudo-pipeline.js';
 import { getAgencyAnthropicKey } from './env.js';
 
 /** Formatos que o criador pode forçar no NOSSO post. */
@@ -139,5 +139,28 @@ export async function handleGerarConteudo(c: Context): Promise<Response> {
     if (/recus/i.test(msg)) return c.json({ error: msg }, 422);
     console.error('[conteudo:gerar] erro inesperado:', msg);
     return c.json({ error: 'Erro ao gerar o rascunho' }, 500);
+  }
+}
+
+/**
+ * GET /api/cron/processar-referencias — processa as referências pendentes do
+ * Telegram AUTOMATICAMENTE (Vercel Cron): teardown + rascunho no board, sem
+ * ninguém rodar à mão. Valida o CRON_SECRET no header (sem sessão do Better Auth).
+ */
+export async function handleCronProcessarReferencias(c: Context): Promise<Response> {
+  const secret = process.env.CRON_SECRET?.trim();
+  if (!secret || c.req.header('authorization') !== `Bearer ${secret}`) {
+    return c.json({ error: 'unauthorized' }, 401);
+  }
+  const apiKey = getAgencyAnthropicKey();
+  if (!apiKey) return c.json({ error: 'ANTHROPIC_API_KEY ausente no servidor' }, 503);
+  try {
+    // Limite baixo: cada ref leva ~15s (IA + enriquecimento) e a function tem teto de 60s.
+    const { processadas, rascunhos } = await processarReferenciasPendentes(apiKey, 3);
+    console.log(`[cron:processar] ${processadas} referência(s), ${rascunhos.length} rascunho(s)`);
+    return c.json({ ok: true, processadas, rascunhos: rascunhos.length });
+  } catch (err) {
+    console.error('[cron:processar] erro:', err instanceof Error ? err.message : err);
+    return c.json({ error: 'Erro ao processar referências' }, 500);
   }
 }

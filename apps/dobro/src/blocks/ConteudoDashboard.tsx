@@ -964,6 +964,167 @@ function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   );
 }
 
+/**
+ * Popup de edição de UMA postagem. Estado LOCAL (draft): nada é salvo até clicar
+ * "Salvar" — acaba com o auto-save por campo (que fazia o post sumir ao editar a
+ * data). Salvar faz UM request (POST se novo, PATCH se existente).
+ */
+function EditarPostModal({
+  inicial,
+  salvando,
+  onSalvar,
+  onRemover,
+  onFechar,
+}: {
+  inicial: SchedRow;
+  salvando: boolean;
+  onSalvar: (d: SchedRow) => void;
+  onRemover: (d: SchedRow) => void;
+  onFechar: () => void;
+}) {
+  const [d, setD] = useState<SchedRow>(inicial);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onFechar();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onFechar]);
+  const set = <K extends keyof SchedRow>(k: K, v: SchedRow[K]) => setD((x) => ({ ...x, [k]: v }));
+  const inputCls =
+    'rounded-lg border border-gray-600 bg-gray-900 px-2 py-1.5 text-sm text-gray-100 focus:border-blue-500/70 focus:outline-none focus:ring-1 focus:ring-blue-500/40';
+  const labelCls = 'text-[11px] font-medium uppercase tracking-wide text-gray-500';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm"
+      onClick={onFechar}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Editar postagem"
+    >
+      <div
+        className="my-8 w-full max-w-lg rounded-2xl border border-gray-700 bg-gray-900 p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <span className="text-sm font-semibold text-gray-200">✏️ Editar postagem</span>
+          <button
+            type="button"
+            onClick={onFechar}
+            className="grid h-9 w-9 place-items-center rounded-lg border border-gray-700 text-gray-300 transition-colors hover:bg-gray-700/50 hover:text-white"
+            aria-label="Fechar"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <label className="block">
+            <span className={labelCls}>Título</span>
+            <TextInput
+              value={d.titulo}
+              placeholder="Título da postagem"
+              onChange={(e) => set('titulo', e.target.value)}
+              className="mt-1"
+            />
+          </label>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-1.5">
+              <span className={labelCls}>Data</span>
+              <input
+                type="date"
+                value={d.day ?? ''}
+                aria-label="Data"
+                onChange={(e) => set('day', e.target.value || null)}
+                className={inputCls}
+              />
+            </label>
+            <label className="flex items-center gap-1.5">
+              <span className={labelCls}>Hora</span>
+              <input
+                type="time"
+                value={d.hora}
+                aria-label="Hora"
+                onChange={(e) => set('hora', e.target.value)}
+                className={inputCls}
+              />
+            </label>
+            <label className="flex items-center gap-1.5">
+              <span className={labelCls}>Formato</span>
+              <Select value={d.formato} onChange={(v) => set('formato', v)} options={FORMATO_OPTS} ariaLabel="Formato" />
+            </label>
+            <label className="flex items-center gap-1.5">
+              <span className={labelCls}>Estado</span>
+              <Select value={d.estado} onChange={(v) => set('estado', v)} options={ESTADO_OPTS} ariaLabel="Estado" />
+            </label>
+          </div>
+          <label className="block">
+            <span className={labelCls}>Link do Notion</span>
+            <TextInput
+              type="url"
+              inputMode="url"
+              value={d.briefingUrl}
+              placeholder="https://notion.so/…"
+              onChange={(e) => set('briefingUrl', e.target.value)}
+              className="mt-1"
+            />
+          </label>
+          <label className="block">
+            <span className={labelCls}>Briefing</span>
+            <TextArea
+              value={d.briefing}
+              rows={4}
+              placeholder="Cole aqui o briefing da postagem (ou use o link do Notion acima)."
+              onChange={(e) => set('briefing', e.target.value)}
+              className="mt-1"
+            />
+          </label>
+          <label className="block">
+            <span className={labelCls}>
+              Referências <span className="normal-case text-gray-600">(um link por linha)</span>
+            </span>
+            <TextArea
+              value={d.refs}
+              rows={3}
+              placeholder={'https://instagram.com/p/…'}
+              onChange={(e) => set('refs', e.target.value)}
+              className="mt-1 font-mono text-[13px]"
+            />
+          </label>
+        </div>
+
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => onRemover(d)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-700 px-3 py-2 text-sm text-gray-400 transition-colors hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
+          >
+            🗑 Remover
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onFechar}
+              className="rounded-lg border border-gray-700 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-700/50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => onSalvar(d)}
+              disabled={salvando || !d.titulo.trim()}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-blue-500/25 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {salvando ? 'Salvando…' : 'Salvar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SchedulePage({
   posts,
   fields,
@@ -977,41 +1138,11 @@ function SchedulePage({
 }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(focusDay));
   const [rows, setRows] = useState<SchedRow[]>(() => buildRows(posts, fields));
-  // Cards com a área de briefing/refs expandida (colapsada por padrão).
-  const [openBriefing, setOpenBriefing] = useState<Set<string>>(() => new Set());
-  // Cards com o EDITOR expandido (colapsado por padrão — resumo compacto até clicar).
-  const [openEditor, setOpenEditor] = useState<Set<string>>(() => new Set());
-  // Feedback do auto-save por card ('saving' | 'saved' | 'error').
-  const [saveFx, setSaveFx] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
+  // Popup de edição do post (null = fechado) + flag de salvando.
+  const [editando, setEditando] = useState<SchedRow | null>(null);
+  const [salvandoModal, setSalvandoModal] = useState(false);
   const counter = useRef(0);
-  // Espelho de `rows` p/ ler o estado ATUAL dentro de saves assíncronos (sem stale closure).
-  const rowsRef = useRef(rows);
-  useEffect(() => {
-    rowsRef.current = rows;
-  }, [rows]);
-  // Linhas com um POST de criação em voo — trava p/ não criar o mesmo post 2x.
-  const creatingRef = useRef<Set<string>>(new Set());
 
-  /** Marca o feedback de save de um card (some sozinho no timeout p/ 'saved'/'error'). */
-  const setFx = useCallback((key: string, v: 'saving' | 'saved' | 'error' | null) => {
-    setSaveFx((prev) => {
-      const next = { ...prev };
-      if (v == null) delete next[key];
-      else next[key] = v;
-      return next;
-    });
-    if (v === 'saved' || v === 'error') {
-      window.setTimeout(
-        () => setSaveFx((prev) => {
-          if (prev[key] !== v) return prev;
-          const next = { ...prev };
-          delete next[key];
-          return next;
-        }),
-        v === 'saved' ? 1600 : 2600,
-      );
-    }
-  }, []);
   // Prévia estilo Instagram (post cru, com roteiro) — null = fechada.
   const [igPreview, setIgPreview] = useState<Row | null>(null);
   // Mapa id → linha crua (traz roteiro/legenda/hashtags do post salvo p/ o preview).
@@ -1023,28 +1154,6 @@ function SchedulePage({
     }
     return m;
   }, [posts]);
-
-  const patchRow = useCallback((key: string, patch: Partial<SchedRow>) => {
-    setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
-  }, []);
-
-  const toggleBriefing = useCallback((key: string) => {
-    setOpenBriefing((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
-
-  const toggleEditor = useCallback((key: string) => {
-    setOpenEditor((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
 
   const addRow = useCallback((day: string) => {
     counter.current += 1;
@@ -1065,8 +1174,7 @@ function SchedulePage({
       origDay: null,
       orig: '',
     };
-    setRows((rs) => [...rs, nova]);
-    setOpenEditor((prev) => new Set(prev).add(key)); // post novo já abre pronto p/ editar
+    setEditando(nova); // post novo abre direto no popup; o "Salvar" cria no banco
   }, []);
 
   /**
@@ -1121,163 +1229,42 @@ function SchedulePage({
     };
   }
 
-  /**
-   * Post novo (sem id) nasce no banco no PRIMEIRO save que já tenha título (o
-   * backend exige título). Envia a linha inteira, guarda o id devolvido e marca
-   * o snapshot como salvo. Trava por `creatingRef` p/ não criar 2x. Em caso de
-   * sucesso, reconcilia via `flushRow` o que tenha sido editado durante o POST.
-   */
-  async function ensureCreated(key: string, extra: Partial<SchedRow> = {}) {
-    if (creatingRef.current.has(key)) return;
-    const base = rowsRef.current.find((r) => r.key === key);
-    if (!base || base.id) return;
-    const r = { ...base, ...extra };
-    if (!r.titulo.trim()) return; // sem título o post ainda não pode existir
-    creatingRef.current.add(key);
-    setFx(key, 'saving');
-    const enviado = snapshot(r);
-    try {
-      const res = (await apiJson('/api/conteudo', 'POST', rowToPayload(r))) as
-        | { created?: Array<{ id?: string }> }
-        | null;
-      const novoId = res?.created?.[0]?.id;
-      if (!novoId) throw new Error('resposta sem id');
-      setRows((rs) => rs.map((x) => (x.key === key ? { ...x, id: novoId, orig: enviado } : x)));
-      setFx(key, 'saved');
-      window.setTimeout(() => void flushRow(key), 0); // salva edições feitas durante o POST
-    } catch (e) {
-      setFx(key, 'error');
-      window.alert(`Não consegui salvar: ${e instanceof Error ? e.message : String(e)}`);
-    } finally {
-      creatingRef.current.delete(key);
-    }
-  }
-
-  /**
-   * Grava (PATCH parcial) só os campos que mudaram desde o último save,
-   * comparando o snapshot atual com `orig`. Usado no blur dos textos e na
-   * reconciliação pós-criação. Título esvaziado em post existente é proibido
-   * pelo banco → reverte e avisa. Nunca cria (só toca linhas com id).
-   */
-  async function flushRow(key: string) {
-    const r = rowsRef.current.find((x) => x.key === key);
-    if (!r || !r.id) return;
-    let orig: unknown[];
-    try {
-      const parsed = JSON.parse(r.orig || '[]');
-      orig = Array.isArray(parsed) ? parsed : [];
-    } catch {
-      orig = [];
-    }
-    const cur = JSON.parse(snapshot(r)) as unknown[];
-    if (cur[0] !== orig[0] && !r.titulo.trim()) {
-      patchRow(key, { titulo: String(orig[0] ?? '') }); // desfaz o título vazio
-      setFx(key, 'error');
+  /** Salva o post do popup: PATCH se já existe, POST se novo. Um request só. */
+  async function salvarPost(d: SchedRow) {
+    if (!d.titulo.trim()) {
       window.alert('O título não pode ficar vazio.');
       return;
     }
-    const patch: Record<string, unknown> = {};
-    if (cur[0] !== orig[0]) patch.titulo = r.titulo.trim();
-    if (cur[1] !== orig[1]) patch.formato = r.formato;
-    if (cur[2] !== orig[2]) patch.estado = r.estado;
-    if (cur[3] !== orig[3]) patch.ctaFinal = r.cta.trim() || null;
-    if (cur[4] !== orig[4]) patch.linkPresenteNotion = r.link.trim() || null;
-    if (cur[5] !== orig[5]) patch.briefingUrl = r.briefingUrl.trim() || null;
-    if (cur[6] !== orig[6]) patch.briefing = r.briefing.trim() || null;
-    if (cur[7] !== orig[7]) patch.refsLinks = r.refs.trim() || null;
-    if (cur[8] !== orig[8] || cur[9] !== orig[9]) patch.dataProgramada = combineDataHora(r.day, r.hora);
-    if (Object.keys(patch).length === 0) return; // nada mudou
-    setFx(key, 'saving');
+    setSalvandoModal(true);
     try {
-      await apiJson(`/api/conteudo/${r.id}`, 'PATCH', patch);
-      setRows((rs) => rs.map((x) => (x.key === key ? { ...x, orig: JSON.stringify(cur) } : x)));
-      setFx(key, 'saved');
+      if (d.id) {
+        await apiJson(`/api/conteudo/${d.id}`, 'PATCH', rowToPayload(d));
+        setRows((rs) => rs.map((r) => (r.key === d.key ? { ...d, origDay: d.day, orig: snapshot(d) } : r)));
+      } else {
+        const res = (await apiJson('/api/conteudo', 'POST', rowToPayload(d))) as
+          | { created?: Array<{ id?: string }> }
+          | null;
+        const novoId = res?.created?.[0]?.id;
+        if (!novoId) throw new Error('resposta sem id');
+        const salvo = { ...d, id: novoId, origDay: d.day, orig: snapshot(d) };
+        setRows((rs) =>
+          rs.some((r) => r.key === d.key) ? rs.map((r) => (r.key === d.key ? salvo : r)) : [...rs, salvo],
+        );
+      }
+      // Leva a agenda pra a semana da data (se estiver fora da atual) pra o post aparecer.
+      if (d.day && (d.day < firstKey || d.day > lastKey)) setWeekStart(startOfWeek(dayKeyToDate(d.day)));
+      setEditando(null);
     } catch (e) {
-      setFx(key, 'error');
       window.alert(`Não consegui salvar: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setSalvandoModal(false);
     }
   }
 
-  /** Blur de um campo de texto → cria (se novo) ou grava (se existente) na hora. */
-  function commitRow(key: string) {
-    const r = rowsRef.current.find((x) => x.key === key);
-    if (!r) return;
-    if (!r.id) return void ensureCreated(key);
-    return void flushRow(key);
-  }
-
-  /**
-   * Auto-save de campos que mudam por CLIQUE (status, formato, data, hora):
-   * grava na hora. Otimista: reflete na tela e reverte se o PATCH falhar.
-   * `applyOrig` marca só o índice tocado como salvo no snapshot, sem apagar
-   * edições de texto ainda pendentes. Post novo (sem id) nasce via `ensureCreated`.
-   */
-  async function autoSave(
-    r: SchedRow,
-    local: Partial<SchedRow>,
-    serverPatch: Record<string, unknown>,
-    applyOrig: (arr: unknown[]) => void,
-  ) {
-    const anterior: Partial<SchedRow> = {};
-    const rec = r as unknown as Record<string, unknown>;
-    const antRec = anterior as Record<string, unknown>;
-    for (const k of Object.keys(local)) {
-      antRec[k] = rec[k];
-    }
-    patchRow(r.key, local); // otimista
-    if (!r.id) {
-      void ensureCreated(r.key, local); // post novo: nasce agora (se já tiver título)
-      return;
-    }
-    setFx(r.key, 'saving');
-    try {
-      await apiJson(`/api/conteudo/${r.id}`, 'PATCH', serverPatch);
-      setRows((rs) =>
-        rs.map((row) => {
-          if (row.key !== r.key) return row;
-          let arr: unknown = null;
-          try {
-            arr = JSON.parse(row.orig || '[]');
-          } catch {
-            arr = null;
-          }
-          if (Array.isArray(arr)) {
-            applyOrig(arr);
-            return { ...row, orig: JSON.stringify(arr) };
-          }
-          return row;
-        }),
-      );
-      setFx(r.key, 'saved');
-    } catch (e) {
-      patchRow(r.key, anterior); // reverte
-      setFx(r.key, 'error');
-      window.alert(`Não consegui salvar: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }
-
-  /** Status muda → grava na hora (índice 2 do snapshot). */
-  function saveStatusNow(r: SchedRow, novo: string) {
-    return autoSave(r, { estado: novo }, { estado: novo }, (arr) => {
-      arr[2] = novo;
-    });
-  }
-
-  /** Formato muda → grava na hora (índice 1 do snapshot). */
-  function saveFormatoNow(r: SchedRow, novo: string) {
-    return autoSave(r, { formato: novo }, { formato: novo }, (arr) => {
-      arr[1] = novo;
-    });
-  }
-
-  /** Data e/ou hora mudam → grava na hora a data_programada combinada (índices 8/9). */
-  function saveDataHoraNow(r: SchedRow, patch: { day?: string | null; hora?: string }) {
-    const day = patch.day !== undefined ? patch.day : r.day;
-    const hora = patch.hora !== undefined ? patch.hora : r.hora;
-    return autoSave(r, patch, { dataProgramada: combineDataHora(day, hora) }, (arr) => {
-      arr[8] = day;
-      arr[9] = hora;
-    });
+  /** Remover pelo popup: existente confirma + DELETE (via removeRow); novo só fecha. */
+  async function removerDoModal(d: SchedRow) {
+    if (d.id) await removeRow(d.key);
+    setEditando(null);
   }
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
@@ -1295,7 +1282,6 @@ function SchedulePage({
   const weekLabel = `${weekStart.getDate()} ${MESES_ABBR[weekStart.getMonth()]} – ${weekEnd.getDate()} ${MESES_ABBR[weekEnd.getMonth()]}`;
   const navBtn =
     'grid h-9 w-9 place-items-center rounded-lg border border-gray-700 text-gray-300 transition-colors hover:bg-gray-700/50 hover:text-white disabled:opacity-40';
-  const labelCls = 'text-[11px] font-medium uppercase tracking-wide text-gray-500';
 
   /**
    * Card de UMA postagem. COLAPSADO por padrão: mostra só o resumo escaneável
@@ -1308,8 +1294,6 @@ function SchedulePage({
   function renderCard(r: SchedRow) {
     const raw = r.id ? rawById.get(r.id) : undefined;
     const temSlides = !!raw && parseRoteiro(raw[ROTEIRO_KEY]).slides.length > 0;
-    const isOpen = openEditor.has(r.key);
-    const briefingOpen = openBriefing.has(r.key);
     const hasBriefing = !!(r.briefingUrl.trim() || r.briefing.trim() || r.refs.trim());
     const changed = r.id ? isChanged(r) : !!r.titulo.trim();
     const st = DEFAULT_STATUS[r.estado] ?? { label: r.estado || '—', tone: 'neutral' as StatusTone };
@@ -1319,18 +1303,13 @@ function SchedulePage({
     return (
       <div
         key={r.key}
-        className={`overflow-hidden rounded-xl border shadow-sm transition-colors ${
-          isOpen
-            ? 'border-blue-500/60 bg-gray-800 ring-1 ring-blue-500/20 sm:col-span-2'
-            : 'border-gray-700 bg-gray-800 hover:border-gray-600'
-        }`}
+        className="overflow-hidden rounded-xl border border-gray-700 bg-gray-800 shadow-sm transition-colors hover:border-gray-600"
       >
-        {/* Resumo compacto — clique expande o editor. */}
+        {/* Resumo compacto — clique abre o popup de edição. */}
         <div className="flex items-start gap-2 p-3">
           <button
             type="button"
-            onClick={() => toggleEditor(r.key)}
-            aria-expanded={isOpen}
+            onClick={() => setEditando(r)}
             className="flex min-w-0 flex-1 items-start gap-2.5 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
           >
             <FormatChip formato={r.formato} size="sm" />
@@ -1374,179 +1353,17 @@ function SchedulePage({
             )}
             <button
               type="button"
-              onClick={() => toggleEditor(r.key)}
-              aria-label={isOpen ? 'Recolher edição' : 'Editar postagem'}
-              aria-expanded={isOpen}
+              onClick={() => setEditando(r)}
+              aria-label="Editar postagem"
               className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-gray-700 text-gray-400 transition-colors hover:bg-gray-700/50 hover:text-gray-100"
             >
-              <span className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true">
-                ⌄
-              </span>
+              <span aria-hidden="true">✏️</span>
             </button>
           </div>
         </div>
-
-        {/* Editor completo (expandido). */}
-        {isOpen && (
-          <div className="space-y-3 border-t border-gray-700/40 p-3 sm:p-4">
-            <div className="flex items-start gap-2">
-              <TextInput
-                value={r.titulo}
-                placeholder="Título da postagem"
-                onChange={(e) => patchRow(r.key, { titulo: e.target.value })}
-                onBlur={() => commitRow(r.key)}
-                className="flex-1 font-medium"
-              />
-              <button
-                type="button"
-                onClick={() => removeRow(r.key)}
-                className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-gray-700 text-gray-400 transition-colors hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
-                aria-label="Remover postagem"
-                title="Remover"
-              >
-                🗑
-              </button>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <label className="flex items-center gap-1.5">
-                <span className={labelCls}>Data</span>
-                <input
-                  type="date"
-                  value={r.day ?? ''}
-                  aria-label="Data"
-                  onChange={(e) => saveDataHoraNow(r, { day: e.target.value || null })}
-                  className="rounded-lg border border-gray-600 bg-gray-900 px-2 py-1.5 text-sm text-gray-100 focus:border-blue-500/70 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
-                />
-              </label>
-              <label className="flex items-center gap-1.5">
-                <span className={labelCls}>Hora</span>
-                <input
-                  type="time"
-                  value={r.hora}
-                  aria-label="Hora da postagem"
-                  onChange={(e) => saveDataHoraNow(r, { hora: e.target.value })}
-                  className="rounded-lg border border-gray-600 bg-gray-900 px-2 py-1.5 text-sm text-gray-100 focus:border-blue-500/70 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
-                />
-              </label>
-              <label className="flex items-center gap-1.5">
-                <span className={labelCls}>Formato</span>
-                <Select
-                  value={r.formato}
-                  onChange={(v) => saveFormatoNow(r, v)}
-                  options={FORMATO_OPTS}
-                  ariaLabel="Formato"
-                />
-              </label>
-              <label className="flex items-center gap-1.5">
-                <span className={labelCls}>Estado</span>
-                <Select
-                  value={r.estado}
-                  onChange={(v) => saveStatusNow(r, v)}
-                  options={ESTADO_OPTS}
-                  ariaLabel="Estado"
-                />
-              </label>
-              {saveFx[r.key] === 'saving' && (
-                <span className="text-[11px] text-gray-500">salvando…</span>
-              )}
-              {saveFx[r.key] === 'saved' && (
-                <span className="text-[11px] font-medium text-emerald-400">salvo ✓</span>
-              )}
-              {saveFx[r.key] === 'error' && (
-                <span className="text-[11px] font-medium text-red-400">erro ✕</span>
-              )}
-            </div>
-
-            {/* Briefing e referências (colapsado por padrão — só a Jaque usa aqui) */}
-            <div className="border-t border-gray-700/40 pt-3">
-              <button
-                type="button"
-                onClick={() => toggleBriefing(r.key)}
-                className="flex w-full items-center justify-between gap-2 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-                aria-expanded={briefingOpen}
-              >
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400">
-                  <span aria-hidden="true">📝</span> Briefing e referências
-                  {hasBriefing && (
-                    <span
-                      className="h-1.5 w-1.5 rounded-full bg-blue-400"
-                      aria-hidden="true"
-                      title="preenchido"
-                    />
-                  )}
-                </span>
-                <span
-                  className={`text-gray-500 transition-transform ${briefingOpen ? 'rotate-180' : ''}`}
-                  aria-hidden="true"
-                >
-                  ⌄
-                </span>
-              </button>
-              {briefingOpen && (
-                <div className="mt-3 space-y-3">
-                  <label className="block">
-                    <span className={labelCls}>Link do Notion</span>
-                    <TextInput
-                      type="url"
-                      inputMode="url"
-                      value={r.briefingUrl}
-                      placeholder="https://notion.so/…"
-                      onChange={(e) => patchRow(r.key, { briefingUrl: e.target.value })}
-                      onBlur={() => commitRow(r.key)}
-                      className="mt-1"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className={labelCls}>Briefing</span>
-                    <TextArea
-                      value={r.briefing}
-                      rows={4}
-                      placeholder="Cole aqui o briefing da postagem (ou use o link do Notion acima)."
-                      onChange={(e) => patchRow(r.key, { briefing: e.target.value })}
-                      onBlur={() => commitRow(r.key)}
-                      className="mt-1"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className={labelCls}>
-                      Referências <span className="normal-case text-gray-600">(um link por linha)</span>
-                    </span>
-                    <TextArea
-                      value={r.refs}
-                      rows={3}
-                      placeholder={'https://instagram.com/p/…\nhttps://…'}
-                      onChange={(e) => patchRow(r.key, { refs: e.target.value })}
-                      onBlur={() => commitRow(r.key)}
-                      className="mt-1 font-mono text-[13px]"
-                    />
-                  </label>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
-
-  // Selo global de auto-save — deriva do feedback por card (não há mais botão Salvar).
-  const fxValues = Object.values(saveFx);
-  const anySaving = fxValues.includes('saving');
-  const anyError = fxValues.includes('error');
-  const autoSaveBadge = (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium ${
-        anyError
-          ? 'border-red-500/40 bg-red-500/10 text-red-300'
-          : anySaving
-            ? 'border-blue-500/40 bg-blue-500/10 text-blue-300'
-            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-      }`}
-      aria-live="polite"
-    >
-      {anyError ? '⚠️ Erro ao salvar' : anySaving ? '⏳ Salvando…' : '✓ Salvo automaticamente'}
-    </span>
-  );
 
   return (
     <div>
@@ -1560,9 +1377,6 @@ function SchedulePage({
           >
             <span aria-hidden="true">←</span> Voltar ao painel
           </button>
-          <div className="flex items-center gap-2">
-            {autoSaveBadge}
-          </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -1632,9 +1446,8 @@ function SchedulePage({
 
         {/* Rodapé: sem botão Salvar — cada alteração já foi gravada na hora. */}
         <div className="flex items-center justify-between gap-3 border-t border-gray-700/60 pt-4">
-          <span className="text-xs text-gray-500">Tudo é salvo automaticamente enquanto você edita.</span>
+          <span className="text-xs text-gray-500">Clique num post pra editar. As mudanças são salvas ao clicar em Salvar.</span>
           <div className="flex items-center gap-2">
-            {autoSaveBadge}
             <button
               type="button"
               onClick={onBack}
@@ -1648,6 +1461,17 @@ function SchedulePage({
 
       {igPreview && (
         <InstagramPreviewModal post={igPreview} fields={fields} onClose={() => setIgPreview(null)} />
+      )}
+
+      {editando && (
+        <EditarPostModal
+          key={editando.key}
+          inicial={editando}
+          salvando={salvandoModal}
+          onSalvar={salvarPost}
+          onRemover={removerDoModal}
+          onFechar={() => setEditando(null)}
+        />
       )}
     </div>
   );
@@ -3085,6 +2909,7 @@ function KpiMini({
   current,
   goal,
   goalLabel = 'Meta da semana',
+  onClick,
 }: {
   icon?: string;
   label: string;
@@ -3098,11 +2923,30 @@ function KpiMini({
   goal?: MetaEscalada | null;
   /** Rótulo da meta. Default: "Meta da semana" (muda p/ "Meta em 30d" etc.). */
   goalLabel?: string;
+  /** Se presente, o card vira clicável (cursor + hover + teclado). */
+  onClick?: () => void;
 }) {
   const hasGoal =
     goal != null && current != null && (goal.min != null || goal.media != null || goal.alta != null);
   return (
-    <div className="rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm">
+    <div
+      className={`rounded-2xl border border-gray-700/50 bg-gray-800/60 p-5 shadow-sm ${
+        onClick ? 'cursor-pointer transition-colors hover:border-gray-600 hover:bg-gray-800' : ''
+      }`}
+      {...(onClick
+        ? {
+            role: 'button' as const,
+            tabIndex: 0,
+            onClick,
+            onKeyDown: (e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            },
+          }
+        : {})}
+    >
       {icon && (
         <span className="text-lg" aria-hidden="true">
           {icon}
@@ -3262,6 +3106,133 @@ function TopPostsCard({
   );
 }
 
+/** Modal que lista os posts publicados no período (o card "Posts no período" clicado). */
+function PostsPeriodoModal({
+  posts,
+  cronograma,
+  periodoLabel,
+  onClose,
+}: {
+  posts: Row[];
+  cronograma: Row[];
+  periodoLabel: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  // Casa desempenho ↔ cronograma por dia+formato, SÓ quando é inequívoco (1↔1):
+  // o sync não preenche post_id, então nunca arriscamos mostrar título errado.
+  const chaveDF = (data: string, fmt: string) => `${(data || '').slice(0, 10)}|${(fmt || '').toLowerCase()}`;
+  const nDesempPorChave = new Map<string, number>();
+  posts.forEach((d) => {
+    const k = chaveDF(toText(d.data), toText(d.formato));
+    nDesempPorChave.set(k, (nDesempPorChave.get(k) ?? 0) + 1);
+  });
+  const cronoPorChave = new Map<string, Row[]>();
+  cronograma.forEach((p) => {
+    const k = chaveDF(toText(p.data_programada), toText(p.formato));
+    const arr = cronoPorChave.get(k);
+    if (arr) arr.push(p);
+    else cronoPorChave.set(k, [p]);
+  });
+  const tituloCrono = (d: Row): string | null => {
+    const k = chaveDF(toText(d.data), toText(d.formato));
+    const cronos = cronoPorChave.get(k) ?? [];
+    if (cronos.length === 1 && (nDesempPorChave.get(k) ?? 0) === 1) return toText(cronos[0].titulo) || null;
+    return null;
+  };
+
+  const FMT: Record<string, string> = { reel: 'Reel', reels: 'Reel', carrossel: 'Carrossel', post: 'Post', story: 'Story' };
+  const dataDe = (r: Row): string => {
+    const s = toText(r.data);
+    if (!s) return 'sem data';
+    const d = new Date(s);
+    return Number.isFinite(d.getTime())
+      ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+      : 'sem data';
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Posts do período"
+    >
+      <div className="my-8 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <span className="text-sm font-semibold text-gray-200">
+            📝 {posts.length} post{posts.length === 1 ? '' : 's'} · {periodoLabel}
+          </span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-9 w-9 place-items-center rounded-lg border border-gray-700 text-gray-300 transition-colors hover:bg-gray-700/50 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            aria-label="Fechar"
+          >
+            ✕
+          </button>
+        </div>
+        {posts.length === 0 ? (
+          <div className="rounded-2xl border border-gray-700/60 bg-gray-900 p-8 text-center text-sm text-gray-400">
+            Nenhum post publicado neste período.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {posts.map((p, i) => {
+              const permalink = toText(p.permalink);
+              const fmt = toText(p.formato).toLowerCase();
+              const titulo = tituloCrono(p);
+              return (
+                <li key={toText(p.id) || i} className="rounded-2xl border border-gray-700/60 bg-gray-800/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 text-[11px] text-gray-500">
+                      <span className="rounded-full border border-gray-600/70 px-1.5 py-0.5 text-gray-300">
+                        {FMT[fmt] ?? (fmt || 'post')}
+                      </span>
+                      {dataDe(p)}
+                      {titulo && (
+                        <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300/90">
+                          do cronograma
+                        </span>
+                      )}
+                    </span>
+                    {permalink && (
+                      <a
+                        href={permalink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-medium text-blue-400 hover:text-blue-300"
+                      >
+                        ver post ↗
+                      </a>
+                    )}
+                  </div>
+                  <p className="mt-1 truncate text-[13px] text-gray-100">{titulo || toText(p.tema) || 'Sem descrição'}</p>
+                  {titulo && <p className="mt-0.5 truncate text-[11px] text-gray-500">{toText(p.tema)}</p>}
+                  <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500" style={DISPLAY}>
+                    <span>🎯 {fmtInt(numOf(p.alcance) ?? 0)}</span>
+                    <span>💬 {fmtInt(numOf(p.comentarios) ?? 0)}</span>
+                    <span>🔖 {fmtInt(numOf(p.salvamentos) ?? 0)}</span>
+                    <span>📈 {fmtInt(numOf(p.seguidores) ?? 0)}</span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // Bloco
 // ============================================================
@@ -3318,6 +3289,8 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
   // Gerador de IA: modal aberto? + mensagem de sucesso transiente.
   const [gerarOpen, setGerarOpen] = useState(false);
   const [gerarMsg, setGerarMsg] = useState<string | null>(null);
+  // Modal "Posts no período": lista os posts publicados que compõem o card.
+  const [verPostsPeriodo, setVerPostsPeriodo] = useState(false);
 
   // Seguidores AO VIVO do Instagram — sobrepõe o seed quando o token está
   // configurado no servidor. Silencioso: sem token/erro, o card cai pro estado
@@ -3449,6 +3422,7 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
     if (periodDays == null) {
       return {
         ...agg(desempRows),
+        posts: desempRows,
         topCaptacao: topPor(desempRows, scoreCaptacao),
         topSeguidores: topPor(desempRows, scoreSeguidores),
         delta: { views: null, reach: null, interacoes: null, novosSeg: null, count: null },
@@ -3472,6 +3446,7 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
     const pct = (c: number, p: number) => (p === 0 ? null : ((c - p) / p) * 100);
     return {
       ...cur,
+      posts: curRows,
       topCaptacao: topPor(curRows, scoreCaptacao),
       topSeguidores: topPor(curRows, scoreSeguidores),
       delta: {
@@ -3721,10 +3696,20 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
           current={kpi.count}
           goal={metaDe(metas?.posts)}
           goalLabel={metaLabel}
-          hint="posts publicados"
+          hint={report.posts.length > 0 ? 'toque para ver a lista' : 'posts publicados'}
           delta={kpiDelta.count}
+          onClick={report.posts.length > 0 ? () => setVerPostsPeriodo(true) : undefined}
         />
       </div>
+
+      {verPostsPeriodo && (
+        <PostsPeriodoModal
+          posts={report.posts}
+          cronograma={posts}
+          periodoLabel={periodDays == null ? 'todo o período' : `últimos ${periodDays} dias`}
+          onClose={() => setVerPostsPeriodo(false)}
+        />
+      )}
 
       {report.count === 0 ? (
         <EmptyState

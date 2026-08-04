@@ -21,12 +21,13 @@ import {
   handleAtualizarConteudo,
   handleRemoverConteudo,
 } from './conteudo.js';
-import { handleGerarConteudo } from './conteudo-gerar.js';
+import { handleGerarConteudo, handleCronProcessarReferencias } from './conteudo-gerar.js';
 import {
   handleCriarDesempenho,
   handleAtualizarDesempenho,
   handleRemoverDesempenho,
   handleSincronizarDesempenho,
+  handleCronSyncDesempenho,
 } from './desempenho.js';
 import { handlePerfilInstagram, handleAccountInsights } from './instagram-api.js';
 import { dbQuery } from '../db/client.js';
@@ -59,6 +60,13 @@ app.post('/api/conteudo/desempenho/sync', (c) => handleSincronizarDesempenho(c))
 app.post('/api/conteudo/desempenho', (c) => handleCriarDesempenho(c));
 app.patch('/api/conteudo/desempenho/:id', (c) => handleAtualizarDesempenho(c));
 app.delete('/api/conteudo/desempenho/:id', (c) => handleRemoverDesempenho(c));
+
+// --- Cron: sincroniza o desempenho do Instagram (agendado na Vercel; sem sessão,
+// validado pelo CRON_SECRET que a Vercel envia no header Authorization). ---
+app.get('/api/cron/sync-desempenho', (c) => handleCronSyncDesempenho(c));
+
+// --- Cron: processa referências pendentes do Telegram → rascunhos (validado por CRON_SECRET). ---
+app.get('/api/cron/processar-referencias', (c) => handleCronProcessarReferencias(c));
 
 // --- Perfil do Instagram (seguidores) para o painel (LEITURA autenticada) ---
 app.get('/api/instagram/profile', (c) => handlePerfilInstagram(c));

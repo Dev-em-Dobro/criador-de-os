@@ -34,3 +34,5 @@ Thumbs.db
 apps/*/dist/
 packages/*/dist/
 .gstack/
+
+.vercel

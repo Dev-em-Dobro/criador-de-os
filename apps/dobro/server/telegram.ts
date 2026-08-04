@@ -10,8 +10,15 @@
  *  - a única credencial é o `secret_token` que configuramos no setWebhook. O
  *    Telegram o devolve no header `X-Telegram-Bot-Api-Secret-Token` em TODO
  *    request. Sem secret configurado ou header divergente → 401 (fail-closed).
- *  - a escrita usa o client `dbIngest` (role `app_ingest`): INSERT só em
- *    `referencias`, nada mais. Defesa em profundidade no nível do banco.
+ *  - a CAPTURA usa o client `dbIngest` (role `app_ingest`, INSERT só em
+ *    `referencias`). A GERAÇÃO do rascunho na hora usa `dbPipeline` (role
+ *    `app_pipeline`: SELECT/INSERT/UPDATE em `referencias` + `conteudo_posts`), a
+ *    mesma da rota `/api/conteudo/gerar` — menor privilégio que o owner.
+ *
+ * GATILHO IMEDIATO: ao capturar um link, já geramos o rascunho aqui (não espera o
+ * cron diário). É best-effort: se falhar ou estourar o tempo da function, a
+ * referência fica 'pendente' e o cron `/api/cron/processar-referencias` é a rede
+ * de segurança que a pega no próximo ciclo.
  *
  * Devolvemos 200 mesmo em "não capturei" (sem link / erro de banco): o Telegram
  * re-tenta em cima de status != 2xx, e não queremos loop de retry. O que deu
@@ -19,9 +26,11 @@
  */
 
 import type { Context } from 'hono';
-import { dbIngest } from '../db/client.js';
+import { and, eq } from 'drizzle-orm';
+import { dbIngest, dbPipeline } from '../db/client.js';
 import { referencias } from '../db/schema.js';
-import { getTelegramBotToken, getTelegramWebhookSecret } from './env.js';
+import { criarRascunho } from './conteudo-pipeline.js';
+import { getAgencyAnthropicKey, getTelegramBotToken, getTelegramWebhookSecret } from './env.js';
 
 /** Casca mínima de um update do Telegram (só o que usamos). */
 interface TelegramMessage {
@@ -78,6 +87,20 @@ export async function handleTelegramWebhook(c: Context): Promise<Response> {
   const nota = text.replace(link, '').trim() || null;
 
   try {
+    // DEDUP — se já existe uma referência PENDENTE com este link (re-entrega do
+    // mesmo update pelo Telegram, ou link colado 2x antes de processar), não cria
+    // outra nem gera rascunho de novo. Evita post duplicado no board.
+    const [dup] = await dbPipeline
+      .select({ id: referencias.id })
+      .from(referencias)
+      .where(and(eq(referencias.origemUrl, link), eq(referencias.status, 'pendente')))
+      .limit(1);
+    if (dup) {
+      await maybeReply(chatId, 'Esse link já tá na fila ✅ O esboço já vem.');
+      return c.json({ ok: true, captured: true, duplicate: true, id: dup.id });
+    }
+
+    // Captura (INSERT via role de menor privilégio, app_ingest).
     const [row] = await dbIngest
       .insert(referencias)
       .values({
@@ -91,8 +114,30 @@ export async function handleTelegramWebhook(c: Context): Promise<Response> {
       })
       .returning({ id: referencias.id });
 
-    await maybeReply(chatId, `Referência capturada ✅ Vou gerar um esboço a partir dela.`);
-    return c.json({ ok: true, captured: true, id: row?.id });
+    // Feedback imediato antes do trabalho pesado (a geração leva ~20-30s).
+    await maybeReply(chatId, 'Referência capturada ✅ Gerando o esboço agora...');
+
+    // GATILHO — gera o rascunho JÁ, sem esperar o cron diário. Best-effort: sem a
+    // chave da Claude no server, ou se a geração falhar, a referência segue
+    // 'pendente' e o cron `/api/cron/processar-referencias` pega no próximo ciclo.
+    let generated: { id?: string; titulo?: string; formato?: string } | null = null;
+    const apiKey = getAgencyAnthropicKey();
+    if (apiKey && row?.id) {
+      try {
+        const r = await criarRascunho(dbPipeline, apiKey, { referenciaId: row.id });
+        if (r.created) {
+          generated = { id: r.id, titulo: r.titulo, formato: r.formato };
+          await maybeReply(chatId, `Esboço pronto ✅ "${r.titulo}" (${r.formato}). Tá no board como rascunho.`);
+        } else {
+          await maybeReply(chatId, 'Capturei, mas não gerei agora. Fica pro processamento automático.');
+        }
+      } catch (genErr) {
+        console.error('[telegram] geração inline falhou:', genErr instanceof Error ? genErr.message : genErr);
+        await maybeReply(chatId, 'Capturei ✅ O esboço sai no processamento automático (deu um erro agora).');
+      }
+    }
+
+    return c.json({ ok: true, captured: true, id: row?.id, generated });
   } catch (err) {
     console.error('[telegram] falha ao gravar referência:', err instanceof Error ? err.message : err);
     // 200 de propósito (evita retry-storm do Telegram); erro fica no log.

@@ -304,3 +304,28 @@ export async function handleSincronizarDesempenho(c: Context): Promise<Response>
     return c.json({ error: 'Erro ao sincronizar com o Instagram' }, 500);
   }
 }
+
+/**
+ * GET /api/cron/sync-desempenho — sincroniza o desempenho AUTOMATICAMENTE (Vercel
+ * Cron). NÃO usa sessão do Better Auth: valida o `CRON_SECRET` que a Vercel envia
+ * no header Authorization ("Bearer <secret>"). Sem `CRON_SECRET` configurado ou
+ * header divergente → 401 (fail-closed). Idempotente (UPSERT por media_id).
+ */
+export async function handleCronSyncDesempenho(c: Context): Promise<Response> {
+  const secret = process.env.CRON_SECRET?.trim();
+  if (!secret || c.req.header('authorization') !== `Bearer ${secret}`) {
+    return c.json({ error: 'unauthorized' }, 401);
+  }
+  if (!getInstagramInsightsToken()) {
+    return c.json({ error: 'Token do Instagram ausente no servidor' }, 503);
+  }
+  try {
+    const r = await syncDesempenhoFromInsights(dbContent, { limit: 30 });
+    console.log(`[cron:sync] OK — ${r.total} mídias, ${r.inserted} novos, ${r.updated} atualizados`);
+    return c.json({ ok: true, inserted: r.inserted, updated: r.updated, total: r.total });
+  } catch (err) {
+    if (err instanceof InsightsError) return c.json({ error: `Instagram: ${err.message}` }, 422);
+    console.error('[cron:sync] erro:', err instanceof Error ? err.message : err);
+    return c.json({ error: 'Erro ao sincronizar' }, 500);
+  }
+}

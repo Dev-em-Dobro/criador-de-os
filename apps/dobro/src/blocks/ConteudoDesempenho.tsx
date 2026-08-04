@@ -24,7 +24,6 @@ import type { ReactNode } from 'react';
 import { SectionHeader, EmptyState, SkeletonCards } from '@os/core';
 import type { BlockDefinition, BlockProps } from '@os/core';
 import { GuiaMetricas } from './ConteudoGuiaMetricas';
-import { ConteudoAnalise } from './ConteudoAnalise';
 
 // ============================================================
 // Helpers (locais — o bloco não importa internals de @os/blocks)
@@ -1201,9 +1200,6 @@ function ConteudoDesempenhoBlock({ config, ctx }: BlockProps<ConteudoDesempenhoC
           <span>{syncMsg.text}</span>
         </div>
       )}
-
-      {/* ANÁLISE — "o que funciona pro nosso perfil" (Lead Score, todo o histórico). */}
-      {allTotal > 0 && <ConteudoAnalise rows={sortedRows} />}
 
       {allTotal === 0 ? (
         <EmptyState
