@@ -15,7 +15,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { referencias, conteudoPosts } from '../db/schema.js';
 import { fetchInstagramContent } from './instagram.js';
@@ -400,8 +400,19 @@ function montarPauta(d: DraftResult): string {
   return linhas.join('\n');
 }
 
-/** Insere o rascunho em `conteudo_posts` e devolve o id criado. */
-async function inserirRascunhoPost(
+/**
+ * Grava o rascunho em `conteudo_posts` e devolve o id.
+ *
+ * COMPLETA o card-esqueleto quando ele existe. O webhook do Telegram cria um card
+ * vazio no instante da captura, pra você ver na hora que o link chegou; quando a
+ * geração termina, ela preenche ESSE card em vez de criar outro. Sem isso, cada
+ * link viraria dois cards no board.
+ *
+ * O esqueleto é reconhecido por `roteiro IS NULL` — é o campo que só a geração
+ * preenche. Um card já gerado nunca é sobrescrito: reprocessar uma referência
+ * cria um card novo de propósito, que é o que permite comparar antes e depois.
+ */
+async function salvarRascunhoPost(
   database: Database,
   draft: DraftResult,
   referenciaId: string | null,
@@ -413,26 +424,70 @@ async function inserirRascunhoPost(
       ? { formato: 'carrossel', slides: draft.slides ?? [], capa_brief: draft.capa_brief }
       : { formato: 'reels', cenas: draft.cenas ?? [], capa_brief: draft.capa_brief };
 
+  const campos = {
+    titulo: draft.titulo,
+    formato: draft.formato,
+    gancho: draft.gancho,
+    pauta: montarPauta(draft),
+    legenda: draft.legenda,
+    hashtags: hashtagsToText(draft.hashtags),
+    ctaFinal: draft.cta_final,
+    briefing,
+    refsLinks,
+    roteiro,
+    updatedAt: new Date(),
+  };
+
+  if (referenciaId) {
+    const [esqueleto] = await database
+      .select({ id: conteudoPosts.id })
+      .from(conteudoPosts)
+      .where(and(eq(conteudoPosts.referenciaId, referenciaId), isNull(conteudoPosts.roteiro)))
+      .limit(1);
+
+    if (esqueleto) {
+      await database.update(conteudoPosts).set(campos).where(eq(conteudoPosts.id, esqueleto.id));
+      return esqueleto.id;
+    }
+  }
+
   const [row] = await database
     .insert(conteudoPosts)
-    .values({
-      referenciaId,
-      titulo: draft.titulo,
-      estado: 'rascunho',
-      plataforma: 'instagram',
-      formato: draft.formato,
-      gancho: draft.gancho,
-      pauta: montarPauta(draft),
-      legenda: draft.legenda,
-      hashtags: hashtagsToText(draft.hashtags),
-      ctaFinal: draft.cta_final,
-      briefing,
-      refsLinks,
-      roteiro,
-    })
+    .values({ referenciaId, estado: 'rascunho', plataforma: 'instagram', ...campos })
     .returning({ id: conteudoPosts.id });
 
   return row?.id;
+}
+
+/**
+ * Cria o card-esqueleto de uma referência recém-capturada: aparece no board na
+ * hora, com o link, e é completado quando a geração roda. Devolve o id (ou
+ * undefined se falhar — ver o card é um conforto, não pode derrubar a captura).
+ */
+export async function criarEsqueletoDoCard(
+  database: Database,
+  referenciaId: string,
+  origemUrl: string,
+  notaTime: string | null,
+): Promise<string | undefined> {
+  try {
+    const [row] = await database
+      .insert(conteudoPosts)
+      .values({
+        referenciaId,
+        titulo: '⏳ Referência capturada (gerando...)',
+        estado: 'rascunho',
+        plataforma: 'instagram',
+        formato: 'carrossel',
+        refsLinks: notaTime ? `${origemUrl}\n(nota: ${notaTime})` : origemUrl,
+        // `roteiro` fica NULL de propósito: é ele que marca este card como esqueleto.
+      })
+      .returning({ id: conteudoPosts.id });
+    return row?.id;
+  } catch (err) {
+    console.warn('[esqueleto] não criou o card:', err instanceof Error ? err.message : err);
+    return undefined;
+  }
 }
 
 /**
@@ -491,13 +546,23 @@ export interface CriarRascunhoResult {
 export async function criarRascunho(
   database: Database,
   apiKey: string,
-  opts: { referenciaId?: string; tema?: string; formatoAlvo?: 'carrossel' | 'reels' } = {},
+  opts: {
+    referenciaId?: string;
+    tema?: string;
+    formatoAlvo?: 'carrossel' | 'reels';
+    /**
+     * Gera carrossel mesmo sem conseguir ler os slides (o rascunho sai raso).
+     * Só para chamadas em que um humano pediu e está vendo o resultado: os
+     * scripts admin e a rota `/api/conteudo/gerar`. Automação nunca passa isto.
+     */
+    permitirSemSlides?: boolean;
+  } = {},
 ): Promise<CriarRascunhoResult> {
   // Tema livre: gera sem referência.
   if (opts.tema && opts.tema.trim()) {
     const draft = await gerarRascunho({ tema: opts.tema.trim(), formatoAlvo: opts.formatoAlvo }, apiKey);
     const previsao = await preverBestEffort(draft, apiKey);
-    const id = await inserirRascunhoPost(
+    const id = await salvarRascunhoPost(
       database,
       draft,
       null,
@@ -540,11 +605,15 @@ export async function criarRascunho(
     // Só funciona LOCAL (Playwright + sessão logada); na Vercel devolve null e
     // seguimos com a legenda, como antes.
     if (formatoRef === 'carrossel') {
-      // A FILA não gera carrossel raso: se não dá pra ler os slides aqui (é o caso
-      // do cron na Vercel), a referência é ADIADA e fica esperando o PC. Sem isto,
-      // o cron criava um card fraco e o card bom virava duplicata depois.
-      // Quando VOCÊ aponta a referência (`referenciaId`), a decisão é sua: roda.
-      if (!opts.referenciaId && !podeLerSlides()) {
+      // Não geramos carrossel raso automaticamente: sem leitura de slides (cron e
+      // webhook na Vercel), a referência é ADIADA e fica esperando o PC. Sem isto,
+      // nascia um card fraco e o card bom virava duplicata depois.
+      //
+      // `permitirSemSlides` é EXPLÍCITO de propósito. A versão anterior deduzia
+      // "foi um humano que pediu" da presença de `referenciaId` — mas o webhook do
+      // Telegram também passa `referenciaId`, então ele teria voltado a gerar
+      // carrossel raso na Vercel. Só quem sabe se a decisão é humana é quem chama.
+      if (!opts.permitirSemSlides && !podeLerSlides()) {
         await database
           .update(referencias)
           .set({ status: STATUS_AGUARDANDO_SLIDES })
@@ -599,7 +668,7 @@ export async function criarRascunho(
   );
 
   const previsao = await preverBestEffort(draft, apiKey);
-  const id = await inserirRascunhoPost(
+  const id = await salvarRascunhoPost(
     database,
     draft,
     ref.id,

@@ -64,7 +64,7 @@ async function main(): Promise<void> {
   const referenciaId = await resolverId(alvo);
   console.log(`[pipeline] processando referência ${referenciaId}...`);
 
-  const r = await criarRascunho(db, apiKey, { referenciaId });
+  const r = await criarRascunho(db, apiKey, { referenciaId, permitirSemSlides: true });
   if (!r.created) {
     console.error(`[pipeline] não gerou rascunho: ${r.reason ?? 'motivo desconhecido'}`);
     process.exit(1);

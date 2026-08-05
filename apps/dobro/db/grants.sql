@@ -108,9 +108,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON conteudo_desempenho TO app_content;
 --     rascunho em `conteudo_posts`. Menos privilégio que o owner do script admin:
 --     não deleta nada e não toca auth nem as views.
 --       · referencias    → SELECT/INSERT/UPDATE (semeia link, lê pendente, marca processada)
---       · conteudo_posts  → SELECT/INSERT (grava o rascunho; SELECT p/ o RETURNING)
+--       · conteudo_posts  → SELECT/INSERT/UPDATE (grava o rascunho; SELECT p/ o
+--         RETURNING; UPDATE para COMPLETAR o card-esqueleto que o webhook do
+--         Telegram cria na hora da captura — sem isso o esqueleto ficaria órfão e
+--         a geração criaria um segundo card, que é a duplicata que a gente quer evitar)
 GRANT SELECT, INSERT, UPDATE ON referencias    TO app_pipeline;
-GRANT SELECT, INSERT         ON conteudo_posts TO app_pipeline;
+GRANT SELECT, INSERT, UPDATE ON conteudo_posts TO app_pipeline;
 
 -- 7) Permite ao owner assumir cada role (SET ROLE) — necessário para TESTAR a
 --    defesa com db/verify-grants.ts. Em produção, a API usa a connection string

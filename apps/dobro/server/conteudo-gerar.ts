@@ -123,7 +123,7 @@ export async function handleGerarConteudo(c: Context): Promise<Response> {
         .returning({ id: referencias.id });
       if (!ref?.id) throw new InputError('falha ao registrar a referência', 422);
 
-      const r = await criarRascunho(dbPipeline, apiKey, { referenciaId: ref.id, formatoAlvo });
+      const r = await criarRascunho(dbPipeline, apiKey, { referenciaId: ref.id, formatoAlvo, permitirSemSlides: true });
       if (!r.created) throw new InputError(r.reason ?? 'não foi possível gerar o rascunho', 422);
       return c.json(
         { created: true, id: r.id, titulo: r.titulo, formato: r.formato, previsao: r.previsao ?? null },
@@ -132,7 +132,7 @@ export async function handleGerarConteudo(c: Context): Promise<Response> {
     }
 
     // Caminho TEMA livre: gera direto, sem referência.
-    const r = await criarRascunho(dbPipeline, apiKey, { tema: tema!, formatoAlvo });
+    const r = await criarRascunho(dbPipeline, apiKey, { tema: tema!, formatoAlvo, permitirSemSlides: true });
     if (!r.created) throw new InputError(r.reason ?? 'não foi possível gerar o rascunho', 422);
     return c.json(
       { created: true, id: r.id, titulo: r.titulo, formato: r.formato, previsao: r.previsao ?? null },

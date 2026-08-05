@@ -29,7 +29,7 @@ import type { Context } from 'hono';
 import { and, eq } from 'drizzle-orm';
 import { dbIngest, dbPipeline } from '../db/client.js';
 import { referencias } from '../db/schema.js';
-import { criarRascunho } from './conteudo-pipeline.js';
+import { criarRascunho, criarEsqueletoDoCard } from './conteudo-pipeline.js';
 import { getAgencyAnthropicKey, getTelegramBotToken, getTelegramWebhookSecret } from './env.js';
 
 /** Casca mínima de um update do Telegram (só o que usamos). */
@@ -114,12 +114,23 @@ export async function handleTelegramWebhook(c: Context): Promise<Response> {
       })
       .returning({ id: referencias.id });
 
+    // CARD NA HORA — antes de qualquer trabalho pesado, cria o card-esqueleto no
+    // board. É o que responde "será que entrou?": você manda o link e o card já
+    // está lá, com o link dentro. A geração COMPLETA esse mesmo card depois, em
+    // vez de criar outro (ver `salvarRascunhoPost`).
+    if (row?.id) await criarEsqueletoDoCard(dbPipeline, row.id, link, nota);
+
     // Feedback imediato antes do trabalho pesado (a geração leva ~20-30s).
-    await maybeReply(chatId, 'Referência capturada ✅ Gerando o esboço agora...');
+    await maybeReply(chatId, 'Referência capturada ✅ Já tá no board. Gerando o esboço...');
 
     // GATILHO — gera o rascunho JÁ, sem esperar o cron diário. Best-effort: sem a
     // chave da Claude no server, ou se a geração falhar, a referência segue
     // 'pendente' e o cron `/api/cron/processar-referencias` pega no próximo ciclo.
+    //
+    // NÃO passa `permitirSemSlides`: aqui é automação rodando na Vercel, onde não
+    // dá pra ler os slides. Carrossel é ADIADO (fica `aguardando_slides`) e o card
+    // continua esqueleto até o processamento local completar. Melhor um card
+    // esperando do que um carrossel escrito sobre o tema errado.
     let generated: { id?: string; titulo?: string; formato?: string } | null = null;
     const apiKey = getAgencyAnthropicKey();
     if (apiKey && row?.id) {
@@ -128,6 +139,12 @@ export async function handleTelegramWebhook(c: Context): Promise<Response> {
         if (r.created) {
           generated = { id: r.id, titulo: r.titulo, formato: r.formato };
           await maybeReply(chatId, `Esboço pronto ✅ "${r.titulo}" (${r.formato}). Tá no board como rascunho.`);
+        } else if (r.adiada) {
+          await maybeReply(
+            chatId,
+            'Carrossel ✅ O card já tá no board. Pra escrever direito eu preciso LER os slides, ' +
+              'e isso só roda no PC. Me peça "processa" quando quiser.',
+          );
         } else {
           await maybeReply(chatId, 'Capturei, mas não gerei agora. Fica pro processamento automático.');
         }
