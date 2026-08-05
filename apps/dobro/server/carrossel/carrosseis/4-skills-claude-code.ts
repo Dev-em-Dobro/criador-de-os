@@ -32,6 +32,13 @@
  * O número de estrelas do Task Observer (1,5 mil) fica de fora do slide: ao lado
  * de 114 mil e 13 mil ele só enfraquece o argumento, que ali é o que a ferramenta
  * faz. Número só quando ajuda. SEM travessão.
+ *
+ * GANCHO, decisão do dono (05/08/2026): o "99% dos outros programadores" é
+ * ESCOLHA DELIBERADA, não descuido. Espelha o gancho da referência que ele
+ * escolheu seguir ("5 CLAUDE SKILLS TO GET YOU AHEAD OF 99% OF PEOPLE"). É o
+ * único número do carrossel sem fonte, e fica de fora da regra de precisão acima
+ * por ser hipérbole de gancho, não afirmação sobre a ferramenta. Não "corrija"
+ * isso numa próxima passada.
  */
 import type { Carrossel } from '../types';
 
@@ -40,8 +47,7 @@ const SHOT = 'server/carrossel/assets/4-skills-claude-code';
 export const quatroSkillsClaudeCode: Carrossel = {
   slug: '4-skills-claude-code',
   titulo: '4 skills do Claude Code',
-  gancho:
-    '4 skills fazem o Claude Code parar de entregar projeto com cara de IA, e você não precisa saber design nem segurança pra usar.',
+  gancho: '4 skills do Claude te deixam à frente de 99% dos outros programadores.',
   refsLinks:
     'https://github.com/nextlevelbuilder/ui-ux-pro-max-skill · https://github.com/rebelytics/one-skill-to-rule-them-all · https://github.com/greensock/gsap-skills · https://code.claude.com/docs/en/slash-commands',
   dataProgramada: '2026-08-06',
@@ -50,8 +56,10 @@ export const quatroSkillsClaudeCode: Carrossel = {
       variant: 'photo',
       cover: true,
       semFundo: true,
+      /** Título 30% menor: o gancho é longo e no tamanho cheio ele engolia a capa. */
+      tituloMenor: true,
       titulo:
-        '4 skills fazem o\n**Claude Code**\nparar de entregar\nprojeto com\ncara de IA.',
+        '4 skills do **Claude**\nte deixam à frente\nde **99%** dos outros\nprogramadores.',
       corpo: 'Duas você instala, uma já vem de graça 👉',
     },
     {
