@@ -125,13 +125,19 @@ export async function handleGerarConteudo(c: Context): Promise<Response> {
 
       const r = await criarRascunho(dbPipeline, apiKey, { referenciaId: ref.id, formatoAlvo });
       if (!r.created) throw new InputError(r.reason ?? 'não foi possível gerar o rascunho', 422);
-      return c.json({ created: true, id: r.id, titulo: r.titulo, formato: r.formato }, 201);
+      return c.json(
+        { created: true, id: r.id, titulo: r.titulo, formato: r.formato, previsao: r.previsao ?? null },
+        201,
+      );
     }
 
     // Caminho TEMA livre: gera direto, sem referência.
     const r = await criarRascunho(dbPipeline, apiKey, { tema: tema!, formatoAlvo });
     if (!r.created) throw new InputError(r.reason ?? 'não foi possível gerar o rascunho', 422);
-    return c.json({ created: true, id: r.id, titulo: r.titulo, formato: r.formato }, 201);
+    return c.json(
+      { created: true, id: r.id, titulo: r.titulo, formato: r.formato, previsao: r.previsao ?? null },
+      201,
+    );
   } catch (err) {
     if (err instanceof InputError) return c.json({ error: err.message }, err.status);
     // Recusa do modelo é do usuário saber (mensagem clara), não um 500 cru.
@@ -155,8 +161,11 @@ export async function handleCronProcessarReferencias(c: Context): Promise<Respon
   const apiKey = getAgencyAnthropicKey();
   if (!apiKey) return c.json({ error: 'ANTHROPIC_API_KEY ausente no servidor' }, 503);
   try {
-    // Limite baixo: cada ref leva ~15s (IA + enriquecimento) e a function tem teto de 60s.
-    const { processadas, rascunhos } = await processarReferenciasPendentes(apiKey, 3);
+    // A function tem teto de 60s e cada ref leva ~15s (IA + enriquecimento) + ~13s
+    // da previsão. Em vez de chutar um limite fixo, damos um ORÇAMENTO de 25s: só
+    // começa mais uma referência se ainda houver tempo. O que sobrar fica pendente
+    // para a próxima execução.
+    const { processadas, rascunhos } = await processarReferenciasPendentes(apiKey, 3, 25_000);
     console.log(`[cron:processar] ${processadas} referência(s), ${rascunhos.length} rascunho(s)`);
     return c.json({ ok: true, processadas, rascunhos: rascunhos.length });
   } catch (err) {

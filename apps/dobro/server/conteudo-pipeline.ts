@@ -19,6 +19,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { referencias, conteudoPosts } from '../db/schema.js';
 import { fetchInstagramContent } from './instagram.js';
+import { preverDesempenho, formatarPrevisaoBriefing, type PrevisaoIa } from './conteudo-previsao.js';
 
 /** Client Drizzle (owner OU role de menor privilégio) — injetado nas escritas. */
 type Database = typeof db;
@@ -384,6 +385,7 @@ async function inserirRascunhoPost(
   database: Database,
   draft: DraftResult,
   referenciaId: string | null,
+  briefing: string | null,
 ): Promise<string | undefined> {
   const roteiro =
     draft.formato === 'carrossel'
@@ -403,11 +405,41 @@ async function inserirRascunhoPost(
       legenda: draft.legenda,
       hashtags: hashtagsToText(draft.hashtags),
       ctaFinal: draft.cta_final,
+      briefing,
       roteiro,
     })
     .returning({ id: conteudoPosts.id });
 
   return row?.id;
+}
+
+/**
+ * Registra a PREVISÃO da IA para este rascunho ("Placar da IA", metade previsto).
+ * É uma segunda chamada, com avaliador cético independente — ver `conteudo-previsao.ts`.
+ *
+ * BEST-EFFORT de propósito: se a previsão falhar (timeout, recusa, erro de rede),
+ * o rascunho é gravado do mesmo jeito, só que sem o bloco de previsão. O post é o
+ * produto; a previsão é o extra que a gente está testando.
+ */
+async function preverBestEffort(draft: DraftResult, apiKey: string): Promise<PrevisaoIa | null> {
+  try {
+    return await preverDesempenho(
+      {
+        formato: draft.formato,
+        titulo: draft.titulo,
+        gancho: draft.gancho,
+        slides: draft.slides,
+        cenas: draft.cenas,
+        legenda: draft.legenda,
+        ctaFinal: draft.cta_final,
+        hashtags: hashtagsToText(draft.hashtags),
+      },
+      apiKey,
+    );
+  } catch (err) {
+    console.warn('[conteudo:previsao] falhou (rascunho segue sem previsão):', err instanceof Error ? err.message : err);
+    return null;
+  }
 }
 
 /** Resultado de uma geração de rascunho. */
@@ -416,6 +448,8 @@ export interface CriarRascunhoResult {
   id?: string;
   titulo?: string;
   formato?: string;
+  /** Previsão da IA registrada junto (null se a previsão falhou). */
+  previsao?: PrevisaoIa | null;
   /** Motivo quando `created` é false (ex.: 'sem referências pendentes'). */
   reason?: string;
 }
@@ -435,8 +469,14 @@ export async function criarRascunho(
   // Tema livre: gera sem referência.
   if (opts.tema && opts.tema.trim()) {
     const draft = await gerarRascunho({ tema: opts.tema.trim(), formatoAlvo: opts.formatoAlvo }, apiKey);
-    const id = await inserirRascunhoPost(database, draft, null);
-    return { created: true, id, titulo: draft.titulo, formato: draft.formato };
+    const previsao = await preverBestEffort(draft, apiKey);
+    const id = await inserirRascunhoPost(
+      database,
+      draft,
+      null,
+      previsao ? formatarPrevisaoBriefing(previsao) : null,
+    );
+    return { created: true, id, titulo: draft.titulo, formato: draft.formato, previsao };
   }
 
   // A partir de uma referência (específica ou a próxima pendente).
@@ -497,25 +537,40 @@ export async function criarRascunho(
     apiKey,
   );
 
-  const id = await inserirRascunhoPost(database, draft, ref.id);
+  const previsao = await preverBestEffort(draft, apiKey);
+  const id = await inserirRascunhoPost(
+    database,
+    draft,
+    ref.id,
+    previsao ? formatarPrevisaoBriefing(previsao) : null,
+  );
   await database
     .update(referencias)
     .set({ status: 'processada', analise: draft.analise })
     .where(eq(referencias.id, ref.id));
 
-  return { created: true, id, titulo: draft.titulo, formato: draft.formato };
+  return { created: true, id, titulo: draft.titulo, formato: draft.formato, previsao };
 }
 
 /**
  * Processa até `limit` referências pendentes (script admin, roda como OWNER).
  * Encadeia `criarRascunho` (próxima pendente) até acabar ou atingir o limite.
+ *
+ * `orcamentoMs` é a trava de tempo para quem roda com teto de execução (a rota de
+ * cron na Vercel tem 60s): antes de COMEÇAR mais uma referência, se já passou do
+ * orçamento, para. Uma referência leva ~15s de geração + até 25s de previsão, e o
+ * que sobrar pendente simplesmente entra na próxima execução. Sem orçamento
+ * (`0`), roda até o limite — é o caso do script admin no terminal.
  */
 export async function processarReferenciasPendentes(
   apiKey: string,
   limit = 5,
+  orcamentoMs = 0,
 ): Promise<{ processadas: number; rascunhos: string[] }> {
   const rascunhos: string[] = [];
+  const inicio = Date.now();
   for (let i = 0; i < limit; i++) {
+    if (orcamentoMs > 0 && i > 0 && Date.now() - inicio > orcamentoMs) break;
     const r = await criarRascunho(db, apiKey, {});
     if (!r.created) break;
     if (r.id) rascunhos.push(r.id);
