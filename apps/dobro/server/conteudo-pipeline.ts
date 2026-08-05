@@ -322,12 +322,39 @@ export async function gerarRascunho(input: GerarInput, apiKey: string): Promise<
   throw new Error('Excedeu o limite de iterações sem publicar o rascunho.');
 }
 
-/** Normaliza hashtags (o modelo pode devolver array OU string) para texto "a b c". */
+/**
+ * Normaliza hashtags para o texto "a b c".
+ *
+ * O modelo devolve isto de três jeitos: array de verdade, string simples, ou a
+ * string de um array JSON (`["a", "b"]`). O terceiro caso escapava e ia parar no
+ * board como `claudecode" "programacao" ... "carreiratech"]`, com aspas e
+ * colchete no meio das hashtags — que é o que a pessoa copia e cola no post.
+ */
 function hashtagsToText(h: unknown): string {
-  const clean = (s: string) => s.trim().replace(/^#/, '');
-  if (Array.isArray(h)) return h.map((x) => clean(String(x))).filter(Boolean).join(' ');
-  if (typeof h === 'string') return h.split(/[\s,]+/).map(clean).filter(Boolean).join(' ');
-  return '';
+  // Tira "#", aspas, colchetes e vírgulas das bordas de cada item.
+  const clean = (s: string) =>
+    String(s)
+      .trim()
+      .replace(/^[[\]"'`,\s]+|[[\]"'`,\s]+$/g, '')
+      .replace(/^#/, '');
+
+  const itens = (() => {
+    if (Array.isArray(h)) return h;
+    if (typeof h !== 'string') return [];
+    const s = h.trim();
+    // String que na verdade é um array JSON: parseia em vez de fatiar no espaço.
+    if (s.startsWith('[')) {
+      try {
+        const parsed: unknown = JSON.parse(s);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        /* não era JSON válido; cai no split abaixo */
+      }
+    }
+    return s.split(/[\s,]+/);
+  })();
+
+  return itens.map(clean).filter(Boolean).join(' ');
 }
 
 /** Remove tags tipo `<parameter>`/`</parameter>` que o modelo às vezes vaza no texto. */

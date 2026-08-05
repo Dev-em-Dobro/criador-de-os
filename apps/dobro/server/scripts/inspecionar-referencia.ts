@@ -45,7 +45,9 @@ async function main(): Promise<void> {
     console.log(`  capa: ${r.capaUrl ? 'sim' : '(nenhuma)'}`);
     console.log(`  métricas capturadas: ${r.metricasRef ? JSON.stringify(r.metricasRef) : '(nenhuma)'}`);
     console.log(`\n  --- CONTEÚDO BRUTO (o que a IA leu do post) ---`);
-    console.log(`  ${trecho(r.conteudoBruto).split('\n').join('\n  ')}`);
+    // Com --full sai a transcrição inteira: é ela que diz se o pipeline leu os
+    // slides ou só a legenda, e cortada ela não serve pra conferir isso.
+    console.log(`  ${trecho(r.conteudoBruto, process.argv.includes('--full') ? 20000 : 600).split('\n').join('\n  ')}`);
     console.log(`\n  --- ANÁLISE (teardown que a IA escreveu) ---`);
     console.log(`  ${trecho(r.analise, 400).split('\n').join('\n  ')}`);
 
@@ -61,6 +63,10 @@ async function main(): Promise<void> {
       console.log(`    gancho: ${p.gancho ?? '(sem gancho)'}`);
       console.log(`    previsão no briefing: ${p.briefing ? 'sim' : 'não'}`);
       console.log(`    campo Referências: ${p.refsLinks ? p.refsLinks.split('\n').join(' | ') : '(vazio)'}`);
+      const quando = p.dataProgramada
+        ? (p.dataProgramada instanceof Date ? p.dataProgramada.toISOString() : String(p.dataProgramada))
+        : '(sem data — não está no cronograma)';
+      console.log(`    data programada: ${quando}`);
       // Com --full sai o post inteiro (slides + previsão), pra revisar no terminal.
       if (process.argv.includes('--full')) {
         console.log(`\n    PAUTA:\n      ${(p.pauta ?? '').split('\n').join('\n      ')}`);
