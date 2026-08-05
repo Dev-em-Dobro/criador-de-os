@@ -844,8 +844,9 @@ interface SchedRow {
   formato: string;
   estado: string;
   cta: string;
+  /** Link do presente entregue no CTA. É o que vira o "abrir ↗" no card. */
   link: string;
-  /** Briefing (planejamento): link do Notion da postagem. */
+  /** Briefing (planejamento): link externo do briefing. Sem input hoje, só preservado. */
   briefingUrl: string;
   /** Briefing (planejamento): texto do briefing. */
   briefing: string;
@@ -1060,13 +1061,13 @@ function EditarPostModal({
             </label>
           </div>
           <label className="block">
-            <span className={labelCls}>Link do Notion</span>
+            <span className={labelCls}>Link do presente</span>
             <TextInput
               type="url"
               inputMode="url"
-              value={d.briefingUrl}
-              placeholder="https://notion.so/…"
-              onChange={(e) => set('briefingUrl', e.target.value)}
+              value={d.link}
+              placeholder="https://… (o material que o CTA promete entregar)"
+              onChange={(e) => set('link', e.target.value)}
               className="mt-1"
             />
           </label>
@@ -1075,7 +1076,7 @@ function EditarPostModal({
             <TextArea
               value={d.briefing}
               rows={4}
-              placeholder="Cole aqui o briefing da postagem (ou use o link do Notion acima)."
+              placeholder="Cole aqui o briefing da postagem."
               onChange={(e) => set('briefing', e.target.value)}
               className="mt-1"
             />
