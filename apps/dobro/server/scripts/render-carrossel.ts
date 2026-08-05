@@ -36,6 +36,19 @@ function montarPauta(car: Carrossel): string {
   return linhas.join('\n');
 }
 
+
+/**
+ * Converte a `dataProgramada` do carrossel em Date.
+ *
+ * 'YYYY-MM-DD' sozinho o JS lê como UTC, e no nosso fuso (UTC-3) isso joga o card
+ * pro dia ANTERIOR: '2026-08-06' virava 05/08 às 21h no board. Ancoramos no
+ * meio-dia LOCAL pra a data cair no dia que está escrito no arquivo.
+ */
+function parseDataProgramada(v: string | undefined): Date | null {
+  if (!v) return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T12:00:00`) : new Date(v);
+}
+
 async function main(): Promise<void> {
   const slug = process.argv[2];
   if (!slug) {
@@ -62,7 +75,20 @@ async function main(): Promise<void> {
     bgDataUri = `data:${mime};base64,${readFileSync(bgPath).toString('base64')}`;
   }
 
-  const html = buildHtml(car, bgDataUri);
+  // Prints por slide (`slide.imagem`) — cada caminho vira um data URI só uma vez.
+  const shots: Record<string, string> = {};
+  for (const s of car.slides) {
+    if (!s.imagem || shots[s.imagem]) continue;
+    const p = resolve(appRoot, s.imagem);
+    if (!existsSync(p)) {
+      console.error(`[render] imagem de slide ausente: ${p}`);
+      process.exit(1);
+    }
+    const m = p.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+    shots[s.imagem] = `data:${m};base64,${readFileSync(p).toString('base64')}`;
+  }
+
+  const html = buildHtml(car, bgDataUri, shots);
   const tmpHtml = join(tmpdir(), `carrossel-${slug}.html`);
   writeFileSync(tmpHtml, html, { encoding: 'utf8' });
 
@@ -101,8 +127,9 @@ async function main(): Promise<void> {
       estado: 'rascunho',
       plataforma: 'instagram',
       formato: 'carrossel',
-      dataProgramada: car.dataProgramada ? new Date(car.dataProgramada) : null,
+      dataProgramada: parseDataProgramada(car.dataProgramada),
       capaUrl: `/carrosseis/${slug}/slide-1.png`,
+      linkPresenteNotion: car.linkPresente ?? null,
       gancho: car.gancho,
       pauta: montarPauta(car),
       legenda: car.legenda,

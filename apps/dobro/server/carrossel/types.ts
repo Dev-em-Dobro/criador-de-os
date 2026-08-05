@@ -44,6 +44,12 @@ export interface Slide {
   layout?: 'center';
   /** Texto do bloco em corpo menor, pra caber um prompt/roteiro longo por inteiro. */
   denso?: boolean;
+  /**
+   * Print SÓ deste slide (caminho relativo a apps/dobro), renderizado como uma
+   * janelinha de navegador embaixo do texto. É o jeito de MOSTRAR a ferramenta
+   * em vez de só descrever: ver memória capas-carrossel-padrao.
+   */
+  imagem?: string;
   /** Ícone central (nome no mapa) — usado no layout center. */
   icone?: string;
   /** Ícone decorativo grande no topo de um slide de texto (ex.: caveira). */
@@ -57,6 +63,8 @@ export interface Slide {
   botao?: string;
   /** Capa: imagem de fundo cheia (usa a `bgImage` do carrossel). */
   cover?: boolean;
+  /** Capa com título 30% menor — deixa mais arte à mostra quando o gancho é longo. */
+  tituloMenor?: boolean;
   /** Capa sem imagem: ignora a `bgImage` e usa o gradiente JARVIS de fallback. */
   semFundo?: boolean;
   /** Sangria de imagem desfocada no topo (slides escuros). */
@@ -83,5 +91,11 @@ export interface Carrossel {
   bgImage?: string;
   /** Data programada (ISO) — default: hoje. */
   dataProgramada?: string;
+  /**
+   * Link do presente (página do Notion) — vai pro campo "Link do presente" do card.
+   * Fica aqui e não só na tela porque `carrossel:render` recria o card do zero:
+   * o que não estiver na definição some no próximo render.
+   */
+  linkPresente?: string;
   slides: Slide[];
 }

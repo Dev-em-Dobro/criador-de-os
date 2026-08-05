@@ -27,11 +27,21 @@ async function main(): Promise<void> {
         .select()
         .from(conteudoPosts)
         .where(like(conteudoPosts.titulo, `%${alvo}%`))
-        .orderBy(desc(conteudoPosts.createdAt))
-        .limit(1);
+        .orderBy(desc(conteudoPosts.createdAt));
 
   const p = posts[0];
   if (!p) throw new Error(`nenhum post com "${alvo}"`);
+
+  // Título repetido quase sempre significa card duplicado no board. Mostrar todos
+  // é o que faz a duplicata aparecer, em vez de silenciosamente pegar o mais novo.
+  if (posts.length > 1) {
+    console.log(`\n⚠ ${posts.length} cards casam com "${alvo}":`);
+    for (const q of posts) {
+      const quando = q.dataProgramada ? String(q.dataProgramada) : '(sem data)';
+      console.log(`  · ${q.id}  [${q.estado}]  ${quando}  ${q.titulo}`);
+    }
+    console.log('\nMostrando o mais recente:');
+  }
 
   console.log(`\n${'='.repeat(70)}`);
   console.log(`[${p.estado}] ${p.titulo}  (${p.formato})`);

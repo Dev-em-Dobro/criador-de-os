@@ -28,6 +28,7 @@ const CSS = `
   .hl{color:#a78bfa;} .light .hl{color:#6d3ad6;}
   .cta .hl{color:#f5c518;}
   .cover h1{font-size:36.8px;line-height:1.04;}
+  .cover.tsm h1{font-size:25.8px;}
   .body{font-size:12.5px;line-height:1.55;margin-top:10px;position:relative;z-index:2;}
   .dark .body{color:#b8b2cc;} .light .body{color:#6f6885;} .photo .body,.purple .body{color:#ece9f6;}
   .top{position:relative;z-index:2;} .grow{flex:1;}
@@ -52,7 +53,17 @@ const CSS = `
   .dense .callout p{font-size:10.2px;line-height:1.42;}
   .dense .term{font-size:10.2px;line-height:1.5;padding:11px 13px;}
   .dense .body{font-size:11px;line-height:1.45;}
-  .term{position:relative;z-index:2;margin-top:12px;background:#14101f;border-radius:10px;padding:13px 15px;font-size:12.5px;line-height:1.75;}
+  /* .shot: print da ferramenta numa janelinha de navegador (barra + 3 bolinhas). */
+  /* estica até o rodapé: a janela ocupa o que sobrar do slide, sem vão morto. */
+  .shot{position:relative;z-index:2;margin-top:12px;border-radius:9px;overflow:hidden;border:1px solid rgba(255,255,255,.14);flex:1;display:flex;flex-direction:column;min-height:0;}
+  .light .shot{border-color:rgba(0,0,0,.12);box-shadow:0 6px 18px rgba(26,19,48,.13);}
+  .shot .bar{height:15px;background:#241c38;display:flex;align-items:center;gap:4px;padding:0 7px;}
+  .light .shot .bar{background:#d9d4ea;}
+  .shot .bar i{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.32);display:block;}
+  .light .shot .bar i{background:rgba(0,0,0,.22);}
+  .shot .pic{flex:1;min-height:0;background-size:cover;background-position:top center;}
+  /* pre-wrap: preserva a indentação de linha continuada (ex.: uma URL longa). */
+  .term{position:relative;z-index:2;margin-top:12px;background:#14101f;border-radius:10px;padding:13px 15px;font-size:12.5px;line-height:1.75;white-space:pre-wrap;}
   .term .p{color:#8f83f0;} .term .g{color:#f5c518;} .term .w{color:#e6e6ee;}
   .brand{position:relative;z-index:2;display:flex;align-items:center;gap:7px;margin-top:16px;}
   .brand svg{width:25px;height:25px;display:block;stroke:none;}
@@ -94,9 +105,13 @@ const CSS = `
   .dots i.on{width:16px;border-radius:3px;} .dark .dots i.on,.photo .dots i.on,.purple .dots i.on{background:#fff;} .light .dots i.on{background:#6d3ad6;}
 `;
 
-/** **destaque** vira roxo; \n vira quebra de linha. */
+/**
+ * **destaque** vira roxo; \n vira quebra de linha.
+ * O `[\s\S]` (em vez de `.`) é de propósito: sem ele um destaque que atravessa
+ * uma quebra de linha não casa e os asteriscos vazam pro slide renderizado.
+ */
 function realce(t: string): string {
-  return t.replace(/\*\*(.+?)\*\*/g, '<span class="hl">$1</span>').replace(/\n/g, '<br>');
+  return t.replace(/\*\*([\s\S]+?)\*\*/g, '<span class="hl">$1</span>').replace(/\n/g, '<br>');
 }
 
 /** Uma linha de terminal: prefixo →/$/✓ colorido, resto branco. */
@@ -117,10 +132,10 @@ function foot(i: number, n: number): string {
   return `<div class="foot"><div class="barrow"><div class="track"><div class="fill" style="width:${fill}%"></div></div><div class="count">${i + 1}/${n}</div></div><div class="dots">${dots}</div></div>`;
 }
 
-/** Renderiza um slide a partir da definição. */
-function renderSlide(s: Slide, i: number, n: number, bg: string): string {
+/** Renderiza um slide a partir da definição. `shots` = data URI por caminho de `imagem`. */
+function renderSlide(s: Slide, i: number, n: number, bg: string, shots: Record<string, string>): string {
   const isLast = i === n - 1;
-  const cls = ['slide', s.variant, s.layout === 'center' ? 'center' : '', s.cover ? 'cover' : '', s.tipo === 'cta' ? 'cta' : '', s.tipo === 'cta' && s.botao ? 'cta-rich' : '', s.denso ? 'dense' : ''].filter(Boolean).join(' ');
+  const cls = ['slide', s.variant, s.layout === 'center' ? 'center' : '', s.cover ? 'cover' : '', s.tituloMenor ? 'tsm' : '', s.tipo === 'cta' ? 'cta' : '', s.tipo === 'cta' && s.botao ? 'cta-rich' : '', s.denso ? 'dense' : ''].filter(Boolean).join(' ');
   const parts: string[] = [];
 
   // Fundo
@@ -186,7 +201,14 @@ function renderSlide(s: Slide, i: number, n: number, bg: string): string {
     if (s.corpo && hasBloco) top.push(`<div class="body" style="margin-top:12px">${realce(s.corpo)}</div>`);
     top.push('</div>');
     parts.push(top.join(''));
-    parts.push('<div class="grow"></div>');
+    // O print entra por último (título, explicação, só então a janelinha) e FORA
+    // do bloco de texto, pra poder esticar e ocupar o resto do slide.
+    const shot = s.imagem ? shots[s.imagem] : undefined;
+    if (shot) {
+      parts.push(`<div class="shot"><div class="bar"><i></i><i></i><i></i></div><div class="pic" style="background-image:url('${shot}')"></div></div>`);
+    } else {
+      parts.push('<div class="grow"></div>');
+    }
   }
 
   // Logo de marca no rodapé (ex.: git), acima do chrome.
@@ -207,10 +229,13 @@ function iconInner(nome: string): string {
   return m ? m[1] : '';
 }
 
-/** Monta o HTML completo do carrossel. `bgDataUri` = capa/sangria inline (ou ''). */
-export function buildHtml(car: Carrossel, bgDataUri: string): string {
+/**
+ * Monta o HTML completo do carrossel. `bgDataUri` = capa/sangria inline (ou '');
+ * `shots` = data URI de cada `slide.imagem`, indexado pelo caminho declarado.
+ */
+export function buildHtml(car: Carrossel, bgDataUri: string, shots: Record<string, string> = {}): string {
   const n = car.slides.length;
-  const slides = car.slides.map((s, i) => renderSlide(s, i, n, bgDataUri)).join('\n');
+  const slides = car.slides.map((s, i) => renderSlide(s, i, n, bgDataUri, shots)).join('\n');
   return `<!doctype html>
 <html lang="pt-br"><head><meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">

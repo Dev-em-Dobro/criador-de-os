@@ -16,6 +16,7 @@ import { elevatorSaga } from './carrosseis/elevator-saga';
 import { vagaComClaude } from './carrosseis/vaga-com-claude';
 import { curriculoPorVaga } from './carrosseis/curriculo-por-vaga';
 import { ollamaLocal } from './carrosseis/ollama-local';
+import { quatroSkillsClaudeCode } from './carrosseis/4-skills-claude-code';
 import { learnGitBranching } from './carrosseis/learn-git-branching';
 import { whisperLocal } from './carrosseis/whisper-local';
 import { cssJogos } from './carrosseis/css-jogos';
@@ -24,6 +25,9 @@ import { clineVscode } from './carrosseis/cline-vscode';
 import { excalidraw } from './carrosseis/excalidraw';
 import { gitComandosDia } from './carrosseis/git-comandos-dia';
 import { asyncAwait } from './carrosseis/async-await';
+import { caraDeCaro } from './carrosseis/cara-de-caro';
+import { instalarNoClaude } from './carrosseis/instalar-no-claude';
+import { claudeLinkedinCurriculo } from './carrosseis/claude-linkedin-curriculo';
 
 const CARROSSEIS: Record<string, Carrossel> = {
   [gta6.slug]: gta6,
@@ -39,6 +43,7 @@ const CARROSSEIS: Record<string, Carrossel> = {
   [vagaComClaude.slug]: vagaComClaude,
   [curriculoPorVaga.slug]: curriculoPorVaga,
   [ollamaLocal.slug]: ollamaLocal,
+  [quatroSkillsClaudeCode.slug]: quatroSkillsClaudeCode,
   [learnGitBranching.slug]: learnGitBranching,
   [whisperLocal.slug]: whisperLocal,
   [cssJogos.slug]: cssJogos,
@@ -47,6 +52,9 @@ const CARROSSEIS: Record<string, Carrossel> = {
   [excalidraw.slug]: excalidraw,
   [gitComandosDia.slug]: gitComandosDia,
   [asyncAwait.slug]: asyncAwait,
+  [claudeLinkedinCurriculo.slug]: claudeLinkedinCurriculo,
+  [caraDeCaro.slug]: caraDeCaro,
+  [instalarNoClaude.slug]: instalarNoClaude,
 };
 
 export function getCarrossel(slug: string): Carrossel | undefined {
