@@ -7,6 +7,10 @@
 *.key
 *.pem
 
+# Sessão logada do Instagram (Playwright storageState — cookies de sessão, SENSÍVEL)
+.ig-session.json
+**/.ig-session.json
+
 # Dependencies (AIOX)
 node_modules/
 node_modules

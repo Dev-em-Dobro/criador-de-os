@@ -19,6 +19,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { referencias, conteudoPosts } from '../db/schema.js';
 import { fetchInstagramContent } from './instagram.js';
+import { transcreverSlides } from './instagram-slides.js';
 import { preverDesempenho, formatarPrevisaoBriefing, type PrevisaoIa } from './conteudo-previsao.js';
 
 /** Client Drizzle (owner OU role de menor privilégio) — injetado nas escritas. */
@@ -497,6 +498,16 @@ export async function criarRascunho(
     const ig = await fetchInstagramContent(ref.origemUrl);
     if (ig.caption) conteudo = ig.caption;
     if (ig.formato) formatoRef = ig.formato;
+
+    // Num CARROSSEL o conteúdo está dentro das imagens: a legenda quase sempre é
+    // só isca ("comenta X que eu mando"). Sem isto, o teardown é feito em cima de
+    // hashtags e o rascunho sai sobre um tema que a referência nunca tratou.
+    // Só funciona LOCAL (Playwright + sessão logada); na Vercel devolve null e
+    // seguimos com a legenda, como antes.
+    if (formatoRef === 'carrossel') {
+      const slides = await transcreverSlides(ref.origemUrl, apiKey);
+      if (slides) conteudo = `${slides}\n\n[Legenda do post]\n${ig.caption ?? '(sem legenda)'}`;
+    }
     const partes: string[] = [];
     if (ig.likes != null) partes.push(`${ig.likes} curtidas`);
     if (ig.comments != null) partes.push(`${ig.comments} comentários`);
