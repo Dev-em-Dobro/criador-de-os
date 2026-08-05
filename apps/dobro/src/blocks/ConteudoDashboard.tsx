@@ -24,6 +24,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { SectionHeader, EmptyState, SkeletonCards } from '@os/core';
 import type { BlockDefinition, BlockProps } from '@os/core';
+import { montarDescricaoInsta } from './descricao-insta';
 
 // ============================================================
 // Helpers de dados (locais — o bloco não importa internals de @os/blocks)
@@ -2383,6 +2384,8 @@ function PostPreview({
   const imgUrls = slides.filter((s) => s.full && s.img).map((s) => s.img as string);
   const isReels = formato.toLowerCase().includes('reel');
   const vazio = !gancho && !legenda && slides.length === 0 && cenas.length === 0;
+  /** Texto final do Instagram (follow + legenda + hashtags) — é o que se copia. */
+  const descricaoInsta = montarDescricaoInsta(legenda, hashtags);
 
   return (
     <div
@@ -2428,11 +2431,33 @@ function PostPreview({
               {imgUrls.length > 0 && <DownloadZipButton urls={imgUrls} titulo={titulo} />}
               {legenda && (
                 <CopyButton
-                  text={legenda}
-                  label="📋 Copiar legenda"
+                  text={descricaoInsta}
+                  label="📋 Copiar descrição"
                   className="inline-flex items-center gap-1.5 rounded-lg bg-gray-800 px-3 py-1.5 text-xs font-semibold text-gray-100 transition-colors hover:bg-gray-700"
                 />
               )}
+            </div>
+          )}
+
+          {/* Descrição pro Insta — o texto FINAL que o social media cola no post:
+              linha de follow + legenda + hashtags. É montado na hora (ver
+              descricao-insta.ts), então vale pra todo post sem precisar editar
+              legenda nenhuma. */}
+          {legenda && (
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300/80">
+                  Descrição pro Insta
+                </div>
+                <CopyButton
+                  text={descricaoInsta}
+                  label="📋 Copiar"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600/80 px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-emerald-600"
+                />
+              </div>
+              <pre className="mt-2 whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-gray-200">
+                {descricaoInsta}
+              </pre>
             </div>
           )}
 
