@@ -367,6 +367,16 @@ function normalizeDraft(d: DraftResult): DraftResult {
   };
 }
 
+/**
+ * Monta o campo "Referências" do card: o link que originou o rascunho, com autor
+ * e métricas quando a gente conseguiu capturar. Uma linha por referência (é o
+ * formato que o editor espera).
+ */
+function montarRefsLinks(origemUrl: string | null, metricas: string | null): string | null {
+  if (!origemUrl) return null;
+  return metricas ? `${origemUrl}\n(referência: ${metricas})` : origemUrl;
+}
+
 /** Monta a `pauta` (texto legível da estrutura AIDA) a partir do resultado. */
 function montarPauta(d: DraftResult): string {
   const linhas = [`Gancho: ${d.gancho}`];
@@ -387,6 +397,7 @@ async function inserirRascunhoPost(
   draft: DraftResult,
   referenciaId: string | null,
   briefing: string | null,
+  refsLinks: string | null,
 ): Promise<string | undefined> {
   const roteiro =
     draft.formato === 'carrossel'
@@ -407,6 +418,7 @@ async function inserirRascunhoPost(
       hashtags: hashtagsToText(draft.hashtags),
       ctaFinal: draft.cta_final,
       briefing,
+      refsLinks,
       roteiro,
     })
     .returning({ id: conteudoPosts.id });
@@ -476,6 +488,7 @@ export async function criarRascunho(
       draft,
       null,
       previsao ? formatarPrevisaoBriefing(previsao) : null,
+      null, // tema livre não tem referência de origem
     );
     return { created: true, id, titulo: draft.titulo, formato: draft.formato, previsao };
   }
@@ -554,6 +567,9 @@ export async function criarRascunho(
     draft,
     ref.id,
     previsao ? formatarPrevisaoBriefing(previsao) : null,
+    // O card mostra DE ONDE veio a ideia: sem isto o link só existe na FK interna
+    // e some da tela. Autor e métricas ajudam a lembrar por que ela foi salva.
+    montarRefsLinks(ref.origemUrl, metricas),
   );
   await database
     .update(referencias)

@@ -60,6 +60,7 @@ async function main(): Promise<void> {
       console.log(`  · [${p.estado}] ${p.titulo} (${p.formato})`);
       console.log(`    gancho: ${p.gancho ?? '(sem gancho)'}`);
       console.log(`    previsão no briefing: ${p.briefing ? 'sim' : 'não'}`);
+      console.log(`    campo Referências: ${p.refsLinks ? p.refsLinks.split('\n').join(' | ') : '(vazio)'}`);
       // Com --full sai o post inteiro (slides + previsão), pra revisar no terminal.
       if (process.argv.includes('--full')) {
         console.log(`\n    PAUTA:\n      ${(p.pauta ?? '').split('\n').join('\n      ')}`);
