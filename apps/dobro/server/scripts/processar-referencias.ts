@@ -21,8 +21,11 @@ async function main(): Promise<void> {
   const limit = Number(process.argv[2]) || 5;
 
   console.log(`[pipeline] processando até ${limit} referência(s) pendente(s)...`);
-  const { processadas, rascunhos } = await processarReferenciasPendentes(apiKey, limit);
+  const { processadas, rascunhos, adiadas } = await processarReferenciasPendentes(apiKey, limit);
 
+  if (adiadas > 0) {
+    console.log(`[pipeline] ${adiadas} carrossel(éis) adiado(s) (sem leitura de slides aqui).`);
+  }
   if (processadas === 0) {
     console.log('[pipeline] nenhuma referência pendente — nada a fazer.');
     return;

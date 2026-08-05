@@ -15,15 +15,24 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { referencias, conteudoPosts } from '../db/schema.js';
 import { fetchInstagramContent } from './instagram.js';
-import { transcreverSlides } from './instagram-slides.js';
+import { transcreverSlides, podeLerSlides } from './instagram-slides.js';
 import { preverDesempenho, formatarPrevisaoBriefing, type PrevisaoIa } from './conteudo-previsao.js';
 
 /** Client Drizzle (owner OU role de menor privilégio) — injetado nas escritas. */
 type Database = typeof db;
+
+/** Referência capturada, ainda não virou rascunho. */
+const STATUS_PENDENTE = 'pendente';
+/**
+ * Carrossel que a fila automática NÃO processou porque não conseguia ler os
+ * slides (cron na Vercel: sem navegador, sem sessão do Instagram). Fica esperando
+ * o processamento local, que lê os slides de verdade. Não é erro: é adiamento.
+ */
+const STATUS_AGUARDANDO_SLIDES = 'aguardando_slides';
 
 export interface SlideCarrossel {
   titulo: string;
@@ -463,6 +472,11 @@ export interface CriarRascunhoResult {
   formato?: string;
   /** Previsão da IA registrada junto (null se a previsão falhou). */
   previsao?: PrevisaoIa | null;
+  /**
+   * True quando a referência foi ADIADA de propósito (carrossel esperando leitura
+   * local dos slides). Não é falha: quem varre a fila deve seguir para a próxima.
+   */
+  adiada?: boolean;
   /** Motivo quando `created` é false (ex.: 'sem referências pendentes'). */
   reason?: string;
 }
@@ -493,10 +507,18 @@ export async function criarRascunho(
     return { created: true, id, titulo: draft.titulo, formato: draft.formato, previsao };
   }
 
-  // A partir de uma referência (específica ou a próxima pendente).
+  // A partir de uma referência (específica ou a próxima da fila).
+  //
+  // A fila inclui as ADIADAS (carrossel que ficou esperando leitura de slides) só
+  // onde dá pra ler slides — no PC. Na Vercel elas continuam de fora, senão o cron
+  // pegaria de novo a mesma referência todo dia pra adiar outra vez.
+  const statusDaFila = podeLerSlides()
+    ? [STATUS_PENDENTE, STATUS_AGUARDANDO_SLIDES]
+    : [STATUS_PENDENTE];
+
   const [ref] = opts.referenciaId
     ? await database.select().from(referencias).where(eq(referencias.id, opts.referenciaId)).limit(1)
-    : await database.select().from(referencias).where(eq(referencias.status, 'pendente')).limit(1);
+    : await database.select().from(referencias).where(inArray(referencias.status, statusDaFila)).limit(1);
 
   if (!ref) {
     return { created: false, reason: opts.referenciaId ? 'referência não encontrada' : 'sem referências pendentes' };
@@ -518,6 +540,21 @@ export async function criarRascunho(
     // Só funciona LOCAL (Playwright + sessão logada); na Vercel devolve null e
     // seguimos com a legenda, como antes.
     if (formatoRef === 'carrossel') {
+      // A FILA não gera carrossel raso: se não dá pra ler os slides aqui (é o caso
+      // do cron na Vercel), a referência é ADIADA e fica esperando o PC. Sem isto,
+      // o cron criava um card fraco e o card bom virava duplicata depois.
+      // Quando VOCÊ aponta a referência (`referenciaId`), a decisão é sua: roda.
+      if (!opts.referenciaId && !podeLerSlides()) {
+        await database
+          .update(referencias)
+          .set({ status: STATUS_AGUARDANDO_SLIDES })
+          .where(eq(referencias.id, ref.id));
+        return {
+          created: false,
+          adiada: true,
+          reason: 'carrossel adiado: os slides só podem ser lidos no processamento local',
+        };
+      }
       const slides = await transcreverSlides(ref.origemUrl, apiKey);
       if (slides) conteudo = `${slides}\n\n[Legenda do post]\n${ig.caption ?? '(sem legenda)'}`;
     }
@@ -593,14 +630,21 @@ export async function processarReferenciasPendentes(
   apiKey: string,
   limit = 5,
   orcamentoMs = 0,
-): Promise<{ processadas: number; rascunhos: string[] }> {
+): Promise<{ processadas: number; rascunhos: string[]; adiadas: number }> {
   const rascunhos: string[] = [];
   const inicio = Date.now();
+  let adiadas = 0;
   for (let i = 0; i < limit; i++) {
     if (orcamentoMs > 0 && i > 0 && Date.now() - inicio > orcamentoMs) break;
     const r = await criarRascunho(db, apiKey, {});
+    // Adiada não é fim de fila: a referência saiu de 'pendente', então a próxima
+    // volta traz outra. Parar aqui deixaria o resto da fila parada atrás dela.
+    if (!r.created && r.adiada) {
+      adiadas += 1;
+      continue;
+    }
     if (!r.created) break;
     if (r.id) rascunhos.push(r.id);
   }
-  return { processadas: rascunhos.length, rascunhos };
+  return { processadas: rascunhos.length, rascunhos, adiadas };
 }

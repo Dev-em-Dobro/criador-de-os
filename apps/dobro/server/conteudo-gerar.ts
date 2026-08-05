@@ -165,9 +165,13 @@ export async function handleCronProcessarReferencias(c: Context): Promise<Respon
     // da previsão. Em vez de chutar um limite fixo, damos um ORÇAMENTO de 25s: só
     // começa mais uma referência se ainda houver tempo. O que sobrar fica pendente
     // para a próxima execução.
-    const { processadas, rascunhos } = await processarReferenciasPendentes(apiKey, 3, 25_000);
-    console.log(`[cron:processar] ${processadas} referência(s), ${rascunhos.length} rascunho(s)`);
-    return c.json({ ok: true, processadas, rascunhos: rascunhos.length });
+    const { processadas, rascunhos, adiadas } = await processarReferenciasPendentes(apiKey, 3, 25_000);
+    // `adiadas` são carrosséis esperando o processamento local (que lê os slides).
+    // Ficam visíveis aqui pra não parecer que a fila simplesmente não andou.
+    console.log(
+      `[cron:processar] ${processadas} referência(s), ${rascunhos.length} rascunho(s), ${adiadas} carrossel(éis) adiado(s)`,
+    );
+    return c.json({ ok: true, processadas, rascunhos: rascunhos.length, adiadas });
   } catch (err) {
     console.error('[cron:processar] erro:', err instanceof Error ? err.message : err);
     return c.json({ error: 'Erro ao processar referências' }, 500);
