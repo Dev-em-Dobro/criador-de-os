@@ -51,12 +51,13 @@ export const quatroSkillsClaudeCode: Carrossel = {
   refsLinks:
     'https://github.com/nextlevelbuilder/ui-ux-pro-max-skill · https://github.com/rebelytics/one-skill-to-rule-them-all · https://github.com/greensock/gsap-skills · https://code.claude.com/docs/en/slash-commands',
   dataProgramada: '2026-08-06',
+  /** Arte da capa (imagem do dono, 05/08): o polvo de óculos escuros com o 4. */
+  bgImage: `${SHOT}/capa.png`,
   slides: [
     {
       variant: 'photo',
       cover: true,
-      semFundo: true,
-      /** Título 30% menor: o gancho é longo e no tamanho cheio ele engolia a capa. */
+      /** Título 30% menor: o gancho é longo e no tamanho cheio ele engolia a arte. */
       tituloMenor: true,
       titulo:
         '4 skills do **Claude**\nte deixam à frente\nde **99%** dos outros\nprogramadores.',
