@@ -56,7 +56,10 @@ async function main(): Promise<void> {
       console.error(`[render] imagem de fundo ausente: ${bgPath}`);
       process.exit(1);
     }
-    bgDataUri = `data:image/jpeg;base64,${readFileSync(bgPath).toString('base64')}`;
+    // O mime precisa bater com o arquivo: com png declarado como jpeg o Chrome
+    // até costuma renderizar, mas não é garantido.
+    const mime = bgPath.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+    bgDataUri = `data:${mime};base64,${readFileSync(bgPath).toString('base64')}`;
   }
 
   const html = buildHtml(car, bgDataUri);

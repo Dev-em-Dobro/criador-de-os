@@ -33,6 +33,7 @@ const CSS = `
   .top{position:relative;z-index:2;} .grow{flex:1;}
   .callout{position:relative;z-index:2;margin-top:14px;border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:13px 15px;background:rgba(255,255,255,.04);}
   .callout .lb{font-size:10px;font-weight:700;letter-spacing:.06em;color:#8f83f0;}
+  .purple .callout .lb{color:#fff;} /* lilás sobre roxo some; no roxo o label vai de branco */
   .callout p{font-size:12px;line-height:1.5;color:#d7d3e6;margin-top:5px;font-style:italic;}
   .ico{width:22px;height:22px;flex-shrink:0;}
   .dark .ico{color:#a78bfa;} .light .ico{color:#6d3ad6;} .purple .ico{color:#fff;}
@@ -46,6 +47,11 @@ const CSS = `
   .it-t{font-size:14px;font-weight:700;} .dark .it-t,.purple .it-t{color:#fff;} .light .it-t{color:#1a1330;}
   .it-s{font-size:11.5px;line-height:1.4;margin-top:1px;} .dark .it-s{color:#9a94ad;} .light .it-s{color:#7d7791;} .purple .it-s{color:rgba(255,255,255,.85);}
   .num{font-size:17px;font-weight:700;flex-shrink:0;width:24px;} .dark .num{color:#8f83f0;}
+  /* .dense: prompt longo cabendo no slide (letra menor, entrelinha menor). Opt-in por slide. */
+  .dense h1{font-size:25px;line-height:1.14;}
+  .dense .callout p{font-size:10.2px;line-height:1.42;}
+  .dense .term{font-size:10.2px;line-height:1.5;padding:11px 13px;}
+  .dense .body{font-size:11px;line-height:1.45;}
   .term{position:relative;z-index:2;margin-top:12px;background:#14101f;border-radius:10px;padding:13px 15px;font-size:12.5px;line-height:1.75;}
   .term .p{color:#8f83f0;} .term .g{color:#f5c518;} .term .w{color:#e6e6ee;}
   .brand{position:relative;z-index:2;display:flex;align-items:center;gap:7px;margin-top:16px;}
@@ -114,7 +120,7 @@ function foot(i: number, n: number): string {
 /** Renderiza um slide a partir da definição. */
 function renderSlide(s: Slide, i: number, n: number, bg: string): string {
   const isLast = i === n - 1;
-  const cls = ['slide', s.variant, s.layout === 'center' ? 'center' : '', s.cover ? 'cover' : '', s.tipo === 'cta' ? 'cta' : '', s.tipo === 'cta' && s.botao ? 'cta-rich' : ''].filter(Boolean).join(' ');
+  const cls = ['slide', s.variant, s.layout === 'center' ? 'center' : '', s.cover ? 'cover' : '', s.tipo === 'cta' ? 'cta' : '', s.tipo === 'cta' && s.botao ? 'cta-rich' : '', s.denso ? 'dense' : ''].filter(Boolean).join(' ');
   const parts: string[] = [];
 
   // Fundo

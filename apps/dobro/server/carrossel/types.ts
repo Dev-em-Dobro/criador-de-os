@@ -42,6 +42,8 @@ export interface Slide {
   terminal?: string[];
   /** Layout centralizado (ex.: slide "salva esse post"). */
   layout?: 'center';
+  /** Texto do bloco em corpo menor, pra caber um prompt/roteiro longo por inteiro. */
+  denso?: boolean;
   /** Ícone central (nome no mapa) — usado no layout center. */
   icone?: string;
   /** Ícone decorativo grande no topo de um slide de texto (ex.: caveira). */

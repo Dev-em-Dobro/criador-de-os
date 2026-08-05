@@ -13,6 +13,17 @@ import { iaPensar } from './carrosseis/ia-pensar';
 import { ohMyGit } from './carrosseis/oh-my-git';
 import { ufcRobosChina } from './carrosseis/ufc-robos-china';
 import { elevatorSaga } from './carrosseis/elevator-saga';
+import { vagaComClaude } from './carrosseis/vaga-com-claude';
+import { curriculoPorVaga } from './carrosseis/curriculo-por-vaga';
+import { ollamaLocal } from './carrosseis/ollama-local';
+import { learnGitBranching } from './carrosseis/learn-git-branching';
+import { whisperLocal } from './carrosseis/whisper-local';
+import { cssJogos } from './carrosseis/css-jogos';
+import { n8nSelfHost } from './carrosseis/n8n-self-host';
+import { clineVscode } from './carrosseis/cline-vscode';
+import { excalidraw } from './carrosseis/excalidraw';
+import { gitComandosDia } from './carrosseis/git-comandos-dia';
+import { asyncAwait } from './carrosseis/async-await';
 
 const CARROSSEIS: Record<string, Carrossel> = {
   [gta6.slug]: gta6,
@@ -25,6 +36,17 @@ const CARROSSEIS: Record<string, Carrossel> = {
   [ohMyGit.slug]: ohMyGit,
   [ufcRobosChina.slug]: ufcRobosChina,
   [elevatorSaga.slug]: elevatorSaga,
+  [vagaComClaude.slug]: vagaComClaude,
+  [curriculoPorVaga.slug]: curriculoPorVaga,
+  [ollamaLocal.slug]: ollamaLocal,
+  [learnGitBranching.slug]: learnGitBranching,
+  [whisperLocal.slug]: whisperLocal,
+  [cssJogos.slug]: cssJogos,
+  [n8nSelfHost.slug]: n8nSelfHost,
+  [clineVscode.slug]: clineVscode,
+  [excalidraw.slug]: excalidraw,
+  [gitComandosDia.slug]: gitComandosDia,
+  [asyncAwait.slug]: asyncAwait,
 };
 
 export function getCarrossel(slug: string): Carrossel | undefined {
