@@ -65,6 +65,18 @@ export interface Slide {
   cover?: boolean;
   /** Capa com título 30% menor — deixa mais arte à mostra quando o gancho é longo. */
   tituloMenor?: boolean;
+  /**
+   * Ajuste fino do título da CAPA, multiplicando o tamanho vigente (com ou sem
+   * `tituloMenor`). Ex.: 1.15 = 15% maior. Vale só pra esta capa, então dá pra
+   * calibrar um carrossel sem mexer no tamanho dos que já foram aprovados.
+   */
+  tituloEscala?: number;
+  /** Capa: linha entre o título e o corpo (maior que o texto, menor que o gancho). */
+  subtitulo?: string;
+  /** Capa: dica de swipe no canto direito (ex.: 'Deslize e veja ›'). */
+  swipe?: string;
+  /** Encosta o bloco de texto no rodapé, deixando a arte inteira à mostra em cima. */
+  gruda?: boolean;
   /** Capa sem imagem: ignora a `bgImage` e usa o gradiente JARVIS de fallback. */
   semFundo?: boolean;
   /** Sangria de imagem desfocada no topo (slides escuros). */

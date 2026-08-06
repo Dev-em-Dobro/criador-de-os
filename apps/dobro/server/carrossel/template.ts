@@ -36,6 +36,14 @@ const CSS = `
      O lilás claro sumia quando a arte de fundo era clara. */
   .cover .hl{color:#9b6bff;}
   .cover .body{text-shadow:0 1px 7px rgba(0,0,0,.65);}
+  /* Capa: subtítulo entre o título e o corpo (maior que o texto, bem menor que o
+     gancho), e a dica de swipe no canto direito. O .cover.gruda encosta o bloco
+     no rodapé, deixando a arte inteira à mostra em cima. */
+  .cover .subt{font-size:17px;line-height:1.18;font-weight:700;margin-top:9px;color:rgba(255,255,255,.93);
+    position:relative;z-index:2;text-shadow:0 2px 8px rgba(0,0,0,.6);}
+  .cover .swipe{align-self:flex-end;font-size:11.5px;font-weight:700;letter-spacing:.04em;margin-top:12px;
+    color:rgba(255,255,255,.82);position:relative;z-index:2;text-shadow:0 1px 6px rgba(0,0,0,.7);}
+  .cover.gruda .foot{margin-top:10px;}
   .body{font-size:12.5px;line-height:1.55;margin-top:10px;position:relative;z-index:2;}
   .dark .body{color:#b8b2cc;} .light .body{color:#6f6885;} .photo .body,.purple .body{color:#ece9f6;}
   .top{position:relative;z-index:2;} .grow{flex:1;}
@@ -142,7 +150,7 @@ function foot(i: number, n: number): string {
 /** Renderiza um slide a partir da definição. `shots` = data URI por caminho de `imagem`. */
 function renderSlide(s: Slide, i: number, n: number, bg: string, shots: Record<string, string>): string {
   const isLast = i === n - 1;
-  const cls = ['slide', s.variant, s.layout === 'center' ? 'center' : '', s.cover ? 'cover' : '', s.tituloMenor ? 'tsm' : '', s.tipo === 'cta' ? 'cta' : '', s.tipo === 'cta' && s.botao ? 'cta-rich' : '', s.denso ? 'dense' : ''].filter(Boolean).join(' ');
+  const cls = ['slide', s.variant, s.layout === 'center' ? 'center' : '', s.cover ? 'cover' : '', s.tituloMenor ? 'tsm' : '', s.gruda ? 'gruda' : '', s.tipo === 'cta' ? 'cta' : '', s.tipo === 'cta' && s.botao ? 'cta-rich' : '', s.denso ? 'dense' : ''].filter(Boolean).join(' ');
   const parts: string[] = [];
 
   // Fundo
@@ -173,7 +181,9 @@ function renderSlide(s: Slide, i: number, n: number, bg: string, shots: Record<s
       parts.push(`<div class="logo${s.handle ? ' logo-cta' : ''}"${s.video ? ' style="margin-top:24px"' : ''}>${inner}</div>`);
     }
     parts.push('<div class="grow"></div>');
-    parts.push(`<h1>${realce(s.titulo)}</h1>`);
+    // Título vazio some do CTA (em vez de virar um <h1> em branco ocupando altura):
+    // é como se pede o layout "botão em cima, texto embaixo", sem frase antes.
+    if (s.titulo) parts.push(`<h1>${realce(s.titulo)}</h1>`);
     if (s.botao) parts.push(`<div class="cta-btn">${s.botao}</div>`);
     if (s.corpo) parts.push(`<div class="body">${realce(s.corpo)}</div>`);
     if (s.botao) parts.push('<div class="grow"></div>');
@@ -184,8 +194,14 @@ function renderSlide(s: Slide, i: number, n: number, bg: string, shots: Record<s
     parts.push('<div class="grow"></div>');
   } else if (s.cover) {
     parts.push('<div class="grow"></div>');
-    parts.push(`<h1>${realce(s.titulo)}</h1>`);
+    // `tituloEscala` calibra a capa DESTE carrossel sem mexer no tamanho padrão
+    // (36.8px, ou 25.8px com `tituloMenor`), que outros carrosséis já usam.
+    const base = s.tituloMenor ? 25.8 : 36.8;
+    const escala = s.tituloEscala ? ` style="font-size:${(base * s.tituloEscala).toFixed(1)}px"` : '';
+    parts.push(`<h1${escala}>${realce(s.titulo)}</h1>`);
+    if (s.subtitulo) parts.push(`<div class="subt">${realce(s.subtitulo)}</div>`);
     if (s.corpo) parts.push(`<div class="body">${realce(s.corpo)}</div>`);
+    if (s.swipe) parts.push(`<div class="swipe">${s.swipe}</div>`);
   } else {
     const top: string[] = ['<div class="top">'];
     if (s.topIcon) top.push(`<div class="ico ico-badge"><svg viewBox="0 0 24 24">${iconInner(s.topIcon)}</svg></div>`);
