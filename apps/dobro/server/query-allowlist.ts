@@ -58,6 +58,22 @@ const ALLOWED_VIEWS: Record<string, AllowedView> = {
       'roteiro',
     ],
   },
+  v_referencias_perfis: {
+    view: 'v_referencias_perfis',
+    columns: [
+      'handle',
+      'perfil_url',
+      'nome',
+      'nota',
+      'refs',
+      'carrosseis',
+      'reels',
+      'media_curtidas',
+      'media_comentarios',
+      'ultima_ref',
+      'ultima_url',
+    ],
+  },
   v_conteudo_desempenho: {
     view: 'v_conteudo_desempenho',
     columns: [

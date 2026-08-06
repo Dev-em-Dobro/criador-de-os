@@ -29,6 +29,7 @@
     "conteudo:classificar": "tsx server/scripts/classificar-estrutura.ts",
     "carrossel:render": "tsx server/scripts/render-carrossel.ts",
     "referencias:list": "tsx server/scripts/list-referencias.ts",
+    "perfis:add": "tsx server/scripts/perfis-add.ts",
     "referencias:reset": "tsx server/scripts/reset-referencia.ts",
     "ig:fetch": "tsx server/scripts/test-ig-fetch.ts",
     "ig:probe": "tsx server/scripts/ig-insights-probe.ts",

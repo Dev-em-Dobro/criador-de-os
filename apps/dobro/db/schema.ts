@@ -149,6 +149,34 @@ export const referencias = pgTable('referencias', {
 });
 
 /**
+ * Perfis de referência (os @ que a gente acompanha no Instagram) — a CURADORIA.
+ *
+ * A maioria dos perfis não precisa estar aqui: quem já mandou referência aparece
+ * sozinho na tela, porque o autor de cada captura fica em `referencias.metricas_ref`
+ * e a view `v_referencias_perfis` agrega por autor. Esta tabela existe para as
+ * duas coisas que a captura não dá:
+ *   · perfil que a gente quer seguir SEM ter mandado post dele ainda;
+ *   · anotação humana sobre um perfil (nome de verdade, por que vale seguir).
+ *
+ * Chave é o `handle` normalizado (minúsculo, sem "@"). A API NUNCA lê esta tabela
+ * direto — só a view read-only da allowlist.
+ */
+export const referenciaPerfis = pgTable('referencia_perfis', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  /** @ do Instagram, normalizado: minúsculo e sem "@" (ex.: 'nick_saraev'). */
+  handle: text('handle').notNull().unique(),
+  /** Nome da pessoa/marca, quando conhecido (só o que foi confirmado). */
+  nome: text('nome'),
+  /** Por que este perfil vale a pena (anotação de quem adicionou). */
+  nota: text('nota'),
+  /** Como entrou: 'manual' (alguém adicionou) | 'captura' (veio de referência). */
+  origem: text('origem').notNull().default('manual'),
+  createdAt: timestamp('created_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
+/**
  * Posts de conteúdo (Instagram) exibidos no board "Conteúdo". Cada linha é um
  * card: título, capa, data programada, CTA, link do presente e estado. A view
  * read-only `v_conteudo_posts` (allowlist) é a ÚNICA forma da API ler isto.

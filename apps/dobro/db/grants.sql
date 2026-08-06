@@ -67,6 +67,8 @@ REVOKE SELECT ON referencias FROM PUBLIC;
 REVOKE SELECT ON v_conteudo_posts FROM PUBLIC;
 REVOKE SELECT ON conteudo_desempenho FROM PUBLIC;
 REVOKE SELECT ON v_conteudo_desempenho FROM PUBLIC;
+REVOKE SELECT ON referencia_perfis FROM PUBLIC;
+REVOKE SELECT ON v_referencias_perfis FROM PUBLIC;
 
 -- 4) USAGE no schema para todos (sem isto não enxergam nenhum objeto).
 GRANT USAGE ON SCHEMA public TO app_auth;
@@ -88,6 +90,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON verification TO app_auth;
 GRANT SELECT ON v_visao_geral TO app_query;
 GRANT SELECT ON v_conteudo_posts TO app_query;
 GRANT SELECT ON v_conteudo_desempenho TO app_query;
+-- A tela "Referências" lê SÓ a view: app_query segue sem acesso a `referencias`
+-- (tabela crua, com legenda/transcrição inteira) nem a `referencia_perfis`.
+GRANT SELECT ON v_referencias_perfis TO app_query;
 
 -- 6b) app_ingest: escreve SÓ na tabela `referencias` (o webhook do Telegram grava
 --     as inspirações). SELECT junto para dedupe futuro por origem_url. Nada mais —

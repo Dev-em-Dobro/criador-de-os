@@ -399,6 +399,45 @@ export const dobroManifest: ClientManifest = {
           },
         ],
       },
+
+      // 4) REFERÊNCIAS — folha direta: os perfis do Instagram que inspiram o
+      //    conteúdo. Lê v_referencias_perfis (allowlist), que une o autor de cada
+      //    captura do Telegram com a curadoria manual (`pnpm perfis:add`) — então
+      //    um @ novo aparece aqui sozinho assim que mandar a primeira referência.
+      {
+        key: 'referencias',
+        label: 'Referências',
+        icon: 'Users',
+        route: '/referencias',
+        view: {
+          block: 'custom:referencias-perfis',
+          title: 'Referências',
+          subtitle: 'Os perfis que inspiram o nosso conteúdo',
+          config: { ordemInicial: 'refs' },
+          dataSource: {
+            kind: 'query',
+            view: 'v_referencias_perfis',
+            select: [
+              'handle',
+              'perfil_url',
+              'nome',
+              'nota',
+              'refs',
+              'carrosseis',
+              'reels',
+              'media_curtidas',
+              'media_comentarios',
+              'ultima_ref',
+              'ultima_url',
+            ],
+            orderBy: [
+              { field: 'refs', dir: 'desc' },
+              { field: 'handle', dir: 'asc' }, // desempate estável (mesma ordem a cada refresh)
+            ],
+            limit: 200,
+          },
+        },
+      },
     ],
   },
 
