@@ -856,6 +856,14 @@ interface SchedRow {
   day: string | null;
   /** Hora da postagem ('HH:MM' ou '' = sem hora). Vai junto na data_programada. */
   hora: string;
+  /**
+   * Legenda e hashtags do post. Só LEITURA aqui: servem pra montar a "Descrição
+   * pro Insta" dentro do popup de edição (o texto que o social media copia). Ficam
+   * fora do `snapshot` e do `rowToPayload` de propósito, pra não entrar no que o
+   * "Salvar" grava — quem escreve legenda é o gerador ou o arquivo do carrossel.
+   */
+  legenda: string;
+  hashtags: string;
   origDay: string | null;
   /** Snapshot serializado dos campos p/ detectar edição (vazio p/ novos). */
   orig: string;
@@ -912,6 +920,8 @@ function buildRows(posts: Row[], fields: FieldMap): SchedRow[] {
       key: id ?? `existing-${i}`,
       id,
       ...fieldsVal,
+      legenda: toText(p[LEGENDA_KEY]),
+      hashtags: toText(p[HASHTAGS_KEY]),
       origDay: day,
       orig: snapshot(fieldsVal),
     };
@@ -1072,6 +1082,27 @@ function EditarPostModal({
               className="mt-1"
             />
           </label>
+          {/* Descrição pro Insta — o texto FINAL que o social media cola no post:
+              linha de follow + legenda + hashtags, montado na hora (descricao-insta.ts).
+              É leitura: quem escreve a legenda é o gerador ou o arquivo do carrossel,
+              e a linha de follow nunca fica gravada em post nenhum. */}
+          {d.legenda.trim() && (
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-emerald-300/80">
+                  Descrição pro Insta
+                </span>
+                <CopyButton
+                  text={montarDescricaoInsta(d.legenda, d.hashtags)}
+                  label="📋 Copiar"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600/80 px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-emerald-600"
+                />
+              </div>
+              <pre className="mt-2 max-h-56 overflow-y-auto whitespace-pre-wrap break-words font-sans text-[13px] leading-relaxed text-gray-200">
+                {montarDescricaoInsta(d.legenda, d.hashtags)}
+              </pre>
+            </div>
+          )}
           <label className="block">
             <span className={labelCls}>Briefing</span>
             <TextArea
@@ -1173,6 +1204,8 @@ function SchedulePage({
       refs: '',
       day,
       hora: '',
+      legenda: '',
+      hashtags: '',
       origDay: null,
       orig: '',
     };
@@ -2231,9 +2264,20 @@ function InstagramPreview({
           </span>
         </div>
 
-        {/* Legenda */}
-        <div style={{ padding: '6px 14px 15px', fontSize: 13, lineHeight: 1.45, color: '#2a2e3a' }}>
-          <b style={{ color: '#1f2430' }}>{handle.replace('@', '')}</b> {legenda || titulo}
+        {/* Legenda — mostra o texto COMO vai sair no post: a linha de follow no topo
+            (montarDescricaoInsta) e as quebras de parágrafo preservadas por pre-wrap.
+            Sem isso a prévia mentia: aqui vinha a legenda crua num bloco corrido. */}
+        <div
+          style={{
+            padding: '6px 14px 15px',
+            fontSize: 13,
+            lineHeight: 1.45,
+            color: '#2a2e3a',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          <b style={{ color: '#1f2430' }}>{handle.replace('@', '')}</b>{' '}
+          {montarDescricaoInsta(legenda || titulo, '')}
           {hashtags.length > 0 && (
             <div style={{ marginTop: 6, color: IMG_BRAND_STRONG }}>
               {hashtags.map((h) => `#${h.replace(/^#/, '')}`).join(' ')}
