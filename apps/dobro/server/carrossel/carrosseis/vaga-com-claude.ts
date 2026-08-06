@@ -145,6 +145,8 @@ export const vagaComClaude: Carrossel = {
     'claudeai vagatech devweb n8n automacao carreiratech linkedin curriculo inteligenciaartificial devemdobro',
   ctaFinal:
     'Comenta GUIA que a gente faz sua inscrição gratuita na Semana do Zero ao Programador Contratado, onde a gente aprofunda o marketing pessoal pra você ser um dev acima da média no processo seletivo, e te manda os 4 prompts completos na DM.',
+  /** Presente entregue no CTA: página do Notion com os 4 prompts (criada em 05/08/2026). */
+  linkPresente: 'https://app.notion.com/p/3b26dd01fb48803cac01ce570f9d6b4d',
   briefing:
     'ORIGEM: referência do Telegram (05/08/2026), reel do @abhijayarora_ com 17.807 comentários e 6.575 curtidas.\n' +
     'Decisão do dono: copiar gancho, narrativa e CTA da referência, adaptando pro público BR.\n\n' +

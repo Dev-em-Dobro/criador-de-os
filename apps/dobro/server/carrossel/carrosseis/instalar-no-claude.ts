@@ -40,6 +40,7 @@ export const instalarNoClaude: Carrossel = {
   titulo: '12 coisas para instalar no Claude: para usuários acima da média',
   gancho: '12 coisas pra instalar no Claude. É o que separa quem usa do que sabe usar.',
   refsLinks: 'https://www.instagram.com/p/Da7ZkTblprI/',
+  dataProgramada: '2026-08-07',
   slides: [
     {
       variant: 'photo',
@@ -144,6 +145,8 @@ export const instalarNoClaude: Carrossel = {
     'Comenta CLAUDE aqui embaixo que eu te mando a lista das 12 com o comando de instalação de cada uma. 👇',
   hashtags: 'claudecode claude inteligenciaartificial devweb programacao mcp aiagents vibecoding devemdobro carreiratech',
   ctaFinal: 'Comenta CLAUDE que eu te mando a lista das 12 com o comando de instalação de cada uma, pronta pra colar.',
+  /** Presente entregue no CTA: página do Notion com as 12 e os comandos (criada em 05/08/2026). */
+  linkPresente: 'https://app.notion.com/p/3b36dd01fb488192b2f1c13cd799b51c',
   briefing:
     'ORIGEM: referência do Telegram (05/08/2026), carrossel do @iampascio "12 things to install in Claude / for ' +
     'power-users", com 2.007 curtidas e 298 comentários (ratio alto de comentário, puxado pela palavra-gatilho).\n\n' +

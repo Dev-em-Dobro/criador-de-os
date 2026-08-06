@@ -156,6 +156,12 @@ export const quatroSkillsClaudeCode: Carrossel = {
   hashtags:
     'claudecode claudeskills programacao devtools frontend gsap uiux inteligenciaartificial devemdobro carreiratech',
   ctaFinal: 'Comenta SKILLS que eu te mando o passo a passo de instalação das 4, com o que cada uma resolve.',
+  /**
+   * Presente do "comenta SKILLS": página do Notion criada em 05/08/2026, na raiz
+   * do workspace pra publicar sozinha sem expor o resto. LINK PRIVADO: trocar pelo
+   * `.notion.site` depois de Compartilhar > Publicar.
+   */
+  linkPresente: 'https://app.notion.com/p/3b36dd01fb4881be9817d704bac2bc3f',
   briefing:
     'FÓRMULA: ferramenta concreta com nome próprio, grátis, com comando copiável e slide salvável. É a categoria que ' +
     'mais puxa salvamento na conta.\n\n' +
