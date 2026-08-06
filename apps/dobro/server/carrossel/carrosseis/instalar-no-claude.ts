@@ -41,13 +41,19 @@ export const instalarNoClaude: Carrossel = {
   gancho: '12 coisas pra instalar no Claude. É o que separa quem usa do que sabe usar.',
   refsLinks: 'https://www.instagram.com/p/Da7ZkTblprI/',
   dataProgramada: '2026-08-07',
+  /** Capa (06/08): o polvo cercado dos elementos, cada um sendo uma das 12 coisas. */
+  bgImage: 'server/carrossel/assets/instalar-no-claude/capa.png',
   slides: [
     {
       variant: 'photo',
       cover: true,
-      semFundo: true,
-      titulo: '12 coisas pra\ninstalar no\n**Claude**.\nPara usuários\nacima da média.',
-      corpo: 'Passa pro lado que eu te mostro as 12 👉',
+      // 0.92 = os 15% a mais que tinham sido pedidos, menos 20%: o gancho segue
+      // sendo o maior elemento, mas parou de cobrir o polvo.
+      tituloEscala: 0.92,
+      gruda: true,
+      titulo: '12 coisas pra\ninstalar no **Claude**',
+      subtitulo: 'Para usuários acima da média.',
+      swipe: 'Deslize e veja ›',
     },
     {
       variant: 'dark',
