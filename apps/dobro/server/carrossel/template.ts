@@ -18,7 +18,10 @@ const CSS = `
   .slide{width:360px;height:450px;position:relative;overflow:hidden;border-radius:12px;display:flex;flex-direction:column;padding:24px 26px;}
   .dark{background:#191426;} .light{background:#eae7f5;} .purple{background:#7c46d6;} .photo{background:#000;}
   .imgbg{position:absolute;inset:0;background-size:cover;background-position:center 26%;}
-  .scrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.12) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,.55) 60%,rgba(0,0,0,.93) 100%);}
+  /* escurecido da capa: rampa longa e com paradas próximas, pra não marcar a
+     faixa onde o preto entra (aparecia em arte de fundo claro). O rodapé segue
+     escuro o bastante pro texto branco. */
+  .scrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.10) 0%,rgba(0,0,0,0) 26%,rgba(0,0,0,.09) 42%,rgba(0,0,0,.26) 55%,rgba(0,0,0,.52) 68%,rgba(0,0,0,.76) 82%,rgba(0,0,0,.90) 100%);}
   .topbleed{position:absolute;top:0;left:0;right:0;height:120px;background-size:cover;background-position:center 20%;opacity:.28;filter:blur(1px);
     -webkit-mask-image:linear-gradient(to bottom,#000 0%,#000 30%,transparent 100%);mask-image:linear-gradient(to bottom,#000 0%,#000 30%,transparent 100%);}
   .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px;position:relative;z-index:2;}
@@ -27,8 +30,12 @@ const CSS = `
   .dark h1,.photo h1,.purple h1{color:#fff;} .light h1{color:#1a1330;}
   .hl{color:#a78bfa;} .light .hl{color:#6d3ad6;}
   .cta .hl{color:#f5c518;}
-  .cover h1{font-size:36.8px;line-height:1.04;}
+  .cover h1{font-size:36.8px;line-height:1.04;text-shadow:0 2px 9px rgba(0,0,0,.6),0 0 22px rgba(0,0,0,.5);}
   .cover.tsm h1{font-size:25.8px;}
+  /* destaque da capa: roxo mais forte que o .hl padrão + a sombra do h1 por trás.
+     O lilás claro sumia quando a arte de fundo era clara. */
+  .cover .hl{color:#9b6bff;}
+  .cover .body{text-shadow:0 1px 7px rgba(0,0,0,.65);}
   .body{font-size:12.5px;line-height:1.55;margin-top:10px;position:relative;z-index:2;}
   .dark .body{color:#b8b2cc;} .light .body{color:#6f6885;} .photo .body,.purple .body{color:#ece9f6;}
   .top{position:relative;z-index:2;} .grow{flex:1;}
