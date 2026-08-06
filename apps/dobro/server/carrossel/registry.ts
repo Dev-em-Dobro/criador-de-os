@@ -28,6 +28,7 @@ import { asyncAwait } from './carrosseis/async-await';
 import { caraDeCaro } from './carrosseis/cara-de-caro';
 import { instalarNoClaude } from './carrosseis/instalar-no-claude';
 import { claudeLinkedinCurriculo } from './carrosseis/claude-linkedin-curriculo';
+import { claudeLinkedinPerfil } from './carrosseis/claude-linkedin-perfil';
 
 const CARROSSEIS: Record<string, Carrossel> = {
   [gta6.slug]: gta6,
@@ -53,6 +54,7 @@ const CARROSSEIS: Record<string, Carrossel> = {
   [gitComandosDia.slug]: gitComandosDia,
   [asyncAwait.slug]: asyncAwait,
   [claudeLinkedinCurriculo.slug]: claudeLinkedinCurriculo,
+  [claudeLinkedinPerfil.slug]: claudeLinkedinPerfil,
   [caraDeCaro.slug]: caraDeCaro,
   [instalarNoClaude.slug]: instalarNoClaude,
 };
