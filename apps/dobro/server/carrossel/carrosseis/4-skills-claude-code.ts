@@ -62,9 +62,16 @@ export const quatroSkillsClaudeCode: Carrossel = {
       cover: true,
       /** Título 30% menor: o gancho é longo e no tamanho cheio ele engolia a arte. */
       tituloMenor: true,
+      /** +15% sobre esse tamanho (06/08), com a capa do polvo na corda. */
+      tituloEscala: 1.15,
+      // A arte é quadrada: no `cover` ela sangra pelas laterais e o polvo fica no
+      // meio, atrás do título. Ajustando pela largura e encostando no topo, ele
+      // sobe e o texto cai sobre o fundo preto do slide.
+      bgSize: '100% auto',
+      bgPos: 'center top',
       titulo:
         '4 skills do **Claude**\nte deixam à frente\nde **99%** dos outros\nprogramadores.',
-      corpo: 'Duas você instala, uma já vem de graça 👉',
+      corpo: 'Desliza pra ver 👉',
     },
     {
       variant: 'dark',
