@@ -97,7 +97,7 @@ export const quatroSkillsClaudeCode: Carrossel = {
       eyebrow: 'Skill 01',
       titulo: '**UI/UX Pro Max**',
       corpo:
-        'São 114 mil estrelas no GitHub em 8 meses. Ela dá ao Claude inteligência de design pra montar interface profissional, em vez de tela com cara de template. Pede Python 3 instalado, pro script de busca dela.',
+        'São 114 mil estrelas no GitHub em 8 meses. Ela dá ao Claude inteligência de design pra montar interface profissional, em vez de tela com cara de template.',
       imagem: `${SHOT}/ui-ux-pro-max.png`,
     },
     {
