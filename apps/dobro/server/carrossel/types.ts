@@ -77,6 +77,10 @@ export interface Slide {
   swipe?: string;
   /** Encosta o bloco de texto no rodapé, deixando a arte inteira à mostra em cima. */
   gruda?: boolean;
+  /** Capa: `background-size` da arte (ex.: '100% auto' pra arte quadrada). */
+  bgSize?: string;
+  /** Capa: `background-position` da arte (ex.: 'center top'). */
+  bgPos?: string;
   /** Capa sem imagem: ignora a `bgImage` e usa o gradiente JARVIS de fallback. */
   semFundo?: boolean;
   /** Sangria de imagem desfocada no topo (slides escuros). */

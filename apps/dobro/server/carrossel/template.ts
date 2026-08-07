@@ -17,7 +17,9 @@ const CSS = `
   body{background:#0a0a0d;padding:34px;display:flex;flex-wrap:wrap;gap:30px;font-family:var(--mono);width:1620px;}
   .slide{width:360px;height:450px;position:relative;overflow:hidden;border-radius:12px;display:flex;flex-direction:column;padding:24px 26px;}
   .dark{background:#191426;} .light{background:#eae7f5;} .purple{background:#7c46d6;} .photo{background:#000;}
-  .imgbg{position:absolute;inset:0;background-size:cover;background-position:center 26%;}
+  /* no-repeat: com bgSize custom a arte pode não cobrir a altura toda, e sem isso
+     ela se repetia embaixo (uma segunda cópia aparecendo no rodapé). */
+  .imgbg{position:absolute;inset:0;background-size:cover;background-position:center 26%;background-repeat:no-repeat;}
   /* escurecido da capa: rampa longa e com paradas próximas, pra não marcar a
      faixa onde o preto entra (aparecia em arte de fundo claro). O rodapé segue
      escuro o bastante pro texto branco. */
@@ -155,8 +157,13 @@ function renderSlide(s: Slide, i: number, n: number, bg: string, shots: Record<s
 
   // Fundo
   if (s.cover) {
+    // `bgSize`/`bgPos` sobrescrevem o cover padrão. Servem pra arte QUADRADA: com
+    // `cover` ela é escalada pela altura e sangra pelas laterais, e aí não há sobra
+    // vertical pra reposicionar. Com `100% auto` + `center top` a imagem ocupa a
+    // largura, encosta no topo e deixa o fundo do slide embaixo, onde entra o texto.
+    const ajuste = `${s.bgSize ? `background-size:${s.bgSize};` : ''}${s.bgPos ? `background-position:${s.bgPos};` : ''}`;
     const coverBg = bg && !s.semFundo
-      ? `background-image:url('${bg}')`
+      ? `background-image:url('${bg}');${ajuste}`
       : 'background:radial-gradient(120% 95% at 60% 8%,#3a1d4d 0%,#1a0f26 55%,#070410 100%)';
     parts.push(`<div class="imgbg" style="${coverBg}"></div><div class="scrim"></div>`);
   } else if (s.video) {
