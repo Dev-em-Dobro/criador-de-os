@@ -46,11 +46,14 @@ const SHOT = 'server/carrossel/assets/4-skills-claude-code';
 
 export const quatroSkillsClaudeCode: Carrossel = {
   slug: '4-skills-claude-code',
-  titulo: '4 skills do Claude Code',
+  // Título igual ao do card no board: `carrossel:render` apaga e reinsere POR
+  // TÍTULO, então quando o dono renomeia o card e o arquivo fica pra trás, o
+  // render cria um card novo em vez de atualizar o dele (aconteceu em 06/08).
+  titulo: '4 skills do Claude te deixam a frente de 99% dos outros programadores',
   gancho: '4 skills do Claude te deixam à frente de 99% dos outros programadores.',
   refsLinks:
     'https://github.com/nextlevelbuilder/ui-ux-pro-max-skill · https://github.com/rebelytics/one-skill-to-rule-them-all · https://github.com/greensock/gsap-skills · https://code.claude.com/docs/en/slash-commands',
-  dataProgramada: '2026-08-06',
+  dataProgramada: '2026-08-07',
   /** Arte da capa (imagem do dono, 05/08): o polvo de óculos escuros com o 4. */
   bgImage: `${SHOT}/capa.png`,
   slides: [
@@ -70,7 +73,7 @@ export const quatroSkillsClaudeCode: Carrossel = {
       steps: [
         { n: '01', titulo: 'Você instala uma vez', sub: 'Não precisa repetir a mesma explicação em todo projeto novo' },
         { n: '02', titulo: 'O Claude passa a seguir', sub: 'Ele consulta aquilo sozinho quando a tarefa pede' },
-        { n: '03', titulo: 'Vale pra qualquer stack', sub: 'É texto, não é framework: serve pro projeto que você já tem' },
+        { n: '03', titulo: 'Vale pra qualquer stack', sub: 'Não amarra você a framework: serve pro projeto que já está aberto' },
       ],
     },
     {
@@ -87,7 +90,7 @@ export const quatroSkillsClaudeCode: Carrossel = {
       eyebrow: 'Skill 01',
       titulo: '**UI/UX Pro Max**',
       corpo:
-        'São 114 mil estrelas no GitHub em 8 meses. Ela dá ao Claude inteligência de design pra montar interface profissional, em vez de tela com cara de template.',
+        'São 114 mil estrelas no GitHub em 8 meses. Ela dá ao Claude inteligência de design pra montar interface profissional, em vez de tela com cara de template. Pede Python 3 instalado, pro script de busca dela.',
       imagem: `${SHOT}/ui-ux-pro-max.png`,
     },
     {
@@ -115,18 +118,18 @@ export const quatroSkillsClaudeCode: Carrossel = {
       imagem: `${SHOT}/gsap.png`,
     },
     {
+      // O slide de comandos saiu (decisão do dono, 06/08): cada projeto documenta a
+      // instalação de um jeito, e comando errado no slide salvável é o pior lugar
+      // pra errar. O passo a passo de cada uma vive no presente do Notion, que é o
+      // que o CTA entrega.
       variant: 'dark',
       eyebrow: 'Salva esse slide',
-      titulo: 'Os **4 comandos**,\npra copiar e colar',
-      terminal: [
-        '$ npx skills add nextlevelbuilder/ui-ux-pro-max-skill',
-        '→ UI/UX Pro Max',
-        '$ claude install-skill https://github.com/rebelytics/one-skill-to-rule-them-all',
-        '→ Task Observer',
-        '$ /security-review',
-        '→ já vem no Claude Code, é só digitar',
-        '$ /plugin marketplace add greensock/gsap-skills',
-        '→ GSAP oficial',
+      titulo: 'Qual delas rodar\n**hoje**',
+      itens: [
+        { icone: 'eye', titulo: 'Tela com cara de template', sub: 'UI/UX Pro Max' },
+        { icone: 'loop', titulo: 'Cansou de repetir a mesma correção', sub: 'Task Observer' },
+        { icone: 'ban', titulo: 'Vai subir código que mexe com dado', sub: '/security-review' },
+        { icone: 'code', titulo: 'Quer animação que não trava', sub: 'GSAP da GreenSock' },
       ],
       corpo: 'Escolhe UMA e roda hoje, no projeto que você já tem aberto. Instalar as quatro de uma vez não ajuda.',
     },
@@ -151,7 +154,8 @@ export const quatroSkillsClaudeCode: Carrossel = {
     'security-review você nem instala, já vem no Claude Code. Digita /security-review e ele revisa as mudanças da sua ' +
     'branch atrás de falha de segurança antes de você subir o código.\n\n' +
     'GSAP é a skill oficial da GreenSock, feita por quem criou a biblioteca. Ensina o agente a animar do jeito certo.\n\n' +
-    'Salva o post pelos comandos e escolhe UMA pra rodar hoje, no projeto que você já tem aberto.\n\n' +
+    'Salva o post e escolhe UMA pra rodar hoje, no projeto que você já tem aberto. Instalar as quatro de uma vez ' +
+    'não ajuda: você não percebe o que mudou.\n\n' +
     'Comenta SKILLS aqui embaixo que eu te mando o passo a passo de instalação das 4. 👇',
   hashtags:
     'claudecode claudeskills programacao devtools frontend gsap uiux inteligenciaartificial devemdobro carreiratech',
@@ -163,6 +167,15 @@ export const quatroSkillsClaudeCode: Carrossel = {
    */
   linkPresente: 'https://app.notion.com/p/3b36dd01fb4881be9817d704bac2bc3f',
   briefing:
+    '⚠️ CORREÇÃO DE COMANDOS (06/08/2026, ANTES de publicar) — os READMEs foram conferidos um a um:\n' +
+    '1. "claude install-skill <url>" NÃO EXISTE. Era invenção. O Task Observer se instala copiando a pasta da skill ' +
+    'para .claude/skills/task-observer/ (ou zipando e subindo em Settings > Capabilities nos apps).\n' +
+    '2. UI/UX Pro Max: o README lidera com "npm install -g ui-ux-pro-max-cli" + "uipro init --ai claude", e EXIGE ' +
+    'Python 3 pro script de busca (biblioteca padrão, sem chamadas de rede). O requisito virou aviso no slide dela.\n' +
+    '3. GSAP: "/plugin marketplace add" só REGISTRA o marketplace, não instala. O README recomenda ' +
+    '"npx skills add https://github.com/greensock/gsap-skills", que é o que ficou no slide.\n' +
+    'O passo "É texto, não é framework" saiu do slide 2: com o Python da primeira skill, a frase absoluta ficou ' +
+    'imprecisa.\n\n' +
     'FÓRMULA: ferramenta concreta com nome próprio, grátis, com comando copiável e slide salvável. É a categoria que ' +
     'mais puxa salvamento na conta.\n\n' +
     'DIFERENÇA PRA REFERÊNCIA (@hasantoxr): ela lista 5 skills soltas. Aqui o recorte é "sobe o nível do projeto" e a ' +
