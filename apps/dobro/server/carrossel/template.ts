@@ -53,6 +53,12 @@ const CSS = `
   .callout .lb{font-size:10px;font-weight:700;letter-spacing:.06em;color:#8f83f0;}
   .purple .callout .lb{color:#fff;} /* lilás sobre roxo some; no roxo o label vai de branco */
   .callout p{font-size:12px;line-height:1.5;color:#d7d3e6;margin-top:5px;font-style:italic;}
+  /* O callout nasceu pros slides escuros: borda branca translúcida e texto claro.
+     No slide claro isso vira cinza-claro sobre lilás-claro e some, então aqui ele
+     inverte pras mesmas cores que o resto do .light já usa. */
+  .light .callout{border-color:rgba(26,19,48,.14);background:rgba(26,19,48,.035);}
+  .light .callout .lb{color:#6d3ad6;}
+  .light .callout p{color:#4a4360;}
   .ico{width:22px;height:22px;flex-shrink:0;}
   .dark .ico{color:#a78bfa;} .light .ico{color:#6d3ad6;} .purple .ico{color:#fff;}
   .ico svg{width:100%;height:100%;display:block;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}

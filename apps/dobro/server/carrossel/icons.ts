@@ -8,6 +8,10 @@ export const ICONS: Record<string, string> = {
   video: '<circle cx="12" cy="12" r="9"/><path class="f" d="M10 8l6 4-6 4z"/>',
   mouse: '<rect x="6" y="3" width="12" height="18" rx="6"/><line x1="12" y1="7" x2="12" y2="10.5"/>',
   code: '<path d="M8 6l-5 6 5 6"/><path d="M16 6l5 6-5 6"/>',
+  // Branch de git em traço. O `git` colorido vive em BRANDS (rodapé de marca) e
+  // NÃO serve pra lista de itens, que usa currentColor — sem esta entrada o
+  // primeiro ícone do slide saía vazio.
+  git: '<line x1="6" y1="4" x2="6" y2="14"/><circle cx="6" cy="18" r="2.6"/><circle cx="17" cy="6" r="2.6"/><path d="M17 8.6a8 8 0 0 1-8 8"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
   laptop: '<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 20h20"/>',
   ai: '<path class="f" d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/>',

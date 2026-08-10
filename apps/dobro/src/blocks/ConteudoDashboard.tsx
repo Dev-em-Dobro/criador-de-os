@@ -1523,6 +1523,12 @@ interface SlideView {
   img?: string;
   /** Slide já é uma arte pronta (1080×1350) — o preview mostra a `img` direto, sem re-renderizar. */
   full?: boolean;
+  /**
+   * Este slide é um VÍDEO (o `carrossel:render` gerou o MP4 do slide inteiro).
+   * A `img` continua sendo o quadro parado, que é o que o preview mostra; o que
+   * sobe no Instagram é este arquivo. Carrossel aceita misturar foto e vídeo.
+   */
+  mp4?: string;
 }
 interface CenaView {
   tempo: string;
@@ -1543,7 +1549,13 @@ function parseRoteiro(value: unknown): { slides: SlideView[]; cenas: CenaView[];
   const rec = obj != null && typeof obj === 'object' ? (obj as Record<string, unknown>) : {};
   const slides = (Array.isArray(rec.slides) ? rec.slides : []).map((s) => {
     const o = (s ?? {}) as Record<string, unknown>;
-    return { titulo: toText(o.titulo), corpo: toText(o.corpo), img: toText(o.img) || undefined, full: o.full === true };
+    return {
+      titulo: toText(o.titulo),
+      corpo: toText(o.corpo),
+      img: toText(o.img) || undefined,
+      full: o.full === true,
+      mp4: toText(o.mp4) || undefined,
+    };
   });
   const cenas = (Array.isArray(rec.cenas) ? rec.cenas : []).map((c) => {
     const o = (c ?? {}) as Record<string, unknown>;
@@ -1892,7 +1904,10 @@ async function baixarImagensZip(urls: string[], titulo: string): Promise<void> {
   for (let i = 0; i < urls.length; i++) {
     const res = await fetch(urls[i], { cache: 'no-store' });
     if (!res.ok) throw new Error(`Falha ao baixar slide ${i + 1} (${res.status}).`);
-    zip.file(`slide_${String(i + 1).padStart(2, '0')}.png`, await res.blob());
+    // A extensão vem da URL, não fixa em .png: slide de vídeo entra como .mp4 e
+    // mantém a numeração, que é a ordem em que a pessoa vai tocar no app.
+    const ext = urls[i].toLowerCase().endsWith('.mp4') ? 'mp4' : 'png';
+    zip.file(`slide_${String(i + 1).padStart(2, '0')}.${ext}`, await res.blob());
   }
   const blob = await zip.generateAsync({ type: 'blob' });
   const url = URL.createObjectURL(blob);
@@ -1903,10 +1918,17 @@ async function baixarImagensZip(urls: string[], titulo: string): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
-/** Botão "baixar imagens (.zip)" — usa os PNGs prontos; mostra estado de carregamento. */
+/** Botão "baixar (.zip)" — usa os arquivos prontos; mostra estado de carregamento. */
 function DownloadZipButton({ urls, titulo }: { urls: string[]; titulo: string }) {
   const [busy, setBusy] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  // O rótulo conta o que tem dentro: com vídeo no meio, "8 imagens" faria a pessoa
+  // achar que faltou arquivo (ou postar o quadro parado no lugar da animação).
+  const videos = urls.filter((u) => u.toLowerCase().endsWith('.mp4')).length;
+  const imagens = urls.length - videos;
+  const rotulo = videos
+    ? `${imagens} ${imagens === 1 ? 'imagem' : 'imagens'} + ${videos} ${videos === 1 ? 'vídeo' : 'vídeos'}`
+    : `${imagens} ${imagens === 1 ? 'imagem' : 'imagens'}`;
   return (
     <>
       <button
@@ -1925,7 +1947,7 @@ function DownloadZipButton({ urls, titulo }: { urls: string[]; titulo: string })
         disabled={busy}
         className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
       >
-        {busy ? 'Gerando…' : `⬇ Baixar ${urls.length} imagens (.zip)`}
+        {busy ? 'Gerando…' : `⬇ Baixar ${rotulo} (.zip)`}
       </button>
       {erro && (
         <span role="alert" className="text-xs text-red-400">
@@ -2425,7 +2447,11 @@ function PostPreview({
     .map((h) => h.replace(/^#/, ''))
     .filter(Boolean);
   const { slides, cenas, capaBrief } = parseRoteiro(post[ROTEIRO_KEY]);
-  const imgUrls = slides.filter((s) => s.full && s.img).map((s) => s.img as string);
+  // Onde o slide tem vídeo, o que vai pro .zip é o MP4: é ele que sobe no
+  // Instagram. A `img` desse slide continua servindo de preview no board.
+  const imgUrls = slides
+    .filter((s) => s.full && (s.mp4 || s.img))
+    .map((s) => (s.mp4 ?? s.img) as string);
   const isReels = formato.toLowerCase().includes('reel');
   const vazio = !gancho && !legenda && slides.length === 0 && cenas.length === 0;
   /** Texto final do Instagram (follow + legenda + hashtags) — é o que se copia. */

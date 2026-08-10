@@ -50,6 +50,16 @@ export interface Slide {
    * em vez de só descrever: ver memória capas-carrossel-padrao.
    */
   imagem?: string;
+  /**
+   * Vídeo que ocupa a janelinha deste slide, no lugar do print parado (caminho
+   * relativo a apps/dobro). O carrossel continua saindo em PNG; ALÉM disso, o
+   * render gera `slide-N.mp4` com o slide inteiro e o vídeo encaixado, que é o
+   * arquivo que sobe no Instagram (carrossel misto aceita foto + vídeo).
+   *
+   * Exige `imagem` junto: ela é o quadro parado que aparece no preview do board e
+   * serve de fallback em qualquer lugar que não toque vídeo.
+   */
+  videoArquivo?: string;
   /** Ícone central (nome no mapa) — usado no layout center. */
   icone?: string;
   /** Ícone decorativo grande no topo de um slide de texto (ex.: caveira). */

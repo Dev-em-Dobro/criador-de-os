@@ -7,13 +7,16 @@
  *   3. Renderiza cada slide como PNG 1080×1350 (Playwright, deviceScaleFactor 3)
  *      em apps/dobro/public/carrosseis/<slug>/.
  *   4. (Re)grava o card em conteudo_posts com `img+full` em cada slide, então o
- *      preview do board mostra a arte pronta direto. Idempotente (apaga o antigo).
+ *      preview do board mostra a arte pronta direto. Idempotente (apaga o antigo),
+ *      PRESERVANDO data programada e estado de quem já estava no board — quem
+ *      manda no agendamento é a tela, não este arquivo.
  *
  * Uso: pnpm --filter @app/dobro carrossel:render <slug>   (ex.: gta6)
  * Requer Playwright chromium instalado (pnpm exec playwright install chromium).
  */
 
 import { chromium } from 'playwright';
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -27,6 +30,14 @@ import type { Carrossel } from '../carrossel/types';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const appRoot = resolve(here, '..', '..'); // apps/dobro
+
+/** Retângulo em pixels do PNG final (1080×1350). */
+interface Caixa {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 
 /** Pauta legível (AIDA) a partir dos slides. */
 function montarPauta(car: Carrossel): string {
@@ -98,36 +109,123 @@ async function main(): Promise<void> {
   const n = car.slides.length;
   console.log(`[render] ${slug}: renderizando ${n} slides (1080×1350)...`);
 
+  /** Onde a janelinha de cada slide com vídeo está, em pixels do PNG final. */
+  const caixasDeVideo = new Map<number, Caixa>();
+
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: { width: 1680, height: 1120 }, deviceScaleFactor: 3 });
     await page.goto(pathToFileURL(tmpHtml).href, { waitUntil: 'networkidle' });
     await page.evaluate(() => (document as unknown as { fonts: { ready: Promise<unknown> } }).fonts.ready);
     for (let i = 0; i < n; i++) {
-      await page.locator('.slide').nth(i).screenshot({ path: join(outDir, `slide-${i + 1}.png`) });
+      const slide = page.locator('.slide').nth(i);
+      await slide.screenshot({ path: join(outDir, `slide-${i + 1}.png`) });
+
+      // Mede a janelinha ENQUANTO a página está aberta: é a única hora em que dá
+      // pra saber onde ela caiu, já que o layout é flex e depende do texto acima.
+      if (!car.slides[i]?.videoArquivo) continue;
+      const bSlide = await slide.boundingBox();
+      const bPic = await slide.locator('.shot .pic').boundingBox();
+      if (!bSlide || !bPic) {
+        console.error(`[render] slide ${i + 1} pede vídeo mas não tem janelinha (falta \`imagem\`?)`);
+        process.exit(1);
+      }
+      // O screenshot sai em deviceScaleFactor 3, então as medidas de CSS px viram
+      // px do PNG multiplicando por 3. Par, porque o h264 não aceita ímpar.
+      //
+      // Canto arredondado pra BAIXO na origem e pra CIMA no tamanho, mais 2px de
+      // sangria: sem isso sobra uma fresta de 1 ou 2 px na borda da janelinha, e
+      // pela fresta aparece o print parado que está no PNG embaixo do vídeo.
+      const parBaixo = (v: number): number => Math.floor(v / 2) * 2;
+      const parCima = (v: number): number => Math.ceil(v / 2) * 2;
+      const x = parBaixo((bPic.x - bSlide.x) * 3);
+      const y = parBaixo((bPic.y - bSlide.y) * 3);
+      caixasDeVideo.set(i, {
+        x,
+        y,
+        w: parCima((bPic.x - bSlide.x) * 3 + bPic.width * 3 - x) + 2,
+        h: parCima((bPic.y - bSlide.y) * 3 + bPic.height * 3 - y) + 2,
+      });
     }
   } finally {
     await browser.close();
   }
   console.log(`[render] ${n} PNGs em public/carrosseis/${slug}/`);
 
-  // Roteiro com img+full (o preview do board mostra a arte pronta).
+  // Slides com vídeo viram TAMBÉM um MP4 do slide inteiro, com o vídeo encaixado
+  // exatamente onde estava o print. É esse arquivo que sobe no Instagram.
+  const mp4PorSlide = new Map<number, string>();
+  for (const [i, caixa] of caixasDeVideo) {
+    const origem = resolve(appRoot, car.slides[i]!.videoArquivo!);
+    if (!existsSync(origem)) {
+      console.error(`[render] vídeo do slide ${i + 1} não encontrado: ${origem}`);
+      process.exit(1);
+    }
+    const fundo = join(outDir, `slide-${i + 1}.png`);
+    const saida = join(outDir, `slide-${i + 1}.mp4`);
+    // `increase` + `crop` reproduz o `background-size:cover` da janelinha: o vídeo
+    // preenche a caixa e o que sobra é aparado, em vez de deformar a imagem.
+    const filtro =
+      `[1:v]scale=${caixa.w}:${caixa.h}:force_original_aspect_ratio=increase,` +
+      `crop=${caixa.w}:${caixa.h},setsar=1[v];[0:v][v]overlay=${caixa.x}:${caixa.y}:shortest=1[out]`;
+    // A entrada 2 é uma faixa AAC muda. Vídeo sem trilha nenhuma costuma passar no
+    // app, mas trava o processamento assíncrono da API de publicação da Meta sem
+    // dizer por quê. Custa alguns KB e elimina a categoria inteira de problema.
+    execFileSync(
+      'ffmpeg',
+      ['-hide_banner', '-loglevel', 'error', '-y',
+        '-loop', '1', '-i', fundo, '-i', origem,
+        '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
+        '-filter_complex', filtro, '-map', '[out]', '-map', '2:a',
+        '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-pix_fmt', 'yuv420p',
+        '-c:a', 'aac', '-b:a', '64k',
+        '-movflags', '+faststart', '-shortest', saida],
+      { stdio: 'inherit' },
+    );
+    mp4PorSlide.set(i, `/carrosseis/${slug}/slide-${i + 1}.mp4`);
+    console.log(`[render] slide ${i + 1}: vídeo encaixado em ${caixa.w}x${caixa.h} (${caixa.x},${caixa.y}) → slide-${i + 1}.mp4`);
+  }
+
+  // Roteiro com img+full (o preview do board mostra a arte pronta). Onde há vídeo,
+  // `mp4` fica junto: é o que precisa subir no lugar do PNG na hora de postar.
   const slidesRoteiro = car.slides.map((s, i) => ({
     ...s,
     img: `/carrosseis/${slug}/slide-${i + 1}.png`,
     full: true,
+    ...(mp4PorSlide.has(i) ? { mp4: mp4PorSlide.get(i) } : {}),
   }));
 
   console.log('[render] gravando o card no board (idempotente)...');
+
+  // O AGENDAMENTO é da tela, não do arquivo. Quem manda na data e no estado é o
+  // board (você arrasta o card, marca "pronto"), então um re-render que reescreve
+  // a arte NÃO pode devolver o card pra `dataProgramada` do .ts: isso jogava o
+  // post pra uma semana passada e ele "sumia" do cronograma, que mostra uma
+  // semana por vez. A data do arquivo só vale pra card NOVO.
+  const [anterior] = await db
+    .select({ dataProgramada: conteudoPosts.dataProgramada, estado: conteudoPosts.estado })
+    .from(conteudoPosts)
+    .where(inArray(conteudoPosts.titulo, [car.titulo]))
+    .limit(1);
+  const dataProgramada = anterior?.dataProgramada ?? parseDataProgramada(car.dataProgramada);
+  const estado = anterior?.estado ?? 'rascunho';
+  if (anterior) {
+    // Em UTC, que é como o board lê a data (toDayKey/toTimeStr leem a string ISO).
+    // Em horário local o log mostraria o dia anterior às 21h e assustaria à toa.
+    const iso = dataProgramada?.toISOString();
+    const quando = iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}${iso.slice(11, 16) === '00:00' ? ', sem hora' : ` ${iso.slice(11, 16)}`}` : 'sem data';
+    console.log(`[render] card já existia: mantendo agendamento (${quando}) e estado "${estado}".`);
+  }
+
   await db.delete(conteudoPosts).where(inArray(conteudoPosts.titulo, [car.titulo]));
   const [row] = await db
     .insert(conteudoPosts)
     .values({
       titulo: car.titulo,
-      estado: 'rascunho',
+      estado,
       plataforma: 'instagram',
       formato: 'carrossel',
-      dataProgramada: parseDataProgramada(car.dataProgramada),
+      dataProgramada,
       capaUrl: `/carrosseis/${slug}/slide-1.png`,
       linkPresenteNotion: car.linkPresente ?? null,
       gancho: car.gancho,
