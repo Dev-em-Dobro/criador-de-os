@@ -28,6 +28,22 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import {
+  dossieParaAvaliador,
+  viesParaAvaliador,
+  type Dossie,
+  type Vies,
+} from './conteudo-dossie.js';
+
+/**
+ * O que o perfil já ensinou: as âncoras por estrutura e o erro médio das
+ * previsões passadas. Os dois são opcionais — sem eles a previsão continua
+ * funcionando, só que sem base histórica.
+ */
+export interface Calibragem {
+  dossie?: Dossie | null;
+  vies?: Vies | null;
+}
 
 /** Classificação da régua de desempenho (a mesma da tela). */
 export type ClassePrevista = 'forte' | 'saudavel' | 'abaixo' | 'na';
@@ -286,9 +302,15 @@ function postEmTexto(p: PostParaPrever): string[] {
  * fosse a mesma régua, o modelo premiaria o post por ter seguido as próprias
  * instruções. Aqui ele julga contra os números reais do perfil.
  */
-function buildPromptPrevisao(p: PostParaPrever): string {
+function buildPromptPrevisao(p: PostParaPrever, cal: Calibragem = {}): string {
   const bench = BENCHMARKS[chaveBenchmark(p.formato)];
   const pct = (v: number) => `${(v * 100).toFixed(1).replace('.', ',')}%`;
+
+  // Âncoras reais por estrutura + o erro médio das previsões passadas. Quando
+  // existem, substituem o parágrafo genérico de "o que costuma render": números
+  // do próprio perfil valem mais que uma regra escrita à mão.
+  const ancoras = cal.dossie ? dossieParaAvaliador(cal.dossie) : [];
+  const calibragem = viesParaAvaliador(cal.vies ?? null);
 
   return [
     'Você é um analista CÉTICO de desempenho no Instagram. Um post do @devemdobro (ensino',
@@ -310,13 +332,18 @@ function buildPromptPrevisao(p: PostParaPrever): string {
     '## Calibragem (não seja simpático)',
     '- Se você prever "vai bem" para todo post, sua previsão não vale nada. O objetivo é ACERTAR,',
     '  não elogiar. Prever "Abaixo" e acertar vale tanto quanto prever "Forte" e acertar.',
-    '- O que historicamente puxa salvamento neste perfil: FERRAMENTA concreta (grátis, open source,',
-    '  roda no PC, com nome próprio) e CONCEITO que destrava iniciante (Git, array em JS, lógica).',
-    '- O que historicamente rende pouco: motivacional, opinião genérica, "contrarian" sem dado,',
-    '  promessa vaga. Se o post for disso, preveja taxas baixas mesmo que o texto esteja bonito.',
     '- Texto bem escrito não é sinal de desempenho. O que gera salvamento é o post ter algo que a',
     '  pessoa QUER GUARDAR; o que gera compartilhamento é ela querer marcar alguém.',
-    '- Não invente números do perfil que você não tem. Estime a partir da régua acima.',
+    '- Não invente números do perfil que você não tem.',
+    ...(ancoras.length
+      ? ['', ...ancoras]
+      : [
+          '- O que historicamente puxa salvamento neste perfil: FERRAMENTA concreta (grátis, open source,',
+          '  roda no PC, com nome próprio) e CONCEITO que destrava iniciante (Git, array em JS, lógica).',
+          '- O que historicamente rende pouco: motivacional, opinião genérica, "contrarian" sem dado,',
+          '  promessa vaga. Se o post for disso, preveja taxas baixas mesmo que o texto esteja bonito.',
+        ]),
+    ...(calibragem.length ? ['', ...calibragem] : []),
     '',
     '## O post',
     ...postEmTexto(p),
@@ -373,7 +400,11 @@ interface PrevisaoBruta {
  * Prevê o desempenho de UM post (uma chamada à Claude) e devolve a previsão já
  * classificada pela régua. Lança em caso de falha — quem chama decide se ignora.
  */
-export async function preverDesempenho(post: PostParaPrever, apiKey: string): Promise<PrevisaoIa> {
+export async function preverDesempenho(
+  post: PostParaPrever,
+  apiKey: string,
+  calibragem: Calibragem = {},
+): Promise<PrevisaoIa> {
   const client = new Anthropic({ apiKey });
 
   const res = await client.messages.create(
@@ -384,7 +415,7 @@ export async function preverDesempenho(post: PostParaPrever, apiKey: string): Pr
       output_config: { effort: 'medium' },
       tools: [PREVER_TOOL],
       tool_choice: { type: 'tool', name: 'registrar_previsao' },
-      messages: [{ role: 'user', content: buildPromptPrevisao(post) }],
+      messages: [{ role: 'user', content: buildPromptPrevisao(post, calibragem) }],
     },
     { timeout: TIMEOUT_PREVISAO_MS },
   );

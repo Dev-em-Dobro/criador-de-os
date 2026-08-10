@@ -20,7 +20,13 @@ import { db } from '../db/client.js';
 import { referencias, conteudoPosts, conteudoPrevisoes } from '../db/schema.js';
 import { fetchInstagramContent } from './instagram.js';
 import { transcreverSlides, podeLerSlides } from './instagram-slides.js';
-import { preverDesempenho, formatarPrevisaoBriefing, type PrevisaoIa } from './conteudo-previsao.js';
+import {
+  preverDesempenho,
+  formatarPrevisaoBriefing,
+  type PrevisaoIa,
+  type PostParaPrever,
+} from './conteudo-previsao.js';
+import { carregarDossie, carregarVies, dossieParaGerador, type Dossie } from './conteudo-dossie.js';
 
 /** Client Drizzle (owner OU role de menor privilégio) — injetado nas escritas. */
 type Database = typeof db;
@@ -221,31 +227,55 @@ const REGRAS_AIDA = [
 ];
 
 /**
- * Voz da marca + veredito de performance (o que funciona no @devemdobro, extraído
- * dos 113 carrosséis reais medidos). Injetado no prompt pra o rascunho já sair no
- * NOSSO estilo, não num AIDA genérico.
+ * Voz da marca + veredito de performance. Injetado no prompt pra o rascunho já
+ * sair no NOSSO estilo, não num AIDA genérico.
+ *
+ * A parte de VOZ (tom, o que evitar, como falar) é fixa: é decisão editorial da
+ * casa, não sai de métrica. Já o VEREDITO de performance ("o que mais performa")
+ * agora vem do banco, pelo `conteudo-dossie.ts`, com os números de todos os posts
+ * medidos até hoje. O texto abaixo virou o FALLBACK: vale quando o dossiê não
+ * carrega, e foi escrito a partir dos 113 carrosséis da primeira análise.
  */
-const VOZ_E_VEREDITO = [
+const VOZ_FIXA = [
   '## Quem somos e o que funciona pra nós (siga isto à risca)',
   'Perfil @devemdobro (ensino de programação e carreira tech). As DUAS metas do',
   'nosso conteúdo: ganhar SEGUIDORES e gerar COMENTÁRIOS (comentário com palavra-',
   'gatilho que dispara automação de DM).',
   '',
+  'Gancho que mais converte: "você não precisa pagar / ser bilionário / ser',
+  'avançado pra ter [algo poderoso]" e "de graça / open source / no seu PC".',
+  'Não prometa milagre. Salvamento e comentário são as metas: dê um motivo concreto',
+  'pra salvar e um CTA de comentar palavra-gatilho.',
+  '',
+  'Tom: direto, de builder pra builder, português do dia a dia, frases curtas. Sem',
+  'jargão corporativo nem palavras de IA (delve, robusto, transformador, poderoso).',
+];
+
+/**
+ * O veredito de performance de quando não há dossiê. São os mesmos ângulos, só
+ * que escritos à mão a partir dos 113 carrosséis da primeira análise (agosto/26)
+ * e sem número nenhum. Com o dossiê carregado, o bloco abaixo é substituído pelos
+ * dados de hoje — que dizem a mesma coisa, mas com a força de "4,04% contra 0,30%".
+ */
+const VEREDITO_FALLBACK = [
   'O que MAIS performa nos nossos carrosséis (priorize estes ângulos):',
   '- FERRAMENTA concreta de IA/dev, de preferência grátis, open source e que roda',
   '  local, com NOME PRÓPRIO e um número/prova. Nossos campeões reais: JARVIS open',
   '  source no PC, LightBot, Claude Code de graça, Oh My Git.',
   '- CONCEITO que destrava iniciante (Git, métodos de array em JS, flexbox, lógica).',
-  'Gancho que mais converte: "você não precisa pagar / ser bilionário / ser',
-  'avançado pra ter [algo poderoso]" e "de graça / open source / no seu PC".',
   '',
   'EVITE: post motivacional ou contrarian genérico ("o problema não é falta de',
-  'esforço"), que rende pouco pra nós. Não prometa milagre. Salvamento e comentário',
-  'são as metas: dê um motivo concreto pra salvar e um CTA de comentar palavra-gatilho.',
-  '',
-  'Tom: direto, de builder pra builder, português do dia a dia, frases curtas. Sem',
-  'jargão corporativo nem palavras de IA (delve, robusto, transformador, poderoso).',
+  'esforço"), que rende pouco pra nós.',
 ];
+
+/**
+ * Voz da casa + o que os números dizem. O dossiê entra no lugar do veredito fixo
+ * quando carrega; sem ele, o prompt continua igual ao de antes.
+ */
+function vozEVeredito(dossie: Dossie | null): string[] {
+  const veredito = dossie ? dossieParaGerador(dossie) : VEREDITO_FALLBACK;
+  return [...VOZ_FIXA, '', ...veredito];
+}
 
 /**
  * Instrução do FORMATO do nosso post. Se `formatoAlvo` vier setado, FIXA o
@@ -265,7 +295,7 @@ function formatoInstrucao(formatoAlvo?: 'carrossel' | 'reels' | null): string[] 
   return ['Por padrão mantenha o formato da referência; adapte só se houver razão clara.'];
 }
 
-function buildPrompt(input: GerarInput): string {
+function buildPrompt(input: GerarInput, dossie: Dossie | null): string {
   const ref = input.referencia;
   if (ref) {
     return [
@@ -274,7 +304,7 @@ function buildPrompt(input: GerarInput): string {
       'provavelmente performou e (2) criar um post ORIGINAL nosso — inspirado,',
       'NUNCA cópia — no mesmo tema/nicho, estruturado em AIDA.',
       '',
-      ...VOZ_E_VEREDITO,
+      ...vozEVeredito(dossie),
       '',
       '## Referência',
       `- Link: ${ref.origemUrl ?? '(não informado)'}`,
@@ -301,7 +331,7 @@ function buildPrompt(input: GerarInput): string {
     'Você é um estrategista sênior de conteúdo para Instagram. Crie um post',
     `ORIGINAL, estruturado em AIDA, sobre o tema: "${input.tema ?? ''}".`,
     '',
-    ...VOZ_E_VEREDITO,
+    ...vozEVeredito(dossie),
     '',
     '## `analise`',
     'Como não há referência, escreva 1 frase dizendo que é um post a partir de tema',
@@ -316,9 +346,13 @@ function buildPrompt(input: GerarInput): string {
 }
 
 /** Gera o rascunho estruturado (uma chamada à Claude) a partir de referência ou tema. */
-export async function gerarRascunho(input: GerarInput, apiKey: string): Promise<DraftResult> {
+export async function gerarRascunho(
+  input: GerarInput,
+  apiKey: string,
+  dossie: Dossie | null = null,
+): Promise<DraftResult> {
   const client = new Anthropic({ apiKey });
-  const messages: Anthropic.MessageParam[] = [{ role: 'user', content: buildPrompt(input) }];
+  const messages: Anthropic.MessageParam[] = [{ role: 'user', content: buildPrompt(input, dossie) }];
 
   for (let i = 0; i < 4; i++) {
     const res = await client.messages.create({
@@ -546,8 +580,15 @@ export async function criarEsqueletoDoCard(
  * o rascunho é gravado do mesmo jeito, só que sem o bloco de previsão. O post é o
  * produto; a previsão é o extra que a gente está testando.
  */
-async function preverBestEffort(draft: DraftResult, apiKey: string): Promise<PrevisaoIa | null> {
+async function preverBestEffort(
+  draft: DraftResult,
+  apiKey: string,
+  database: Database,
+): Promise<PrevisaoIa | null> {
   try {
+    // As âncoras reais do perfil e o erro médio das previsões passadas. Sem isso
+    // o avaliador chuta a média para todo post, e todo post sai "Saudável".
+    const [dossie, vies] = await Promise.all([carregarDossie(database), carregarVies(database)]);
     return await preverDesempenho(
       {
         formato: draft.formato,
@@ -560,6 +601,7 @@ async function preverBestEffort(draft: DraftResult, apiKey: string): Promise<Pre
         hashtags: hashtagsToText(draft.hashtags),
       },
       apiKey,
+      { dossie, vies },
     );
   } catch (err) {
     console.warn('[conteudo:previsao] falhou (rascunho segue sem previsão):', err instanceof Error ? err.message : err);
@@ -650,10 +692,18 @@ export async function criarRascunho(
     permitirSemSlides?: boolean;
   } = {},
 ): Promise<CriarRascunhoResult> {
+  // O que os números do perfil ensinam hoje. Best-effort: sem ele o prompt cai no
+  // veredito fixo, que é como o gerador funcionava antes desta fatia.
+  const dossie = await carregarDossie(database);
+
   // Tema livre: gera sem referência.
   if (opts.tema && opts.tema.trim()) {
-    const draft = await gerarRascunho({ tema: opts.tema.trim(), formatoAlvo: opts.formatoAlvo }, apiKey);
-    const previsao = await preverBestEffort(draft, apiKey);
+    const draft = await gerarRascunho(
+      { tema: opts.tema.trim(), formatoAlvo: opts.formatoAlvo },
+      apiKey,
+      dossie,
+    );
+    const previsao = await preverBestEffort(draft, apiKey, database);
     const id = await salvarRascunhoPost(
       database,
       draft,
@@ -758,9 +808,10 @@ export async function criarRascunho(
       formatoAlvo: opts.formatoAlvo,
     },
     apiKey,
+    dossie,
   );
 
-  const previsao = await preverBestEffort(draft, apiKey);
+  const previsao = await preverBestEffort(draft, apiKey, database);
   const id = await salvarRascunhoPost(
     database,
     draft,
@@ -777,6 +828,61 @@ export async function criarRascunho(
     .where(eq(referencias.id, ref.id));
 
   return { created: true, id, titulo: draft.titulo, formato: draft.formato, previsao };
+}
+
+/**
+ * RE-PREVÊ um card existente, a partir do texto que ele tem AGORA.
+ *
+ * Existe porque o carrossel é editado depois de gerado. Se a previsão continuar
+ * sendo a do primeiro rascunho, o placar compara o resultado de um post com a
+ * expectativa de outro — e a medida de acurácia vira ficção. Cada chamada grava
+ * uma LINHA nova (a anterior fica no histórico) e a view do placar usa a última
+ * feita antes de publicar.
+ *
+ * Devolve null quando o card não existe ou não tem conteúdo suficiente para
+ * avaliar (o card-esqueleto do Telegram, por exemplo, que ainda não foi gerado).
+ */
+export async function reverPrevisaoDoCard(
+  database: Database,
+  apiKey: string,
+  postId: string,
+): Promise<PrevisaoIa | null> {
+  const [card] = await database
+    .select({
+      id: conteudoPosts.id,
+      titulo: conteudoPosts.titulo,
+      formato: conteudoPosts.formato,
+      gancho: conteudoPosts.gancho,
+      legenda: conteudoPosts.legenda,
+      hashtags: conteudoPosts.hashtags,
+      ctaFinal: conteudoPosts.ctaFinal,
+      roteiro: conteudoPosts.roteiro,
+    })
+    .from(conteudoPosts)
+    .where(eq(conteudoPosts.id, postId))
+    .limit(1);
+
+  if (!card?.roteiro) return null;
+
+  const formato: 'carrossel' | 'reels' = card.formato === 'reels' ? 'reels' : 'carrossel';
+  const roteiro = card.roteiro as { slides?: SlideCarrossel[]; cenas?: CenaReels[] };
+
+  const post: PostParaPrever = {
+    formato,
+    titulo: card.titulo,
+    gancho: card.gancho ?? card.titulo,
+    slides: roteiro.slides,
+    cenas: roteiro.cenas,
+    legenda: card.legenda ?? '',
+    ctaFinal: card.ctaFinal ?? '',
+    hashtags: card.hashtags ?? undefined,
+  };
+  if (!post.slides?.length && !post.cenas?.length) return null;
+
+  const [dossie, vies] = await Promise.all([carregarDossie(database), carregarVies(database)]);
+  const previsao = await preverDesempenho(post, apiKey, { dossie, vies });
+  await salvarPrevisao(database, card.id, previsao);
+  return previsao;
 }
 
 /**

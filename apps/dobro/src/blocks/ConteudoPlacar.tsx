@@ -21,7 +21,7 @@
  * uma caixa vazia.
  */
 
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { SectionHeader, EmptyState, SkeletonCards } from '@os/core';
 import type { BlockDefinition, BlockProps } from '@os/core';
 import { CLASSE_TONE, DEFAULT_BENCH, type Classe, type FormatBenchmarks } from './regua-desempenho';
@@ -254,8 +254,38 @@ function CardJulgado({ par }: { par: ParPlacar }) {
   );
 }
 
-/** Uma previsão que ainda não tem resultado. */
-function CardNaFila({ par }: { par: ParPlacar }) {
+/**
+ * Uma previsão que ainda não tem resultado, com o botão de refazer.
+ *
+ * O botão existe porque o carrossel é editado depois de gerado. Se a previsão
+ * continuar sendo a do primeiro rascunho, o placar vai comparar o resultado de um
+ * post com a expectativa de outro. Refazer registra uma avaliação nova (a antiga
+ * fica no histórico) e só faz sentido ANTES de publicar — por isso o botão vive
+ * aqui, na fila, e não nos julgados.
+ */
+function CardNaFila({ par, onReprever }: { par: ParPlacar; onReprever: (id: string) => void }) {
+  const [estado, setEstado] = useState<'ocioso' | 'indo' | 'ok' | 'erro'>('ocioso');
+  const [erro, setErro] = useState<string | null>(null);
+
+  const reprever = useCallback(async () => {
+    setEstado('indo');
+    setErro(null);
+    try {
+      const res = await fetch(`/api/conteudo/${par.id}/prever`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const corpo = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(corpo.error ?? `Erro ${res.status}`);
+      setEstado('ok');
+      onReprever(par.id);
+    } catch (e) {
+      setEstado('erro');
+      setErro(e instanceof Error ? e.message : 'falhou');
+    }
+  }, [par.id, onReprever]);
+
   return (
     <li className="flex items-center gap-3 rounded-2xl border border-gray-700/60 bg-gray-800/30 p-3">
       <ClassePill classe={par.previsto.classe} titulo="Classe prevista" />
@@ -264,8 +294,18 @@ function CardNaFila({ par }: { par: ParPlacar }) {
         <span className="block text-[11px] text-gray-500">
           previsto em {fmtData(par.previsto.registradaEm)} · {par.estado}
           {par.previsto.salvPct != null && ` · espera ${fmtPct(par.previsto.salvPct)} de salvamentos`}
+          {erro && <span className="text-red-400"> · {erro}</span>}
         </span>
       </span>
+      <button
+        type="button"
+        onClick={reprever}
+        disabled={estado === 'indo'}
+        title="Refaz a previsão com o texto atual do card (a anterior fica no histórico)"
+        className="shrink-0 rounded-lg border border-gray-600/70 px-2.5 py-1 text-[11px] font-medium text-gray-300 transition-colors hover:border-blue-500/50 hover:text-blue-200 disabled:opacity-50"
+      >
+        {estado === 'indo' ? 'prevendo…' : estado === 'ok' ? 'refeita ✓' : 'reprever'}
+      </button>
     </li>
   );
 }
@@ -276,6 +316,14 @@ function ConteudoPlacarBlock({ config, ctx }: BlockProps<ConteudoPlacarConfig>) 
 
   const pares = useMemo(() => ordenarParaTela(mapearPares(asRows(data), bench)), [data, bench]);
   const resumo = useMemo(() => resumirPlacar(pares), [pares]);
+
+  // A previsão nova só aparece na lista no próximo carregamento da view. Avisar
+  // é mais honesto do que fingir que a linha mudou: o card mostra "refeita ✓" e
+  // aqui o usuário fica sabendo que precisa recarregar para ver os números.
+  const [refeitos, setRefeitos] = useState<string[]>([]);
+  const aoReprever = useCallback((id: string) => {
+    setRefeitos((atual) => (atual.includes(id) ? atual : [...atual, id]));
+  }, []);
 
   if (loading) {
     return (
@@ -375,9 +423,15 @@ function ConteudoPlacarBlock({ config, ctx }: BlockProps<ConteudoPlacarConfig>) 
               <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
                 Na fila · esperando o resultado
               </h3>
+              {refeitos.length > 0 && (
+                <p className="text-[11px] text-blue-300/90">
+                  {refeitos.length} previsão(ões) refeita(s). Recarregue a página para ver os números
+                  novos: a lista ainda mostra a avaliação anterior.
+                </p>
+              )}
               <ul className="space-y-1.5">
                 {naFila.map((p) => (
-                  <CardNaFila key={p.id} par={p} />
+                  <CardNaFila key={p.id} par={p} onReprever={aoReprever} />
                 ))}
               </ul>
             </div>

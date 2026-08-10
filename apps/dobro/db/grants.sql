@@ -115,6 +115,13 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON conteudo_posts TO app_content;
 --     números pela tela /conteudo/desempenho, via as mesmas rotas autenticadas).
 GRANT SELECT, INSERT, UPDATE, DELETE ON conteudo_desempenho TO app_content;
 
+-- 6d-bis) A tela do Placar refaz a previsão de um card editado
+--     (POST /api/conteudo/:id/prever). Grava a avaliação nova (INSERT, nunca
+--     UPDATE: cada avaliação é histórico) e lê o placar para se calibrar pelo
+--     próprio erro. O placar só pela VIEW.
+GRANT INSERT ON conteudo_previsoes TO app_content;
+GRANT SELECT ON v_conteudo_placar  TO app_content;
+
 -- 6e) app_pipeline: o gerador de IA (rota autenticada /api/conteudo/gerar). Lê/semeia
 --     a referência (para o "a partir de link") e a marca como processada; grava o
 --     rascunho em `conteudo_posts`. Menos privilégio que o owner do script admin:
@@ -130,6 +137,13 @@ GRANT SELECT, INSERT, UPDATE ON conteudo_posts TO app_pipeline;
 --         Só INSERT: previsão é registro histórico, nunca se reescreve — uma nova
 --         avaliação vira uma LINHA nova, senão o placar perderia o que a IA achava antes.
 GRANT INSERT ON conteudo_previsoes TO app_pipeline;
+
+-- 6f) O gerador APRENDE com o histórico antes de escrever (`conteudo-dossie.ts`):
+--     lê as métricas dos posts já medidos para montar o ranking por estrutura, e
+--     lê o placar para saber o próprio erro médio e corrigir a mão. Só SELECT, e
+--     no placar só a VIEW (que não expõe as tabelas por baixo).
+GRANT SELECT ON conteudo_desempenho TO app_pipeline;
+GRANT SELECT ON v_conteudo_placar   TO app_pipeline;
 
 -- 7) Permite ao owner assumir cada role (SET ROLE) — necessário para TESTAR a
 --    defesa com db/verify-grants.ts. Em produção, a API usa a connection string

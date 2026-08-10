@@ -89,9 +89,16 @@ async function main(): Promise<void> {
     await tryAs('app_pipeline', 'SELECT * FROM conteudo_previsoes LIMIT 1'),
     false,
   );
+  // O gerador aprende com o histórico antes de escrever (conteudo-dossie.ts):
+  // sem este SELECT ele cai no veredito fixo e para de melhorar.
+  const pHist = line(
+    'SELECT em conteudo_desempenho',
+    await tryAs('app_pipeline', 'SELECT * FROM conteudo_desempenho LIMIT 1'),
+    true,
+  );
 
   const pass =
-    qView && qTable && qUser && aUser && aTable && aView && qPrevView && qPrevTable && pIns && pSel;
+    qView && qTable && qUser && aUser && aTable && aView && qPrevView && qPrevTable && pIns && pSel && pHist;
   console.log(
     pass
       ? '\n[verify-grants] OK — isolamento por caminho reforçado no banco.'

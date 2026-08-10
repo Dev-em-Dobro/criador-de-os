@@ -17,10 +17,17 @@
 
 import type { Context } from 'hono';
 import { auth } from './auth.js';
-import { dbPipeline } from '../db/client.js';
+import { dbContent, dbPipeline } from '../db/client.js';
 import { referencias } from '../db/schema.js';
-import { criarRascunho, processarReferenciasPendentes } from './conteudo-pipeline.js';
+import {
+  criarRascunho,
+  processarReferenciasPendentes,
+  reverPrevisaoDoCard,
+} from './conteudo-pipeline.js';
 import { getAgencyAnthropicKey } from './env.js';
+
+/** Regex leve de UUID — barra id malformado com 400 limpo (em vez de 500 do banco). */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Formatos que o criador pode forçar no NOSSO post. */
 const FORMATOS = ['carrossel', 'reels'] as const;
@@ -145,6 +152,43 @@ export async function handleGerarConteudo(c: Context): Promise<Response> {
     if (/recus/i.test(msg)) return c.json({ error: msg }, 422);
     console.error('[conteudo:gerar] erro inesperado:', msg);
     return c.json({ error: 'Erro ao gerar o rascunho' }, 500);
+  }
+}
+
+/**
+ * POST /api/conteudo/:id/prever — RE-PREVÊ um card que já existe.
+ *
+ * A previsão nasce junto do rascunho, mas o carrossel é editado depois: gancho
+ * trocado, slide reescrito, CTA ajustado. Quando isso acontece, o placar passa a
+ * comparar o resultado de um post com a previsão de OUTRO — e mede errado sem
+ * ninguém notar. Esta rota registra uma previsão NOVA para o texto atual.
+ *
+ * A anterior não é apagada: cada avaliação é uma linha, e a view do placar usa a
+ * última feita antes de publicar. É assim que dá para ver a IA mudando de ideia
+ * conforme o post melhora.
+ */
+export async function handleReverPrevisao(c: Context): Promise<Response> {
+  if (!(await auth.api.getSession({ headers: c.req.raw.headers }))) {
+    return c.json({ error: 'Não autenticado' }, 401);
+  }
+
+  const apiKey = getAgencyAnthropicKey();
+  if (!apiKey) {
+    return c.json({ error: 'Gerador de IA não configurado (defina ANTHROPIC_API_KEY).' }, 503);
+  }
+
+  const id = c.req.param('id');
+  if (!id || !UUID_RE.test(id)) return c.json({ error: 'id inválido' }, 400);
+
+  try {
+    const previsao = await reverPrevisaoDoCard(dbContent, apiKey, id);
+    if (!previsao) return c.json({ error: 'card não encontrado ou sem conteúdo para avaliar' }, 404);
+    return c.json({ previsao });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/recus/i.test(msg)) return c.json({ error: msg }, 422);
+    console.error('[conteudo:reprever] erro:', msg);
+    return c.json({ error: 'Erro ao refazer a previsão' }, 500);
   }
 }
 

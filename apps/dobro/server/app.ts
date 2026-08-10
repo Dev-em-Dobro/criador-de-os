@@ -21,7 +21,11 @@ import {
   handleAtualizarConteudo,
   handleRemoverConteudo,
 } from './conteudo.js';
-import { handleGerarConteudo, handleCronProcessarReferencias } from './conteudo-gerar.js';
+import {
+  handleGerarConteudo,
+  handleReverPrevisao,
+  handleCronProcessarReferencias,
+} from './conteudo-gerar.js';
 import {
   handleCriarDesempenho,
   handleAtualizarDesempenho,
@@ -79,6 +83,8 @@ app.get('/api/instagram/account-insights', (c) => handleAccountInsights(c));
 // Geração de rascunho com IA (segmento estático `gerar` — prioridade sobre `:id`).
 // Auth-first; gera carrossel/reels em AIDA a partir de tema/link, via role app_pipeline.
 app.post('/api/conteudo/gerar', (c) => handleGerarConteudo(c));
+// Re-previsão de um card já existente (o texto mudou depois da geração).
+app.post('/api/conteudo/:id/prever', (c) => handleReverPrevisao(c));
 
 app.post('/api/conteudo', (c) => handleCriarConteudo(c));
 app.patch('/api/conteudo/:id', (c) => handleAtualizarConteudo(c));
