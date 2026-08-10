@@ -29,6 +29,9 @@ import { caraDeCaro } from './carrosseis/cara-de-caro';
 import { instalarNoClaude } from './carrosseis/instalar-no-claude';
 import { claudeLinkedinCurriculo } from './carrosseis/claude-linkedin-curriculo';
 import { claudeLinkedinPerfil } from './carrosseis/claude-linkedin-perfil';
+import { seteRepos } from './carrosseis/7-repos';
+import { cincoPastas } from './carrosseis/5-pastas';
+import { quatroMcpGratis } from './carrosseis/4-mcp-gratis';
 
 const CARROSSEIS: Record<string, Carrossel> = {
   [gta6.slug]: gta6,
@@ -57,6 +60,9 @@ const CARROSSEIS: Record<string, Carrossel> = {
   [claudeLinkedinPerfil.slug]: claudeLinkedinPerfil,
   [caraDeCaro.slug]: caraDeCaro,
   [instalarNoClaude.slug]: instalarNoClaude,
+  [seteRepos.slug]: seteRepos,
+  [cincoPastas.slug]: cincoPastas,
+  [quatroMcpGratis.slug]: quatroMcpGratis,
 };
 
 export function getCarrossel(slug: string): Carrossel | undefined {

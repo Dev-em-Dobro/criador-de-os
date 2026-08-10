@@ -22,7 +22,7 @@ export const cssJogos: Carrossel = {
   slug: 'css-jogos',
   titulo: 'Esses 2 jogos ensinam CSS melhor que muito curso pago',
   gancho: 'Esses 2 jogos ensinam CSS melhor que muito curso pago',
-  dataProgramada: '2026-08-07',
+  dataProgramada: '2026-08-08',
   /** Presente do "comenta CSS": os 2 links + cheatsheet de flex e grid (Notion, 06/08/2026). */
   linkPresente: 'https://app.notion.com/p/3b46dd01fb488105a5dbc780524e6a11',
   refsLinks: 'https://flexboxfroggy.com/ · https://cssgridgarden.com/',
@@ -32,6 +32,9 @@ export const cssJogos: Carrossel = {
       cover: true,
       semFundo: true,
       tituloMenor: true,
+      // Título 20% maior que o `tituloMenor` padrão, a pedido do dono (07/08/2026).
+      // Vale só para esta capa, então não mexe nas que já foram aprovadas.
+      tituloEscala: 1.2,
       titulo: 'Esses 2 jogos\nensinam **CSS**\nmelhor que muito\ncurso pago',
     },
     {
@@ -41,6 +44,10 @@ export const cssJogos: Carrossel = {
       corpo:
         'Com um método bom, os dois viram simples: um conceito por vez, e você vendo o efeito na tela. É exatamente o que esses jogos fazem. No Flexbox Froggy são 24 fases, de graça e no navegador.',
       imagem: 'server/carrossel/assets/css-jogos/froggy.png',
+      // A janelinha deste slide toca a jogada em vez de mostrar o print parado:
+      // digitar `justify-content: flex-end` e o sapo andar é a coisa que o print
+      // não consegue contar. Gerado por `server/scripts/capturar-jogada.ts`.
+      videoArquivo: 'server/carrossel/assets/css-jogos/froggy-nivel1-slide.mp4',
     },
     {
       variant: 'dark',
