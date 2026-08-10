@@ -181,6 +181,72 @@ export const referenciaPerfis = pgTable('referencia_perfis', {
  * card: título, capa, data programada, CTA, link do presente e estado. A view
  * read-only `v_conteudo_posts` (allowlist) é a ÚNICA forma da API ler isto.
  */
+/**
+ * `relatorio_semanal` — uma linha por semana FECHADA na reunião de marketing.
+ *
+ * Existe por dois motivos que a tela de relatório sozinha não resolve:
+ *   1) CONGELAR os números apresentados. `conteudo_desempenho` é atualizado por
+ *      upsert a cada sincronização, então a mesma semana pode mostrar outro
+ *      número um mês depois. O snapshot guarda o que foi visto na reunião.
+ *   2) GUARDAR A DECISÃO. Aprendizado, hipóteses, responsáveis e prazos são o
+ *      produto da reunião, e não existiam em lugar nenhum do OS — só no
+ *      documento, que ninguém reabre na semana seguinte.
+ *
+ * `semanaInicio` é a segunda-feira (00:00 local) e é ÚNICA: fechar de novo a
+ * mesma semana atualiza a linha em vez de duplicar.
+ */
+export const relatorioSemanal = pgTable('relatorio_semanal', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  /** Segunda-feira da semana fechada (chave natural). */
+  semanaInicio: timestamp('semana_inicio').notNull().unique(),
+  /** Números congelados no fechamento. */
+  alcance: integer('alcance'),
+  visualizacoes: integer('visualizacoes'),
+  interacoes: integer('interacoes'),
+  seguidores: integer('seguidores'),
+  postsPublicados: integer('posts_publicados'),
+  postsPlanejados: integer('posts_planejados'),
+  /** Campeões, melhor e pior da semana como foram apresentados (título + números). */
+  destaques: jsonb('destaques'),
+  /**
+   * Contexto da semana (as 5 perguntas de abertura da pauta). Duas delas saem dos
+   * dados — objetivo predominante dos posts e planejados vs publicados; estas três
+   * NÃO saem de lugar nenhum e por isso viram campo:
+   *   fase           — 'atracao' | 'aquecimento' | 'lancamento' | 'vendas' | 'retencao'
+   *   eventoExterno  — o que aconteceu fora e mexeu nos números
+   *   campanha       — a oferta/evento que estava sendo divulgado
+   * Sem isso, a reunião avalia um post de conversão com a régua de um de atração.
+   */
+  fase: text('fase'),
+  eventoExterno: text('evento_externo'),
+  campanha: text('campanha'),
+  /**
+   * A DESMONTAGEM do melhor post (seção 5 da pauta): as oito respostas que só a
+   * equipe pode dar, uma chave por elemento do doc — publico, dorDesejo, gancho,
+   * promessa, linguagem, desenvolvimento, visual, cta.
+   *
+   * Formato e Resultado, os outros dois elementos da tabela, NÃO entram aqui: a
+   * tela já os responde com dado, e guardar de novo criaria duas versões do mesmo
+   * número. JSONB e não oito colunas porque a lista é do documento da reunião, e
+   * um elemento novo lá não deve virar migration aqui.
+   */
+  dna: jsonb('dna'),
+  /** Registro da reunião (seções 8, 10 e 11 da pauta). */
+  aprendizado: text('aprendizado'),
+  estruturaVencedora: text('estrutura_vencedora'),
+  erroEvitar: text('erro_evitar'),
+  hipoteses: text('hipoteses'),
+  responsaveis: text('responsaveis'),
+  prazos: text('prazos'),
+  metricaEsperada: text('metrica_esperada'),
+  fechadoEm: timestamp('fechado_em')
+    .$defaultFn(() => new Date())
+    .notNull(),
+  updatedAt: timestamp('updated_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
 export const conteudoPosts = pgTable('conteudo_posts', {
   id: uuid('id').primaryKey().defaultRandom(),
   /** Referência que originou este rascunho (null se criado à mão). */
@@ -208,6 +274,13 @@ export const conteudoPosts = pgTable('conteudo_posts', {
   plataforma: text('plataforma').notNull().default('instagram'),
   /** Formato: 'carrossel' | 'reels'. */
   formato: text('formato').notNull().default('carrossel'),
+  /**
+   * Objetivo do post no funil: 'atracao' | 'aquecimento' | 'conversao'. Null =
+   * não definido (todo o histórico entra assim). Serve pra avaliar cada post
+   * pela régua certa: um post de atração não se julga pelos mesmos números de um
+   * de conversão. É a coluna "Objetivo" da reunião semanal de marketing.
+   */
+  objetivo: text('objetivo'),
   /** Gancho aprovado. */
   gancho: text('gancho'),
   /** Pauta/roteiro em AIDA (texto). */

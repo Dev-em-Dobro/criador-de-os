@@ -26,6 +26,7 @@ import {
   handleReverPrevisao,
   handleCronProcessarReferencias,
 } from './conteudo-gerar.js';
+import { handleFecharSemana, handleDesmontarPost } from './relatorio.js';
 import {
   handleCriarDesempenho,
   handleAtualizarDesempenho,
@@ -89,6 +90,12 @@ app.post('/api/conteudo/:id/prever', (c) => handleReverPrevisao(c));
 app.post('/api/conteudo', (c) => handleCriarConteudo(c));
 app.patch('/api/conteudo/:id', (c) => handleAtualizarConteudo(c));
 app.delete('/api/conteudo/:id', (c) => handleRemoverConteudo(c));
+
+// Relatório semanal: "Fechar semana" congela os números e guarda a decisão da
+// reunião. Upsert por semana (refechar corrige), leitura pela v_relatorio_semanal.
+// Desmontagem do melhor post por IA (rascunho para a reunião; não grava).
+app.post('/api/relatorio/desmontar', (c) => handleDesmontarPost(c));
+app.post('/api/relatorio', (c) => handleFecharSemana(c));
 
 // --- Endpoint de query genérico SEGURO ---
 app.post('/api/query', async (c) => {

@@ -1,0 +1,21 @@
+CREATE TABLE "relatorio_semanal" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"semana_inicio" timestamp NOT NULL,
+	"alcance" integer,
+	"visualizacoes" integer,
+	"interacoes" integer,
+	"seguidores" integer,
+	"posts_publicados" integer,
+	"posts_planejados" integer,
+	"destaques" jsonb,
+	"aprendizado" text,
+	"estrutura_vencedora" text,
+	"erro_evitar" text,
+	"hipoteses" text,
+	"responsaveis" text,
+	"prazos" text,
+	"metrica_esperada" text,
+	"fechado_em" timestamp NOT NULL,
+	"updated_at" timestamp NOT NULL,
+	CONSTRAINT "relatorio_semanal_semana_inicio_unique" UNIQUE("semana_inicio")
+);

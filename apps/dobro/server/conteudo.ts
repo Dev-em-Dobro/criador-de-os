@@ -26,8 +26,15 @@ import { conteudoPosts } from '../db/schema.js';
 // --- Contrato fechado de valores (defesa 2) ---
 const FORMATOS = ['carrossel', 'reels', 'story', 'post'] as const;
 const ESTADOS = ['rascunho', 'pronto', 'publicado'] as const;
+/**
+ * Objetivo do post no funil. Diferente de formato/estado, aceita VAZIO: o
+ * histórico todo veio sem objetivo, e obrigar a escolher agora obrigaria a
+ * chutar. Vazio significa "não definido", não "atração".
+ */
+const OBJETIVOS = ['atracao', 'aquecimento', 'conversao'] as const;
 type Formato = (typeof FORMATOS)[number];
 type Estado = (typeof ESTADOS)[number];
+type Objetivo = (typeof OBJETIVOS)[number];
 
 /** Regex leve de UUID — barra id malformado com 400 limpo (em vez de 500 do banco). */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -38,6 +45,7 @@ interface PostFields {
   dataProgramada: Date | null;
   formato: Formato;
   estado: Estado;
+  objetivo: Objetivo | null;
   ctaFinal: string | null;
   linkPresenteNotion: string | null;
   capaUrl: string | null;
@@ -87,6 +95,20 @@ function parseEnum<T extends string>(
   throw new InputError(`${campo} inválido (use: ${allowed.join(', ')})`);
 }
 
+/**
+ * Enum OPCIONAL: ausente, null ou '' vira null (em vez de cair no default).
+ * É o que permite "objetivo não definido" sem inventar um valor.
+ */
+function parseEnumOpcional<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  campo: string,
+): T | null {
+  if (value == null || value === '') return null;
+  if (typeof value === 'string' && (allowed as readonly string[]).includes(value)) return value as T;
+  throw new InputError(`${campo} inválido (use: ${allowed.join(', ')} ou vazio)`);
+}
+
 /** Valida o corpo de UM post para criação (título é obrigatório). */
 function parseNovoPost(raw: unknown): PostFields {
   if (raw == null || typeof raw !== 'object') throw new InputError('post inválido');
@@ -98,6 +120,7 @@ function parseNovoPost(raw: unknown): PostFields {
     dataProgramada: parseData(o.dataProgramada),
     formato: parseEnum(o.formato, FORMATOS, 'carrossel', 'formato'),
     estado: parseEnum(o.estado, ESTADOS, 'rascunho', 'estado'),
+    objetivo: parseEnumOpcional(o.objetivo, OBJETIVOS, 'objetivo'),
     ctaFinal: optStr(o.ctaFinal),
     linkPresenteNotion: optStr(o.linkPresenteNotion),
     capaUrl: optStr(o.capaUrl),
@@ -124,6 +147,7 @@ function parsePatch(raw: unknown): Record<string, unknown> {
   if ('dataProgramada' in o) patch.dataProgramada = parseData(o.dataProgramada);
   if ('formato' in o) patch.formato = parseEnum(o.formato, FORMATOS, 'carrossel', 'formato');
   if ('estado' in o) patch.estado = parseEnum(o.estado, ESTADOS, 'rascunho', 'estado');
+  if ('objetivo' in o) patch.objetivo = parseEnumOpcional(o.objetivo, OBJETIVOS, 'objetivo');
   if ('ctaFinal' in o) patch.ctaFinal = optStr(o.ctaFinal);
   if ('linkPresenteNotion' in o) patch.linkPresenteNotion = optStr(o.linkPresenteNotion);
   if ('capaUrl' in o) patch.capaUrl = optStr(o.capaUrl);
@@ -154,6 +178,7 @@ const RETURN_COLS = {
   refsLinks: conteudoPosts.refsLinks,
   estado: conteudoPosts.estado,
   formato: conteudoPosts.formato,
+  objetivo: conteudoPosts.objetivo,
 } as const;
 
 /**
@@ -182,6 +207,7 @@ export async function handleCriarConteudo(c: Context): Promise<Response> {
       dataProgramada: p.dataProgramada,
       formato: p.formato,
       estado: p.estado,
+      objetivo: p.objetivo,
       ctaFinal: p.ctaFinal,
       linkPresenteNotion: p.linkPresenteNotion,
       capaUrl: p.capaUrl,

@@ -153,3 +153,10 @@ GRANT app_query    TO neondb_owner;
 GRANT app_ingest   TO neondb_owner;
 GRANT app_content  TO neondb_owner;
 GRANT app_pipeline TO neondb_owner;
+
+-- 6g) Relatório semanal: a tela LÊ pela view (app_query) e o botão "Fechar
+--     semana" ESCREVE pela rota autenticada (app_content, mesma role do resto do
+--     módulo Conteúdo). Sem DELETE: semana fechada é registro histórico, e
+--     refechar faz UPDATE na mesma linha (semana_inicio é única).
+GRANT SELECT ON v_relatorio_semanal TO app_query;
+GRANT SELECT, INSERT, UPDATE ON relatorio_semanal TO app_content;

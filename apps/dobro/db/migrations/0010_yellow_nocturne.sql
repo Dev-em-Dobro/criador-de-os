@@ -1,0 +1,1 @@
+ALTER TABLE "relatorio_semanal" ADD COLUMN "dna" jsonb;

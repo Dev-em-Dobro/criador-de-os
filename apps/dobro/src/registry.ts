@@ -14,6 +14,7 @@ import { conteudoDashboard, conteudoCronograma } from './blocks/ConteudoDashboar
 import { conteudoDesempenho } from './blocks/ConteudoDesempenho';
 import { conteudoEstrategista } from './blocks/ConteudoEstrategista';
 import { conteudoPlacar } from './blocks/ConteudoPlacar';
+import { conteudoRelatorio } from './blocks/ConteudoRelatorio';
 import { referenciasPerfis } from './blocks/ReferenciasPerfis';
 
 export const registry = createRegistry();
@@ -23,4 +24,5 @@ registry.register(conteudoCronograma);
 registry.register(conteudoDesempenho);
 registry.register(conteudoEstrategista);
 registry.register(conteudoPlacar);
+registry.register(conteudoRelatorio);
 registry.register(referenciasPerfis);

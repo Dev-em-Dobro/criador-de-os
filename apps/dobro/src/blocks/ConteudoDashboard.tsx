@@ -288,6 +288,23 @@ const ESTADO_OPTS: ReadonlyArray<[string, string]> = [
   ['pronto', 'Pronto'],
   ['publicado', 'Publicado'],
 ];
+/**
+ * Objetivo do post no funil (reunião semanal de marketing). A primeira opção é
+ * VAZIA de propósito: o histórico veio sem objetivo, e forçar uma escolha faria
+ * o time chutar. Bate com OBJETIVOS no servidor.
+ */
+const OBJETIVO_OPTS: ReadonlyArray<[string, string]> = [
+  ['', 'Não definido'],
+  ['atracao', 'Atração'],
+  ['aquecimento', 'Aquecimento'],
+  ['conversao', 'Conversão'],
+];
+const OBJETIVO_LABEL: Record<string, string> = {
+  atracao: 'Atração',
+  aquecimento: 'Aquecimento',
+  conversao: 'Conversão',
+};
+const OBJETIVO_KEY = 'objetivo';
 
 /** Nomes fixos das colunas extras da view (fora dos campos configuráveis). */
 const CTA_KEY = 'cta_final';
@@ -311,6 +328,8 @@ interface PostInput {
   titulo: string;
   formato: string;
   estado: string;
+  /** '' vira null: objetivo é opcional (ver OBJETIVOS no servidor). */
+  objetivo: string | null;
   ctaFinal: string | null;
   linkPresenteNotion: string | null;
   dataProgramada: string | null;
@@ -844,6 +863,8 @@ interface SchedRow {
   titulo: string;
   formato: string;
   estado: string;
+  /** Objetivo no funil ('atracao' | 'aquecimento' | 'conversao'); '' = não definido. */
+  objetivo: string;
   cta: string;
   /** Link do presente entregue no CTA. É o que vira o "abrir ↗" no card. */
   link: string;
@@ -872,11 +893,11 @@ interface SchedRow {
 function snapshot(
   r: Pick<
     SchedRow,
-    'titulo' | 'formato' | 'estado' | 'cta' | 'link' | 'briefingUrl' | 'briefing' | 'refs' | 'day' | 'hora'
+    'titulo' | 'formato' | 'estado' | 'objetivo' | 'cta' | 'link' | 'briefingUrl' | 'briefing' | 'refs' | 'day' | 'hora'
   >,
 ): string {
   return JSON.stringify([
-    r.titulo, r.formato, r.estado, r.cta, r.link, r.briefingUrl, r.briefing, r.refs, r.day, r.hora,
+    r.titulo, r.formato, r.estado, r.objetivo, r.cta, r.link, r.briefingUrl, r.briefing, r.refs, r.day, r.hora,
   ]);
 }
 
@@ -907,6 +928,7 @@ function buildRows(posts: Row[], fields: FieldMap): SchedRow[] {
       titulo: toText(p[fields.title]),
       formato: (toText(p[fields.format]) || 'carrossel').toLowerCase(),
       estado: (toText(p[fields.status]) || 'rascunho').toLowerCase(),
+      objetivo: toText(p[OBJETIVO_KEY]).toLowerCase(),
       cta: toText(p[CTA_KEY]),
       link: toText(p[LINK_KEY]),
       briefingUrl: toText(p[BRIEFING_URL_KEY]),
@@ -1070,6 +1092,15 @@ function EditarPostModal({
               <span className={labelCls}>Estado</span>
               <Select value={d.estado} onChange={(v) => set('estado', v)} options={ESTADO_OPTS} ariaLabel="Estado" />
             </label>
+            <label className="flex items-center gap-1.5">
+              <span className={labelCls}>Objetivo</span>
+              <Select
+                value={d.objetivo}
+                onChange={(v) => set('objetivo', v)}
+                options={OBJETIVO_OPTS}
+                ariaLabel="Objetivo"
+              />
+            </label>
           </div>
           <label className="block">
             <span className={labelCls}>Link do presente</span>
@@ -1197,6 +1228,7 @@ function SchedulePage({
       titulo: '',
       formato: 'carrossel',
       estado: 'rascunho',
+      objetivo: '',
       cta: '',
       link: '',
       briefingUrl: '',
@@ -1255,6 +1287,7 @@ function SchedulePage({
       titulo: r.titulo.trim(),
       formato: r.formato,
       estado: r.estado,
+      objetivo: r.objetivo || null,
       dataProgramada: combineDataHora(r.day, r.hora),
       ctaFinal: r.cta.trim() || null,
       linkPresenteNotion: r.link.trim() || null,
@@ -1369,6 +1402,11 @@ function SchedulePage({
               </span>
               <span className="mt-0.5 flex items-center gap-2 text-[11px] text-gray-500">
                 <span>{formatoLabel}</span>
+                {/* Objetivo no funil: some quando não definido, pra não poluir o
+                    histórico que nunca teve o campo preenchido. */}
+                {OBJETIVO_LABEL[r.objetivo] && (
+                  <span className="text-violet-300/80">· 🎯 {OBJETIVO_LABEL[r.objetivo]}</span>
+                )}
                 {hasBriefing && <span className="text-blue-300/80">· 📝 briefing</span>}
               </span>
             </span>
@@ -3121,86 +3159,6 @@ function GoalBar({ current, goal, label }: { current: number; goal: MetaEscalada
   );
 }
 
-/**
- * Card "Top 5" de posts por uma métrica (comentários, seguidores…). Cada linha:
- * rank, formato, título/data e o número da métrica em destaque. Vira link quando
- * o post tem permalink. Reaproveitado nas duas categorias (captação/seguidores).
- */
-function TopPostsCard({
-  title,
-  icon,
-  posts,
-  metricIcon,
-  metricLabel,
-  metricOf,
-  emptyHint,
-}: {
-  title: string;
-  icon: string;
-  posts: Row[];
-  metricIcon: string;
-  metricLabel: string;
-  metricOf: (r: Row) => number;
-  emptyHint: string;
-}) {
-  return (
-    <div>
-      <SectionLabel>
-        <span className="mr-1" aria-hidden="true">{icon}</span>
-        {title}
-      </SectionLabel>
-      <div className="mb-6 overflow-hidden rounded-2xl border border-gray-700/50 bg-gray-800/60 shadow-sm">
-        {posts.length === 0 ? (
-          <div className="px-4 py-6 text-center text-sm text-gray-500">{emptyHint}</div>
-        ) : (
-          <ul className="divide-y divide-gray-700/50">
-            {posts.map((r, i) => {
-              const formato = toText(r.formato);
-              const permalink = toText(r.permalink);
-              const d = parseDate(toText(r.data));
-              const tema = toText(r.tema) || 'Sem título';
-              const inner = (
-                <>
-                  <span className="grid h-8 w-6 shrink-0 place-items-center text-[11px] font-bold text-gray-500">
-                    {i + 1}
-                  </span>
-                  <FormatChip formato={formato} size="sm" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-gray-100">{tema}</span>
-                    <span className="mt-0.5 block text-xs text-gray-500">
-                      {d ? fmtDiaMes(d) : ''}
-                      {formato ? `${d ? ' · ' : ''}${formato}` : ''}
-                    </span>
-                  </span>
-                  <span
-                    className="flex shrink-0 items-center gap-1 text-sm font-semibold text-gray-200"
-                    style={DISPLAY}
-                    title={metricLabel}
-                  >
-                    <span aria-hidden="true">{metricIcon}</span>
-                    {fmtCompact(metricOf(r))}
-                  </span>
-                </>
-              );
-              const cls = 'flex items-center gap-3 px-3 py-3 transition-colors hover:bg-gray-700/30';
-              return (
-                <li key={toText(r.id) || i}>
-                  {permalink ? (
-                    <a href={permalink} target="_blank" rel="noreferrer" className={cls}>
-                      {inner}
-                    </a>
-                  ) : (
-                    <div className={cls}>{inner}</div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /** Modal que lista os posts publicados no período (o card "Posts no período" clicado). */
 function PostsPeriodoModal({
@@ -3502,25 +3460,12 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
       const t = new Date(s).getTime();
       return Number.isFinite(t) ? t : null;
     };
-    // Top 5 por uma métrica (score). Descarta score 0 p/ não listar zeros.
-    const topPor = (rows: Row[], score: (r: Row) => number) =>
-      rows
-        .map((r) => ({ r, s: score(r) }))
-        .filter((x) => x.s > 0)
-        .sort((a, b) => b.s - a.s)
-        .slice(0, 5)
-        .map((x) => x.r);
-    // "Captação" = comentários (mecanismo "comenta PALAVRA" → lead na lista).
-    const scoreCaptacao = (r: Row) => numOf(r.comentarios) ?? 0;
-    const scoreSeguidores = (r: Row) => numOf(r.seguidores) ?? 0;
 
     // "Tudo" → não há janela anterior equivalente p/ comparar.
     if (periodDays == null) {
       return {
         ...agg(desempRows),
         posts: desempRows,
-        topCaptacao: topPor(desempRows, scoreCaptacao),
-        topSeguidores: topPor(desempRows, scoreSeguidores),
         delta: { views: null, reach: null, interacoes: null, novosSeg: null, count: null },
       };
     }
@@ -3543,8 +3488,6 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
     return {
       ...cur,
       posts: curRows,
-      topCaptacao: topPor(curRows, scoreCaptacao),
-      topSeguidores: topPor(curRows, scoreSeguidores),
       delta: {
         views: pct(cur.views, prev.views),
         reach: pct(cur.reach, prev.reach),
@@ -3813,25 +3756,14 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
           message='Sem dados sincronizados neste período. Use "Sincronizar" na aba Desempenho para puxar os posts do Instagram.'
         />
       ) : (
-        <div className="grid grid-cols-1 gap-x-6 lg:grid-cols-2">
-          <TopPostsCard
-            title="Melhores em captação"
-            icon="💬"
-            posts={report.topCaptacao}
-            metricIcon="💬"
-            metricLabel="comentários"
-            metricOf={(r) => numOf(r.comentarios) ?? 0}
-            emptyHint="Nenhum post com comentários neste período."
-          />
-          <TopPostsCard
-            title="Melhores em seguidores"
-            icon="📈"
-            posts={report.topSeguidores}
-            metricIcon="👤"
-            metricLabel="novos seguidores"
-            metricOf={(r) => numOf(r.seguidores) ?? 0}
-            emptyHint="Nenhum post trouxe seguidores neste período."
-          />
+        // Os campeões por categoria (comentários, curtidas, compartilhamento,
+        // seguidores) MUDARAM para o menu Relatório em 10/08/2026: é lá que a
+        // reunião semanal acontece, e ter os mesmos cards em dois lugares só
+        // criava duas versões da mesma leitura. O painel fica com o pulso do
+        // período (metas) e com o planejamento.
+        <div className="rounded-2xl border border-gray-700/60 bg-gray-900/60 px-4 py-3 text-[13px] text-gray-400">
+          Os melhores posts por categoria estão em <span className="font-semibold text-gray-200">Relatório</span>, junto
+          da pauta da reunião semanal.
         </div>
       )}
 

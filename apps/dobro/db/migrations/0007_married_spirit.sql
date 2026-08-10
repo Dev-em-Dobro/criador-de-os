@@ -1,0 +1,1 @@
+ALTER TABLE "conteudo_posts" ADD COLUMN "objetivo" text;

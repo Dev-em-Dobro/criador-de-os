@@ -46,7 +46,8 @@ SELECT
   pauta,
   legenda,
   hashtags,
-  roteiro
+  roteiro,
+  objetivo
 FROM conteudo_posts;
 
 -- v_referencias_perfis: expõe os PERFIS de referência (a tela "Referências").
@@ -225,3 +226,37 @@ SELECT
 FROM escolhida e
 LEFT JOIN medicao m ON m.post_id = e.post_id
 LEFT JOIN conteudo_posts c ON c.id = e.post_id;
+
+-- v_relatorio_semanal: as semanas já FECHADAS na reunião de marketing, com os
+-- números congelados no fechamento e o registro da decisão. É o que permite
+-- comparar semana a semana sem depender de recalcular `conteudo_desempenho`,
+-- que muda a cada sincronização.
+CREATE OR REPLACE VIEW v_relatorio_semanal AS
+SELECT
+  id::text AS id,
+  semana_inicio,
+  alcance,
+  visualizacoes,
+  interacoes,
+  seguidores,
+  posts_publicados,
+  posts_planejados,
+  destaques,
+  aprendizado,
+  estrutura_vencedora,
+  erro_evitar,
+  hipoteses,
+  responsaveis,
+  prazos,
+  metrica_esperada,
+  fechado_em,
+  -- Colunas do CONTEXTO da semana entram no FIM: CREATE OR REPLACE VIEW só
+  -- acrescenta ao final da lista, nunca insere no meio (erro "cannot change name
+  -- of view column"). A ordem aqui não importa pra tela, que lê por nome.
+  fase,
+  evento_externo,
+  campanha,
+  -- A desmontagem do melhor post (seção 5): as oito respostas da equipe, para a
+  -- tela reabrir a semana com o que já foi registrado.
+  dna
+FROM relatorio_semanal;
