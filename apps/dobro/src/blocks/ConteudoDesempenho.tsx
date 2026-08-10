@@ -24,6 +24,18 @@ import type { ReactNode } from 'react';
 import { SectionHeader, EmptyState, SkeletonCards } from '@os/core';
 import type { BlockDefinition, BlockProps } from '@os/core';
 import { GuiaMetricas } from './ConteudoGuiaMetricas';
+// A régua (Forte/Saudável/Abaixo) mora fora desde que o Placar da IA passou a
+// precisar da MESMA classificação — ver `regua-desempenho.ts`.
+import {
+  CLASSE_TONE,
+  DEFAULT_BENCH,
+  classify,
+  derive,
+  type Classe,
+  type Derived,
+  type FormatBenchmarks,
+  type Threshold,
+} from './regua-desempenho';
 
 // ============================================================
 // Helpers (locais — o bloco não importa internals de @os/blocks)
@@ -49,12 +61,6 @@ function num(value: unknown): number | null {
   if (value == null || value === '') return null;
   const n = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(n) ? n : null;
-}
-
-/** Razão a/b protegida (null se faltar dado ou b=0). */
-function ratio(a: number | null, b: number | null): number | null {
-  if (a == null || b == null || b === 0) return null;
-  return a / b;
 }
 
 /** Fonte de display: Fraunces no skin que a define; senão herda o sans. */
@@ -101,32 +107,10 @@ function fmtRate(n: number | null): string {
 // Config + benchmarks (a aba "Referências" da planilha)
 // ============================================================
 
-/** [limite saudável, limite forte] em decimal (0,5% = 0,005). */
-type Threshold = [number, number];
-
-interface FormatBenchmarks {
-  compartilhamentos?: Threshold;
-  salvamentos?: Threshold;
-  /** Só Reel — retenção = tempo médio / duração. */
-  retencao?: Threshold;
-}
-
 interface ConteudoDesempenhoConfig {
   /** Benchmarks por formato. Se ausente, usa o DEFAULT (heurísticas da planilha). */
   benchmarks?: Record<string, FormatBenchmarks>;
 }
-
-/**
- * Benchmarks default — exatamente as faixas de Instagram do `desempenho-guia.ts`
- * (aba "Referências" da planilha). Só as métricas que entram na CLASSIFICAÇÃO
- * automática vivem aqui (compart./salv./retenção); o guia carrega o resto pra
- * leitura humana e pra IA. Se mexer numa faixa, mexa nos dois — batem por design.
- */
-const DEFAULT_BENCH: Record<string, FormatBenchmarks> = {
-  reel: { compartilhamentos: [0.005, 0.015], salvamentos: [0.003, 0.01], retencao: [0.5, 0.7] },
-  carrossel: { compartilhamentos: [0.003, 0.01], salvamentos: [0.005, 0.02] },
-  post: { compartilhamentos: [0.002, 0.007], salvamentos: [0.002, 0.007] },
-};
 
 const FORMATO_LABEL: Record<string, string> = {
   reel: 'Reel',
@@ -149,82 +133,6 @@ const FORMAT_TONES: Record<string, { chip: string; text: string }> = {
   story: { chip: 'bg-amber-500/15', text: 'text-amber-300' },
 };
 const FORMAT_FALLBACK = { chip: 'bg-gray-600/20', text: 'text-gray-300' };
-
-// ============================================================
-// Classificação (as fórmulas da planilha, em código)
-// ============================================================
-
-type Classe = 'forte' | 'saudavel' | 'abaixo' | 'na';
-
-const CLASSE_TONE: Record<Classe, { label: string; pill: string; dot: string }> = {
-  forte: { label: 'Forte', pill: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300', dot: 'bg-emerald-400' },
-  saudavel: { label: 'Saudável', pill: 'border-sky-500/30 bg-sky-500/10 text-sky-300', dot: 'bg-sky-400' },
-  abaixo: { label: 'Abaixo', pill: 'border-red-500/30 bg-red-500/10 text-red-300', dot: 'bg-red-400' },
-  na: { label: 'Sem referência', pill: 'border-gray-600/40 bg-gray-700/40 text-gray-400', dot: 'bg-gray-500' },
-};
-
-/** value < saudável → Abaixo; value >= forte → Forte; senão Saudável (igual à planilha). */
-function classify(value: number | null, bench: Threshold | undefined): Classe {
-  if (bench == null || value == null || !Number.isFinite(value)) return 'na';
-  const [saud, forte] = bench;
-  if (value >= forte) return 'forte';
-  if (value < saud) return 'abaixo';
-  return 'saudavel';
-}
-
-/** Métricas derivadas + classificação de UMA linha (post). */
-interface Derived {
-  taxaCurtidas: number | null;
-  taxaComentarios: number | null;
-  taxaCompart: number | null;
-  taxaSalv: number | null;
-  taxaPerfil: number | null;
-  conversaoSeg: number | null;
-  retencao: number | null;
-  classeCompart: Classe;
-  classeSalv: Classe;
-  classeRetencao: Classe;
-  geral: Classe;
-}
-
-function derive(row: Row, bench: Record<string, FormatBenchmarks>): Derived {
-  const formato = str(row.formato).toLowerCase();
-  const alcance = num(row.alcance);
-  const b = bench[formato];
-
-  const taxaCompart = ratio(num(row.compartilhamentos), alcance);
-  const taxaSalv = ratio(num(row.salvamentos), alcance);
-  const retencao = ratio(num(row.tempo_medio_s), num(row.duracao_s));
-
-  const classeCompart = classify(taxaCompart, b?.compartilhamentos);
-  const classeSalv = classify(taxaSalv, b?.salvamentos);
-  const classeRetencao = formato === 'reel' ? classify(retencao, b?.retencao) : 'na';
-
-  const subs = [classeCompart, classeSalv, classeRetencao];
-  const fortes = subs.filter((s) => s === 'forte').length;
-  const abaixos = subs.filter((s) => s === 'abaixo').length;
-  const aplicaveis = subs.filter((s) => s !== 'na').length;
-
-  let geral: Classe;
-  if (aplicaveis === 0) geral = 'na';
-  else if (fortes >= 2) geral = 'forte';
-  else if (abaixos >= 2) geral = 'abaixo';
-  else geral = 'saudavel';
-
-  return {
-    taxaCurtidas: ratio(num(row.curtidas), alcance),
-    taxaComentarios: ratio(num(row.comentarios), alcance),
-    taxaCompart,
-    taxaSalv,
-    taxaPerfil: ratio(num(row.visitas_perfil), alcance),
-    conversaoSeg: ratio(num(row.seguidores), alcance),
-    retencao,
-    classeCompart,
-    classeSalv,
-    classeRetencao,
-    geral,
-  };
-}
 
 // ============================================================
 // Cliente das rotas de escrita /api/conteudo/desempenho

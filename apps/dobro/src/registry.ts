@@ -13,6 +13,7 @@ import { registerDefaultBlocks } from '@os/blocks';
 import { conteudoDashboard, conteudoCronograma } from './blocks/ConteudoDashboard';
 import { conteudoDesempenho } from './blocks/ConteudoDesempenho';
 import { conteudoEstrategista } from './blocks/ConteudoEstrategista';
+import { conteudoPlacar } from './blocks/ConteudoPlacar';
 import { referenciasPerfis } from './blocks/ReferenciasPerfis';
 
 export const registry = createRegistry();
@@ -21,4 +22,5 @@ registry.register(conteudoDashboard);
 registry.register(conteudoCronograma);
 registry.register(conteudoDesempenho);
 registry.register(conteudoEstrategista);
+registry.register(conteudoPlacar);
 registry.register(referenciasPerfis);

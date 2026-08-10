@@ -71,6 +71,7 @@ REVOKE SELECT ON referencia_perfis FROM PUBLIC;
 REVOKE SELECT ON v_referencias_perfis FROM PUBLIC;
 REVOKE SELECT ON conteudo_previsoes FROM PUBLIC;
 REVOKE SELECT ON v_conteudo_previsoes FROM PUBLIC;
+REVOKE SELECT ON v_conteudo_placar FROM PUBLIC;
 
 -- 4) USAGE no schema para todos (sem isto não enxergam nenhum objeto).
 GRANT USAGE ON SCHEMA public TO app_auth;
@@ -96,6 +97,9 @@ GRANT SELECT ON v_conteudo_desempenho TO app_query;
 -- (tabela crua, com legenda/transcrição inteira) nem a `referencia_perfis`.
 GRANT SELECT ON v_referencias_perfis TO app_query;
 GRANT SELECT ON v_conteudo_previsoes TO app_query;
+-- O placar junta previsão + resultado: a tela lê SÓ esta view, nunca as duas
+-- tabelas (que app_query continua sem enxergar).
+GRANT SELECT ON v_conteudo_placar TO app_query;
 
 -- 6b) app_ingest: escreve SÓ na tabela `referencias` (o webhook do Telegram grava
 --     as inspirações). SELECT junto para dedupe futuro por origem_url. Nada mais —

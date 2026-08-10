@@ -363,6 +363,74 @@ export const dobroManifest: ClientManifest = {
               },
             },
           },
+          // PLACAR DA IA — a prestação de contas do gerador: o que ele previu
+          // ANTES de publicar contra o que o post fez. Lê v_conteudo_placar, que
+          // já casa previsão e medição por card e escolhe a previsão válida (a
+          // última feita antes da publicação). Os benchmarks são os MESMOS da aba
+          // Desempenho de propósito: previsto e real precisam da mesma régua.
+          {
+            id: 'placar',
+            label: 'Placar da IA',
+            icon: 'Target',
+            view: {
+              block: 'custom:conteudo-placar',
+              title: 'Placar da IA',
+              subtitle: 'A previsão de cada post contra o resultado real',
+              config: {
+                benchmarks: {
+                  reel: {
+                    compartilhamentos: [0.005, 0.015],
+                    salvamentos: [0.003, 0.01],
+                    retencao: [0.5, 0.7],
+                  },
+                  carrossel: {
+                    compartilhamentos: [0.003, 0.01],
+                    salvamentos: [0.005, 0.02],
+                  },
+                  post: {
+                    compartilhamentos: [0.002, 0.007],
+                    salvamentos: [0.002, 0.007],
+                  },
+                },
+              },
+              dataSource: {
+                kind: 'query',
+                view: 'v_conteudo_placar',
+                select: [
+                  'post_id',
+                  'titulo',
+                  'estado',
+                  'formato',
+                  'classe_prevista',
+                  'confianca',
+                  'prev_salvamentos_pct',
+                  'prev_compartilhamentos_pct',
+                  'prev_retencao_pct',
+                  'fura_total',
+                  'aposta_principal',
+                  'resumo',
+                  'modelo',
+                  'registrada_em',
+                  'publicado_em',
+                  'alcance',
+                  'curtidas',
+                  'comentarios',
+                  'compartilhamentos',
+                  'salvamentos',
+                  'visitas_perfil',
+                  'seguidores',
+                  'duracao_s',
+                  'tempo_medio_s',
+                  'permalink',
+                ],
+                orderBy: [
+                  { field: 'publicado_em', dir: 'desc' },
+                  { field: 'registrada_em', dir: 'desc' },
+                ],
+                limit: 200,
+              },
+            },
+          },
           {
             id: 'estrategista',
             label: 'Estrategista',

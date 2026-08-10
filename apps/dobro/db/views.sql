@@ -153,3 +153,75 @@ SELECT
   modelo,
   registrada_em
 FROM conteudo_previsoes;
+
+-- v_conteudo_placar: o PLACAR DA IA — uma linha por post PREVISTO, com o
+-- resultado real ao lado quando ele já existe.
+--
+-- É LEFT JOIN de propósito: previsão sem resultado ainda é informação ("4 posts
+-- previstos esperando ir ao ar"). Se fosse INNER, a tela ficaria vazia enquanto
+-- nada foi publicado e pareceria quebrada.
+--
+-- Duas escolhas de "qual linha vale":
+--   · MEDIÇÃO — um card pode ter mais de uma medição (repostagem, correção): fica
+--     a mais recente.
+--   · PREVISÃO — um card pode ser previsto várias vezes (o rascunho, e de novo
+--     depois de editado). Vale a ÚLTIMA feita ANTES de publicar: prever depois do
+--     resultado não é previsão. O `DESC` no teste booleano põe as elegíveis na
+--     frente; entre elas, a mais recente. Sem nenhuma elegível (previsão só
+--     depois da publicação), sobra a mais recente mesmo, e a tela mostra as duas
+--     datas para quem quiser conferir.
+--
+-- As TAXAS e a CLASSIFICAÇÃO do resultado real NÃO saem daqui: a tela as deriva
+-- destes valores crus com a mesma régua da aba Desempenho. Uma régua só.
+CREATE OR REPLACE VIEW v_conteudo_placar AS
+WITH medicao AS (
+  SELECT DISTINCT ON (post_id)
+    post_id, data, formato, alcance, visualizacoes, curtidas, comentarios,
+    compartilhamentos, salvamentos, visitas_perfil, seguidores, duracao_s,
+    tempo_medio_s, permalink, estrutura
+  FROM conteudo_desempenho
+  WHERE post_id IS NOT NULL
+  ORDER BY post_id, data DESC NULLS LAST
+),
+escolhida AS (
+  SELECT DISTINCT ON (p.post_id) p.*
+  FROM conteudo_previsoes p
+  LEFT JOIN medicao m ON m.post_id = p.post_id
+  ORDER BY
+    p.post_id,
+    (m.data IS NULL OR p.registrada_em <= m.data + interval '1 day') DESC,
+    p.registrada_em DESC
+)
+SELECT
+  e.post_id::text                       AS post_id,
+  c.titulo,
+  c.estado,
+  -- Formato na chave dos benchmarks ('reel', não 'reels'): o medido manda, e o
+  -- card serve de reserva enquanto o post não foi publicado.
+  COALESCE(m.formato, CASE WHEN c.formato = 'reels' THEN 'reel' ELSE c.formato END) AS formato,
+  e.classe                              AS classe_prevista,
+  e.confianca,
+  e.taxa_salvamentos_pct                AS prev_salvamentos_pct,
+  e.taxa_compartilhamentos_pct          AS prev_compartilhamentos_pct,
+  e.retencao_pct                        AS prev_retencao_pct,
+  e.fura_total,
+  e.aposta_principal,
+  e.resumo,
+  e.modelo,
+  e.registrada_em,
+  m.data                                AS publicado_em,
+  m.alcance,
+  m.visualizacoes,
+  m.curtidas,
+  m.comentarios,
+  m.compartilhamentos,
+  m.salvamentos,
+  m.visitas_perfil,
+  m.seguidores,
+  m.duracao_s,
+  m.tempo_medio_s,
+  m.permalink,
+  m.estrutura
+FROM escolhida e
+LEFT JOIN medicao m ON m.post_id = e.post_id
+LEFT JOIN conteudo_posts c ON c.id = e.post_id;
