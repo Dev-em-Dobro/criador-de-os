@@ -17,7 +17,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { referencias, conteudoPosts } from '../db/schema.js';
+import { referencias, conteudoPosts, conteudoPrevisoes } from '../db/schema.js';
 import { fetchInstagramContent } from './instagram.js';
 import { transcreverSlides, podeLerSlides } from './instagram-slides.js';
 import { preverDesempenho, formatarPrevisaoBriefing, type PrevisaoIa } from './conteudo-previsao.js';
@@ -567,6 +567,50 @@ async function preverBestEffort(draft: DraftResult, apiKey: string): Promise<Pre
   }
 }
 
+/**
+ * Grava a previsão como DADO em `conteudo_previsoes` (além do texto no briefing).
+ *
+ * O briefing é a leitura humana; esta linha é o que permite, depois, medir se a
+ * IA prevê bem: taxa de acerto de classe, erro em pontos percentuais e viés por
+ * estrutura. Sem isto a previsão só existe como parágrafo dentro de um card, e
+ * comparar previsto x real vira trabalho manual card a card.
+ *
+ * BEST-EFFORT pelo mesmo motivo da previsão em si: se o INSERT falhar, o rascunho
+ * já está salvo e o briefing já traz a previsão em texto. Nunca derruba a geração.
+ */
+async function salvarPrevisao(
+  database: Database,
+  postId: string,
+  p: PrevisaoIa,
+): Promise<void> {
+  try {
+    await database.insert(conteudoPrevisoes).values({
+      postId,
+      classe: p.classe,
+      confianca: p.confianca,
+      taxaSalvamentosPct: p.taxaSalvamentosPct,
+      taxaCompartilhamentosPct: p.taxaCompartilhamentosPct,
+      retencaoPct: p.retencaoPct,
+      classeSalvamentos: p.subClasses.salvamentos,
+      classeCompartilhamentos: p.subClasses.compartilhamentos,
+      classeRetencao: p.subClasses.retencao,
+      apostaPrincipal: p.apostaPrincipal,
+      riscos: p.riscos,
+      furaTotal: p.furaABolha.total,
+      furaNotas: p.furaABolha.notas,
+      furaJustificativa: p.furaABolha.justificativa,
+      resumo: p.resumo,
+      modelo: p.modelo,
+      registradaEm: new Date(p.registradaEm),
+    });
+  } catch (err) {
+    console.warn(
+      '[conteudo:previsao] não gravou a previsão estruturada (o briefing em texto segue):',
+      err instanceof Error ? err.message : err,
+    );
+  }
+}
+
 /** Resultado de uma geração de rascunho. */
 export interface CriarRascunhoResult {
   created: boolean;
@@ -617,6 +661,7 @@ export async function criarRascunho(
       previsao ? formatarPrevisaoBriefing(previsao) : null,
       null, // tema livre não tem referência de origem
     );
+    if (id && previsao) await salvarPrevisao(database, id, previsao);
     return { created: true, id, titulo: draft.titulo, formato: draft.formato, previsao };
   }
 
@@ -725,6 +770,7 @@ export async function criarRascunho(
     // e some da tela. Autor e métricas ajudam a lembrar por que ela foi salva.
     montarRefsLinks(ref.origemUrl, metricas),
   );
+  if (id && previsao) await salvarPrevisao(database, id, previsao);
   await database
     .update(referencias)
     .set({ status: 'processada', analise: draft.analise })

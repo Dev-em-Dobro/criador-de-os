@@ -27,6 +27,8 @@
     "conteudo:agendar": "tsx server/scripts/agendar-post.ts",
     "conteudo:remover": "tsx server/scripts/remover-post.ts",
     "conteudo:classificar": "tsx server/scripts/classificar-estrutura.ts",
+    "conteudo:vincular": "tsx server/scripts/vincular-desempenho.ts",
+    "conteudo:previsoes-backfill": "tsx server/scripts/backfill-previsoes.ts",
     "carrossel:render": "tsx server/scripts/render-carrossel.ts",
     "referencias:list": "tsx server/scripts/list-referencias.ts",
     "perfis:add": "tsx server/scripts/perfis-add.ts",

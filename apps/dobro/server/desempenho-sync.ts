@@ -13,15 +13,16 @@
  * Recebe o client Drizzle por parâmetro → cada caminho usa seu privilégio.
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, isNotNull, isNull } from 'drizzle-orm';
 import type { Db } from '../db/client.js';
-import { conteudoDesempenho } from '../db/schema.js';
+import { conteudoDesempenho, conteudoPosts } from '../db/schema.js';
 import {
   fetchProfile,
   fetchRecentMediaWithInsights,
   type MediaWithInsights,
   type ProfileSummary,
 } from './instagram-insights.js';
+import { casarMedicoes, type Vinculo } from './desempenho-vinculo.js';
 
 /** ms → segundos (1 casa) para o tempo médio de reels; undefined preserva. */
 function msParaS(ms: number | undefined): number | undefined {
@@ -58,6 +59,95 @@ export interface SyncResult {
   inserted: number;
   updated: number;
   total: number;
+  /** Quantas medições ganharam um card do board neste sync (ver `vincularMedicoes`). */
+  vinculadas: number;
+}
+
+/** Resultado do casamento medição → card. */
+export interface VinculoResult {
+  /** Medições que ainda não tinham card e entraram na disputa. */
+  candidatas: number;
+  /** Vínculos aplicados (ou que seriam aplicados, em `dryRun`). */
+  vinculadas: number;
+  /** Todos os vereditos, inclusive os "não casou" com o motivo (para relatório). */
+  vereditos: Vinculo[];
+}
+
+/**
+ * Teto de vínculos por execução automática. O casamento em si é CPU barata, mas
+ * cada gravação é um round-trip HTTP na Neon e o cron da Vercel tem 60s. O que
+ * sobrar entra na próxima execução (a operação é idempotente). O script admin
+ * passa `Infinity` e resolve o passivo todo de uma vez.
+ */
+const MAX_VINCULOS_AUTOMATICOS = 20;
+
+/**
+ * Preenche `post_id` nas medições que ainda não têm card, casando a legenda
+ * publicada com a legenda do card (ver `desempenho-vinculo.ts` para as travas).
+ *
+ * É isto que liga o PREVISTO (`conteudo_previsoes`, gravada quando o rascunho
+ * nasce) ao REAL (as métricas que voltam do Instagram). Sem este passo as duas
+ * metades do placar da IA existem, mas nunca se encontram.
+ *
+ * Idempotente: só olha linhas com `post_id IS NULL` e nunca reatribui um card que
+ * já tem medição. `dryRun` calcula tudo e não grava nada.
+ */
+export async function vincularMedicoes(
+  db: Db,
+  opts: { dryRun?: boolean; max?: number } = {},
+): Promise<VinculoResult> {
+  const max = opts.max ?? MAX_VINCULOS_AUTOMATICOS;
+
+  const semCard = await db
+    .select({
+      id: conteudoDesempenho.id,
+      tema: conteudoDesempenho.tema,
+      data: conteudoDesempenho.data,
+      formato: conteudoDesempenho.formato,
+    })
+    .from(conteudoDesempenho)
+    .where(isNull(conteudoDesempenho.postId));
+
+  if (semCard.length === 0) return { candidatas: 0, vinculadas: 0, vereditos: [] };
+
+  const cards = await db
+    .select({
+      id: conteudoPosts.id,
+      titulo: conteudoPosts.titulo,
+      gancho: conteudoPosts.gancho,
+      legenda: conteudoPosts.legenda,
+      formato: conteudoPosts.formato,
+      estado: conteudoPosts.estado,
+      dataProgramada: conteudoPosts.dataProgramada,
+      createdAt: conteudoPosts.createdAt,
+    })
+    .from(conteudoPosts);
+
+  const jaVinculados = await db
+    .select({ postId: conteudoDesempenho.postId })
+    .from(conteudoDesempenho)
+    .where(isNotNull(conteudoDesempenho.postId));
+
+  const vereditos = casarMedicoes(
+    semCard,
+    cards,
+    new Set(jaVinculados.map((r) => r.postId).filter((id): id is string => !!id)),
+  );
+
+  let vinculadas = 0;
+  for (const v of vereditos) {
+    if (!v.postId) continue;
+    if (vinculadas >= max) break;
+    if (!opts.dryRun) {
+      await db
+        .update(conteudoDesempenho)
+        .set({ postId: v.postId, updatedAt: new Date() })
+        .where(eq(conteudoDesempenho.id, v.medicaoId));
+    }
+    vinculadas++;
+  }
+
+  return { candidatas: semCard.length, vinculadas, vereditos };
 }
 
 /**
@@ -100,5 +190,18 @@ export async function syncDesempenhoFromInsights(
     }
   }
 
-  return { profile, inserted, updated, total: midias.length };
+  // Com as métricas no lugar, tenta casar com os cards do board. Best-effort de
+  // propósito: o sync já entregou o valor dele (os números). Se o casamento
+  // falhar, as medições ficam sem card e a próxima execução tenta de novo.
+  let vinculadas = 0;
+  try {
+    ({ vinculadas } = await vincularMedicoes(db));
+  } catch (err) {
+    console.warn(
+      '[desempenho:vinculo] não casou medições com os cards:',
+      err instanceof Error ? err.message : err,
+    );
+  }
+
+  return { profile, inserted, updated, total: midias.length, vinculadas };
 }

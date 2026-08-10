@@ -29,7 +29,9 @@ async function main(): Promise<void> {
   const limit = Math.min(Math.max(Number(process.argv[2]) || 30, 1), 500);
 
   console.log(`[sync] buscando perfil + insights das últimas ${limit} mídias...`);
-  const { profile, inserted, updated, total } = await syncDesempenhoFromInsights(db, { limit });
+  const { profile, inserted, updated, total, vinculadas } = await syncDesempenhoFromInsights(db, {
+    limit,
+  });
 
   console.log(
     `[sync] perfil @${profile.username ?? '?'} — ` +
@@ -37,8 +39,10 @@ async function main(): Promise<void> {
       `${profile.mediaCount?.toLocaleString('pt-BR') ?? '?'} posts.`,
   );
   console.log(
-    `[sync] OK — ${total} mídias · ${inserted} inseridos, ${updated} atualizados.\n` +
-      `[sync] Retenção dos reels precisa da DURAÇÃO (não vem da API): preencha "duração" na tela.`,
+    `[sync] OK — ${total} mídias · ${inserted} inseridos, ${updated} atualizados, ` +
+      `${vinculadas} casado(s) com card do board.\n` +
+      `[sync] Retenção dos reels precisa da DURAÇÃO (não vem da API): preencha "duração" na tela.\n` +
+      `[sync] Passivo antigo de vínculos: pnpm --filter @app/dobro conteudo:vincular --dry`,
   );
 }
 

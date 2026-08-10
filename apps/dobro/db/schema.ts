@@ -286,3 +286,59 @@ export const conteudoDesempenho = pgTable('conteudo_desempenho', {
     .$defaultFn(() => new Date())
     .notNull(),
 });
+
+/**
+ * PREVISÃO da IA por post ("Placar da IA", metade PREVISTO) — o mesmo conteúdo
+ * que já aparecia no `briefing` em texto, agora como DADO consultável.
+ *
+ * Por que tabela separada e não colunas em `conteudo_posts`: um card pode ser
+ * previsto MAIS DE UMA VEZ (no rascunho e de novo depois de editado, antes de
+ * publicar). Cada previsão é uma linha; `registrada_em` ordena, e a última antes
+ * da publicação é a que vale para o placar. Colunas no card só guardariam a
+ * primeira ou sobrescreveriam o histórico, que é justamente o que mede se a IA
+ * melhorou.
+ *
+ * As taxas ficam em % (1.2 = 1,2%), do mesmo jeito que o modelo prevê. A CLASSE
+ * já vem derivada pela régua de `server/conteudo-previsao.ts` — a mesma da tela
+ * de desempenho, para que previsto e real sejam comparáveis.
+ *
+ * A view read-only `v_conteudo_previsoes` (allowlist) é a ÚNICA forma da API ler.
+ */
+export const conteudoPrevisoes = pgTable('conteudo_previsoes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  /** Card previsto. CASCADE: previsão sem card não significa nada. */
+  postId: uuid('post_id')
+    .references(() => conteudoPosts.id, { onDelete: 'cascade' })
+    .notNull(),
+  /** Classe esperada, derivada das taxas: 'forte' | 'saudavel' | 'abaixo' | 'na'. */
+  classe: text('classe').notNull(),
+  /** Confiança da IA na própria previsão: 'alta' | 'media' | 'baixa'. */
+  confianca: text('confianca').notNull(),
+  /** Taxa prevista de salvamentos sobre alcance, EM % (1.2 = 1,2%). */
+  taxaSalvamentosPct: doublePrecision('taxa_salvamentos_pct'),
+  /** Taxa prevista de compartilhamentos sobre alcance, EM %. */
+  taxaCompartilhamentosPct: doublePrecision('taxa_compartilhamentos_pct'),
+  /** Retenção prevista em % (só reels; null em carrossel). */
+  retencaoPct: doublePrecision('retencao_pct'),
+  /** Sub-classes por métrica, para comparar métrica a métrica com o real. */
+  classeSalvamentos: text('classe_salvamentos'),
+  classeCompartilhamentos: text('classe_compartilhamentos'),
+  classeRetencao: text('classe_retencao'),
+  /** A métrica em que a IA apostou, e por causa de qual elemento do post. */
+  apostaPrincipal: text('aposta_principal'),
+  /** O que pode derrubar o post (array de strings). */
+  riscos: jsonb('riscos'),
+  /** Nota do sistema "Fura a Bolha": total 0-25 e as 5 notas. */
+  furaTotal: integer('fura_total'),
+  furaNotas: jsonb('fura_notas'),
+  furaJustificativa: text('fura_justificativa'),
+  /** Veredito em duas frases. */
+  resumo: text('resumo'),
+  /** Modelo que fez a previsão (a acurácia é por modelo). */
+  modelo: text('modelo'),
+  /** Quando a previsão foi registrada — sempre ANTES de publicar. */
+  registradaEm: timestamp('registrada_em').notNull(),
+  createdAt: timestamp('created_at')
+    .$defaultFn(() => new Date())
+    .notNull(),
+});

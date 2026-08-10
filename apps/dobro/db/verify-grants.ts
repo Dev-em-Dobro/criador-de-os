@@ -64,7 +64,34 @@ async function main(): Promise<void> {
   const aTable = line('tabela crua metricas_...', await tryAs('app_auth', 'SELECT * FROM metricas_visao_geral LIMIT 1'), false);
   const aView = line('view v_visao_geral (negócio)', await tryAs('app_auth', 'SELECT * FROM v_visao_geral LIMIT 1'), false);
 
-  const pass = qView && qTable && qUser && aUser && aTable && aView;
+  console.log('\napp_query (previsões da IA — só a view):');
+  const qPrevView = line(
+    'view v_conteudo_previsoes',
+    await tryAs('app_query', 'SELECT * FROM v_conteudo_previsoes LIMIT 1'),
+    true,
+  );
+  const qPrevTable = line(
+    'tabela crua conteudo_previsoes',
+    await tryAs('app_query', 'SELECT * FROM conteudo_previsoes LIMIT 1'),
+    false,
+  );
+
+  // app_pipeline grava a previsão junto do rascunho, mas não pode LER a tabela:
+  // o histórico do placar sai pela view, como todo o resto.
+  console.log('\napp_pipeline (gerador de IA — grava a previsão):');
+  const pIns = line(
+    'INSERT em conteudo_previsoes',
+    await tryAs('app_pipeline', "SELECT 1 WHERE has_table_privilege('conteudo_previsoes', 'INSERT')"),
+    true,
+  );
+  const pSel = line(
+    'SELECT em conteudo_previsoes',
+    await tryAs('app_pipeline', 'SELECT * FROM conteudo_previsoes LIMIT 1'),
+    false,
+  );
+
+  const pass =
+    qView && qTable && qUser && aUser && aTable && aView && qPrevView && qPrevTable && pIns && pSel;
   console.log(
     pass
       ? '\n[verify-grants] OK — isolamento por caminho reforçado no banco.'

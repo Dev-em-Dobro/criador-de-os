@@ -125,3 +125,31 @@ SELECT
   permalink,
   estrutura
 FROM conteudo_desempenho;
+
+-- v_conteudo_previsoes: expõe a PREVISÃO da IA por post (o "previsto" do placar).
+-- Passthrough magro, no mesmo espírito da v_conteudo_desempenho: os números que a
+-- IA apostou + as notas do Fura a Bolha. Quem compara previsto x real é a tela (ou
+-- a análise), cruzando `post_id` com a v_conteudo_desempenho. `id`/`post_id` viram
+-- text (key estável no front). A justificativa/resumo vêm junto porque é o que
+-- explica um erro de previsão quando ele aparece.
+CREATE OR REPLACE VIEW v_conteudo_previsoes AS
+SELECT
+  id::text AS id,
+  post_id::text AS post_id,
+  classe,
+  confianca,
+  taxa_salvamentos_pct,
+  taxa_compartilhamentos_pct,
+  retencao_pct,
+  classe_salvamentos,
+  classe_compartilhamentos,
+  classe_retencao,
+  aposta_principal,
+  riscos,
+  fura_total,
+  fura_notas,
+  fura_justificativa,
+  resumo,
+  modelo,
+  registrada_em
+FROM conteudo_previsoes;

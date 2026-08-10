@@ -43,6 +43,13 @@
       "when": 1786026919597,
       "tag": "0005_odd_joseph",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786371967316,
+      "tag": "0006_thick_madame_web",
+      "breakpoints": true
     }
   ]
 }

@@ -293,6 +293,9 @@ export async function handleSincronizarDesempenho(c: Context): Promise<Response>
       inserted: r.inserted,
       updated: r.updated,
       total: r.total,
+      // Quantas medições foram casadas com um card do board neste sync — é o que
+      // permite comparar a previsão da IA com o resultado real daquele post.
+      vinculadas: r.vinculadas,
       followers: r.profile.followersCount ?? null,
       username: r.profile.username ?? null,
     });
@@ -321,8 +324,16 @@ export async function handleCronSyncDesempenho(c: Context): Promise<Response> {
   }
   try {
     const r = await syncDesempenhoFromInsights(dbContent, { limit: 30 });
-    console.log(`[cron:sync] OK — ${r.total} mídias, ${r.inserted} novos, ${r.updated} atualizados`);
-    return c.json({ ok: true, inserted: r.inserted, updated: r.updated, total: r.total });
+    console.log(
+      `[cron:sync] OK — ${r.total} mídias, ${r.inserted} novos, ${r.updated} atualizados, ${r.vinculadas} casado(s) com card`,
+    );
+    return c.json({
+      ok: true,
+      inserted: r.inserted,
+      updated: r.updated,
+      total: r.total,
+      vinculadas: r.vinculadas,
+    });
   } catch (err) {
     if (err instanceof InsightsError) return c.json({ error: `Instagram: ${err.message}` }, 422);
     console.error('[cron:sync] erro:', err instanceof Error ? err.message : err);

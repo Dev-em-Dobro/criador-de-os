@@ -69,6 +69,8 @@ REVOKE SELECT ON conteudo_desempenho FROM PUBLIC;
 REVOKE SELECT ON v_conteudo_desempenho FROM PUBLIC;
 REVOKE SELECT ON referencia_perfis FROM PUBLIC;
 REVOKE SELECT ON v_referencias_perfis FROM PUBLIC;
+REVOKE SELECT ON conteudo_previsoes FROM PUBLIC;
+REVOKE SELECT ON v_conteudo_previsoes FROM PUBLIC;
 
 -- 4) USAGE no schema para todos (sem isto não enxergam nenhum objeto).
 GRANT USAGE ON SCHEMA public TO app_auth;
@@ -93,6 +95,7 @@ GRANT SELECT ON v_conteudo_desempenho TO app_query;
 -- A tela "Referências" lê SÓ a view: app_query segue sem acesso a `referencias`
 -- (tabela crua, com legenda/transcrição inteira) nem a `referencia_perfis`.
 GRANT SELECT ON v_referencias_perfis TO app_query;
+GRANT SELECT ON v_conteudo_previsoes TO app_query;
 
 -- 6b) app_ingest: escreve SÓ na tabela `referencias` (o webhook do Telegram grava
 --     as inspirações). SELECT junto para dedupe futuro por origem_url. Nada mais —
@@ -119,6 +122,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON conteudo_desempenho TO app_content;
 --         a geração criaria um segundo card, que é a duplicata que a gente quer evitar)
 GRANT SELECT, INSERT, UPDATE ON referencias    TO app_pipeline;
 GRANT SELECT, INSERT, UPDATE ON conteudo_posts TO app_pipeline;
+--       · conteudo_previsoes → INSERT (grava a previsão registrada junto do rascunho).
+--         Só INSERT: previsão é registro histórico, nunca se reescreve — uma nova
+--         avaliação vira uma LINHA nova, senão o placar perderia o que a IA achava antes.
+GRANT INSERT ON conteudo_previsoes TO app_pipeline;
 
 -- 7) Permite ao owner assumir cada role (SET ROLE) — necessário para TESTAR a
 --    defesa com db/verify-grants.ts. Em produção, a API usa a connection string

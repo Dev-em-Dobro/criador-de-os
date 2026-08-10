@@ -96,6 +96,29 @@ const ALLOWED_VIEWS: Record<string, AllowedView> = {
       'estrutura',
     ],
   },
+  v_conteudo_previsoes: {
+    view: 'v_conteudo_previsoes',
+    columns: [
+      'id',
+      'post_id',
+      'classe',
+      'confianca',
+      'taxa_salvamentos_pct',
+      'taxa_compartilhamentos_pct',
+      'retencao_pct',
+      'classe_salvamentos',
+      'classe_compartilhamentos',
+      'classe_retencao',
+      'aposta_principal',
+      'riscos',
+      'fura_total',
+      'fura_notas',
+      'fura_justificativa',
+      'resumo',
+      'modelo',
+      'registrada_em',
+    ],
+  },
 };
 
 /** Retorna a entrada de allowlist para uma view, ou `undefined` se não permitida. */

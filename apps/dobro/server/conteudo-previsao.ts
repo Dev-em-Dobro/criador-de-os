@@ -88,6 +88,37 @@ const CLASSE_LABEL: Record<ClassePrevista, string> = {
   na: 'Sem referência',
 };
 
+/** As sub-classes de uma previsão, métrica a métrica. */
+export interface SubClasses {
+  salvamentos: ClassePrevista;
+  compartilhamentos: ClassePrevista;
+  retencao: ClassePrevista;
+}
+
+/**
+ * Aplica a RÉGUA às taxas previstas (em %) e devolve a classe geral + as
+ * sub-classes. Exportada porque é a única régua da casa: usa-se aqui, ao
+ * normalizar a saída do modelo, e no backfill das previsões que só existiam como
+ * texto no briefing. Duas cópias da fórmula seriam duas medidas diferentes.
+ */
+export function classificarPorRegua(
+  formato: 'carrossel' | 'reels',
+  taxaSalvamentosPct: number,
+  taxaCompartilhamentosPct: number,
+  retencaoPct: number | null,
+): { classe: ClassePrevista; subClasses: SubClasses } {
+  const bench = BENCHMARKS[chaveBenchmark(formato)];
+  // As taxas chegam em %, os benchmarks vivem em decimal.
+  const salvamentos = classify(taxaSalvamentosPct / 100, bench?.salvamentos);
+  const compartilhamentos = classify(taxaCompartilhamentosPct / 100, bench?.compartilhamentos);
+  const retencao =
+    formato === 'reels' && retencaoPct != null ? classify(retencaoPct / 100, bench?.retencao) : 'na';
+  return {
+    classe: classeGeral([salvamentos, compartilhamentos, retencao]),
+    subClasses: { salvamentos, compartilhamentos, retencao },
+  };
+}
+
 /** As 5 regras do sistema "Fura a Bolha", 0 a 5 cada (25 no total). */
 export interface NotasFuraABolha {
   capaParaODedo: number;
@@ -370,17 +401,16 @@ export async function preverDesempenho(post: PostParaPrever, apiKey: string): Pr
 
 /** Valida a saída da tool e DERIVA a classe pela régua (previsto e real, mesma fórmula). */
 function normalizarPrevisao(raw: PrevisaoBruta, formato: 'carrossel' | 'reels'): PrevisaoIa {
-  const bench = BENCHMARKS[chaveBenchmark(formato)];
-
   const taxaSalvamentosPct = num(raw.taxa_salvamentos_pct, 0);
   const taxaCompartilhamentosPct = num(raw.taxa_compartilhamentos_pct, 0);
   const retencaoPct = formato === 'reels' && raw.retencao_pct != null ? num(raw.retencao_pct, 0) : null;
 
-  // As taxas chegam em %, os benchmarks vivem em decimal.
-  const salvamentos = classify(taxaSalvamentosPct / 100, bench?.salvamentos);
-  const compartilhamentos = classify(taxaCompartilhamentosPct / 100, bench?.compartilhamentos);
-  const retencao =
-    formato === 'reels' && retencaoPct != null ? classify(retencaoPct / 100, bench?.retencao) : 'na';
+  const { classe, subClasses } = classificarPorRegua(
+    formato,
+    taxaSalvamentosPct,
+    taxaCompartilhamentosPct,
+    retencaoPct,
+  );
 
   const f = raw.fura_a_bolha ?? {};
   const notas: NotasFuraABolha = {
@@ -396,12 +426,12 @@ function normalizarPrevisao(raw: PrevisaoBruta, formato: 'carrossel' | 'reels'):
     confiancaRaw === 'alta' || confiancaRaw === 'baixa' ? confiancaRaw : 'media';
 
   return {
-    classe: classeGeral([salvamentos, compartilhamentos, retencao]),
+    classe,
     confianca,
     taxaSalvamentosPct,
     taxaCompartilhamentosPct,
     retencaoPct,
-    subClasses: { salvamentos, compartilhamentos, retencao },
+    subClasses,
     apostaPrincipal: semTravessao(String(raw.aposta_principal ?? '')),
     riscos: Array.isArray(raw.riscos)
       ? raw.riscos.map((r) => semTravessao(String(r))).filter(Boolean).slice(0, 3)
