@@ -10,9 +10,9 @@
  * Uso: pnpm --filter @app/dobro conteudo:classificar
  */
 import Anthropic from '@anthropic-ai/sdk';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { db } from '../../db/client';
-import { conteudoDesempenho } from '../../db/schema';
+import { conteudoDesempenho, conteudoPosts } from '../../db/schema';
 import { getAgencyAnthropicKey } from '../env';
 
 export const ESTRUTURAS = [
@@ -57,12 +57,32 @@ const TOOL: Anthropic.Tool = {
   },
 };
 
-type Lote = { id: string; tema: string | null };
+type Lote = { id: string; tema: string | null; gancho?: string | null; roteiro?: unknown };
+
+/**
+ * O material que descreve o carrossel para o classificador.
+ *
+ * Prefere o CARD (gancho + títulos dos slides) quando o post está vinculado. A
+ * `tema` é a legenda publicada cortada em 300 caracteres, e ela começa pelo CTA
+ * ("Comenta SAGA que eu te mando...") mais qualquer menção a evento — o que fazia
+ * o classificador ler "venda" em post que é ferramenta. A estrutura está nos
+ * slides, não na isca da legenda.
+ */
+function materialDo(c: Lote): string {
+  const gancho = (c.gancho ?? '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+  const roteiro = c.roteiro as { slides?: Array<{ titulo?: string }> } | null;
+  const titulos = (roteiro?.slides ?? [])
+    .map((s) => String(s?.titulo ?? '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+
+  if (gancho.length > 20 && titulos.length) {
+    return `CAPA: ${gancho} | SLIDES: ${titulos.join(' / ')}`.slice(0, 700);
+  }
+  return `LEGENDA (só o começo): ${(c.tema ?? '').slice(0, 320).replace(/\s+/g, ' ').trim()}`;
+}
 
 async function classificarLote(client: Anthropic, lote: Lote[]): Promise<{ i: number; estrutura: Estrutura }[]> {
-  const linhas = lote
-    .map((c, k) => `#${k}: ${(c.tema ?? '').slice(0, 320).replace(/\s+/g, ' ').trim()}`)
-    .join('\n');
+  const linhas = lote.map((c, k) => `#${k}: ${materialDo(c)}`).join('\n');
   const prompt = [
     'Você classifica carrosséis de Instagram de um perfil de ensino de programação (@devemdobro) por ESTRUTURA NARRATIVA.',
     'Taxonomia:',
@@ -92,12 +112,37 @@ async function main(): Promise<void> {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY ausente no ambiente do servidor.');
   const client = new Anthropic({ apiKey });
 
-  const pendentes = await db
-    .select({ id: conteudoDesempenho.id, tema: conteudoDesempenho.tema })
-    .from(conteudoDesempenho)
-    .where(and(eq(conteudoDesempenho.formato, 'carrossel'), isNull(conteudoDesempenho.estrutura)));
+  /**
+   * `--vinculados` reclassifica os que JÁ têm estrutura mas ganharam card depois.
+   * Eles foram julgados pela legenda truncada, que engana: o elevator-saga saiu
+   * como "venda" porque a legenda abre com o CTA e cita a Semana, quando o post
+   * é uma ferramenta. Com o card em mãos, a leitura muda.
+   */
+  const revisarVinculados = process.argv.includes('--vinculados');
 
-  console.log(`[classificar] ${pendentes.length} carrosséis sem estrutura`);
+  const pendentes = await db
+    .select({
+      id: conteudoDesempenho.id,
+      tema: conteudoDesempenho.tema,
+      gancho: conteudoPosts.gancho,
+      roteiro: conteudoPosts.roteiro,
+    })
+    .from(conteudoDesempenho)
+    .leftJoin(conteudoPosts, eq(conteudoPosts.id, conteudoDesempenho.postId))
+    .where(
+      and(
+        eq(conteudoDesempenho.formato, 'carrossel'),
+        revisarVinculados
+          ? isNotNull(conteudoDesempenho.postId)
+          : isNull(conteudoDesempenho.estrutura),
+      ),
+    );
+
+  console.log(
+    revisarVinculados
+      ? `[classificar] ${pendentes.length} carrosséis vinculados a um card (reclassificando pelo card)`
+      : `[classificar] ${pendentes.length} carrosséis sem estrutura`,
+  );
   if (!pendentes.length) {
     console.log('[classificar] nada a fazer');
     process.exit(0);

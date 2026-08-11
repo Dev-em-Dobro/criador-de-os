@@ -10,7 +10,9 @@
  *
  * Aqui o mesmo conteúdo sai do banco, a cada geração:
  *   · RANKING por estrutura narrativa, com as taxas medianas reais;
- *   · CAMPEÕES e FRACASSOS recentes, com o texto do post.
+ *   · CAMPEÕES e FRACASSOS recentes, com o GANCHO que foi ao ar;
+ *   · a ESPINHA do carrossel que mais salvou, slide a slide;
+ *   · os CTAs já publicados, ordenados pelo comentário que geraram.
  *
  * Por que isso importa mais do que parece: a mediana de salvamento de um
  * carrossel de FERRAMENTA neste perfil é 4,04%, e a de NOTÍCIA é 0,30% — treze
@@ -24,14 +26,16 @@
  *   · CACHE em memória (TTL curto). O dossiê muda quando o sync roda, não a cada
  *     geração; numa instância quente isso evita repetir a mesma query.
  *
- * ATENÇÃO ao texto dos exemplos: `conteudo_desempenho.tema` guarda só os ~300
- * primeiros caracteres da legenda publicada (ver `desempenho-sync.ts`). Serve de
- * exemplo de ABERTURA, não do post inteiro — e o prompt diz isso ao modelo.
+ * DE ONDE VEM O TEXTO. Prefere sempre o CARD (gancho, CTA, títulos dos slides),
+ * que é o post como foi publicado. `conteudo_desempenho.tema` é reserva, e vem
+ * cortado em ~300 caracteres pelo sync, começando pela linha de follow: serve de
+ * pista de abertura, não do post. Exemplo que cai nessa reserva é MARCADO no
+ * prompt, para o modelo não confundir um trecho de legenda com a capa.
  */
 
-import { isNotNull, sql } from 'drizzle-orm';
+import { eq, isNotNull, sql } from 'drizzle-orm';
 import type { db } from '../db/client.js';
-import { conteudoDesempenho } from '../db/schema.js';
+import { conteudoDesempenho, conteudoPosts } from '../db/schema.js';
 
 type Database = typeof db;
 
@@ -64,7 +68,25 @@ export interface LinhaEstrutura {
 /** Um post real usado como exemplo no prompt. */
 export interface Exemplo {
   estrutura: string | null;
+  /**
+   * O que o modelo lê como exemplo. Vem do GANCHO do card quando o post está
+   * vinculado (é a capa de verdade, a frase que fez parar o dedo); só cai no
+   * começo da legenda publicada quando não há card.
+   */
   texto: string;
+  /** True quando o texto acima é o gancho do card, não um trecho de legenda. */
+  doCard: boolean;
+  /** CTA final do card, quando existe. É o que se quer replicar. */
+  cta: string | null;
+  salvPct: number;
+  comentariosPor1k: number;
+  alcance: number;
+}
+
+/** Um CTA que já foi ao ar, com o comentário que ele gerou. */
+export interface CtaMedido {
+  cta: string;
+  comentariosPor1k: number;
   salvPct: number;
   alcance: number;
 }
@@ -75,6 +97,10 @@ export interface Dossie {
   estruturas: LinhaEstrutura[];
   campeoes: Exemplo[];
   fracassos: Exemplo[];
+  /** CTAs reais ordenados pelo comentário que renderam (a meta de negócio). */
+  ctas: CtaMedido[];
+  /** Os títulos dos slides do campeão: a espinha de um post que funcionou. */
+  espinhaDoCampeao: { titulo: string; slides: string[] } | null;
 }
 
 interface Medicao {
@@ -85,6 +111,10 @@ interface Medicao {
   compartilhamentos: number | null;
   comentarios: number | null;
   seguidores: number | null;
+  /** Do card vinculado (null quando a medição não casou com nenhum). */
+  gancho?: string | null;
+  ctaFinal?: string | null;
+  tituloCard?: string | null;
 }
 
 function mediana(v: number[]): number {
@@ -149,14 +179,37 @@ export function montarDossie(medicoes: Medicao[]): Dossie {
     // Só posts COM estrutura: são os mesmos que sustentam o ranking, e um exemplo
     // sem rótulo ("sem tipo") não ensina nada — o modelo não sabe do que imitar.
     .filter((m) => (m.estrutura ?? '').trim() && m.estrutura !== 'venda')
-    .filter((m) => (m.tema ?? '').trim().length > 30)
-    .map((m) => ({
-      estrutura: m.estrutura,
-      texto: trecho(m.tema),
-      salvPct: taxaPct(m.salvamentos, m.alcance),
-      alcance: m.alcance ?? 0,
-    }))
+    .filter((m) => (m.gancho ?? '').trim().length > 20 || (m.tema ?? '').trim().length > 30)
+    .map((m) => {
+      // O GANCHO do card é a capa de verdade; a legenda publicada vem cortada em
+      // 300 caracteres e começa pela linha de follow. Entre os dois, o gancho
+      // ensina muito mais sobre o que fez o post funcionar.
+      const gancho = (m.gancho ?? '').trim();
+      return {
+        estrutura: m.estrutura,
+        texto: gancho.length > 20 ? trecho(gancho, 130) : trecho(m.tema),
+        doCard: gancho.length > 20,
+        cta: (m.ctaFinal ?? '').trim() || null,
+        salvPct: taxaPct(m.salvamentos, m.alcance),
+        comentariosPor1k: m.alcance ? ((m.comentarios ?? 0) / m.alcance) * 1000 : 0,
+        alcance: m.alcance ?? 0,
+      };
+    })
     .sort((a, b) => b.salvPct - a.salvPct);
+
+  // CTAs: ordenados por COMENTÁRIO por 1k, que é a meta de negócio do CTA (o
+  // comentário com palavra-gatilho é o que dispara a automação de DM). Só os que
+  // vieram de card, porque a legenda truncada quase nunca alcança o CTA final.
+  const ctas: CtaMedido[] = comTexto
+    .filter((e) => e.cta)
+    .map((e) => ({
+      cta: e.cta as string,
+      comentariosPor1k: e.comentariosPor1k,
+      salvPct: e.salvPct,
+      alcance: e.alcance,
+    }))
+    .sort((a, b) => b.comentariosPor1k - a.comentariosPor1k)
+    .slice(0, 6);
 
   return {
     // A base é o que sustenta o RANKING (carrosséis classificados), não o total
@@ -166,6 +219,9 @@ export function montarDossie(medicoes: Medicao[]): Dossie {
     estruturas,
     campeoes: comTexto.slice(0, 5),
     fracassos: comTexto.slice(-3).reverse(),
+    ctas,
+    // Preenchida por quem tem banco (`carregarDossie`): o motor é puro.
+    espinhaDoCampeao: null,
   };
 }
 
@@ -218,15 +274,44 @@ export function dossieParaGerador(d: Dossie): string[] {
   if (d.campeoes.length) {
     linhas.push(
       '',
-      'Aberturas que MAIS renderam (só o começo da legenda publicada, para dar o tom):',
-      ...d.campeoes.map((c) => `- [${c.estrutura ?? 'sem tipo'} · ${pct(c.salvPct)}] ${c.texto}`),
+      'GANCHOS que mais renderam (os nossos, com o salvamento que deram):',
+      ...d.campeoes.map(
+        (c) =>
+          `- [${c.estrutura ?? 'sem tipo'} · ${pct(c.salvPct)}] ${c.texto}` +
+          // Marcar a procedência importa: o gancho é a capa que foi ao ar; o
+          // trecho de legenda é só o começo do texto e ensina menos.
+          (c.doCard ? '' : '  (trecho da legenda, não o gancho)'),
+      ),
     );
   }
   if (d.fracassos.length) {
     linhas.push(
       '',
-      'Aberturas que renderam MENOS (não repita este padrão):',
+      'Os que renderam MENOS (não repita este padrão):',
       ...d.fracassos.map((c) => `- [${c.estrutura ?? 'sem tipo'} · ${pct(c.salvPct)}] ${c.texto}`),
+    );
+  }
+
+  if (d.espinhaDoCampeao) {
+    linhas.push(
+      '',
+      `ESPINHA do carrossel que mais salvou ("${d.espinhaDoCampeao.titulo}"), slide a slide:`,
+      ...d.espinhaDoCampeao.slides.map((t, i) => `  ${i + 1}. ${t}`),
+      'Repita a LÓGICA desta sequência no seu tema, nunca o assunto dela.',
+    );
+  }
+
+  if (d.ctas.length) {
+    linhas.push(
+      '',
+      'CTAs que já foram ao ar, ordenados pelo COMENTÁRIO que geraram (a meta):',
+      ...d.ctas.map(
+        (c) => `- ${c.comentariosPor1k.toFixed(1)} coment./1k · ${c.cta}`,
+      ),
+      'Todos seguem o mesmo molde ("Comenta PALAVRA que eu te mando ..."), então o que',
+      'separa um do outro é a ENTREGA prometida: quanto mais concreta e específica, e',
+      'quanto mais claro o que a pessoa recebe na DM, mais gente comenta. Siga o molde e',
+      'capriche na entrega; não invente formato novo de CTA.',
     );
   }
   return linhas;
@@ -343,12 +428,57 @@ export function viesParaAvaliador(v: Vies | null): string[] {
 let cache: { em: number; dossie: Dossie } | null = null;
 
 /**
+ * Os títulos dos slides do carrossel que mais salvou: a ESPINHA de um post que
+ * funcionou, para o gerador ter um molde de sequência e não só ganchos soltos.
+ *
+ * Query própria, e não um join na consulta principal, porque `roteiro` é um JSONB
+ * grande: trazer o de 200 medições para usar o de UMA seria desperdício em toda
+ * geração. Só os títulos entram no prompt; o corpo dos slides deixaria o bloco
+ * longo demais para o ganho que dá.
+ */
+async function carregarEspinha(
+  database: Database,
+): Promise<{ titulo: string; slides: string[] } | null> {
+  try {
+    const res = await database.execute(sql`
+      SELECT c.titulo,
+             (SELECT jsonb_agg(s->>'titulo' ORDER BY i)
+                FROM jsonb_array_elements(c.roteiro->'slides') WITH ORDINALITY AS t(s, i)) AS titulos
+      FROM conteudo_desempenho d
+      JOIN conteudo_posts c ON c.id = d.post_id
+      WHERE d.alcance > 500
+        AND jsonb_array_length(COALESCE(c.roteiro->'slides', '[]'::jsonb)) > 0
+      ORDER BY d.salvamentos::numeric / NULLIF(d.alcance, 0) DESC NULLS LAST
+      LIMIT 1
+    `);
+    const linhas =
+      (res as unknown as { rows?: Record<string, unknown>[] }).rows ??
+      (res as unknown as Record<string, unknown>[]);
+    const r = linhas?.[0];
+    if (!r?.titulos) return null;
+
+    const slides = (r.titulos as unknown[])
+      // Os títulos vêm com `**` do destaque do app e quebras de linha da arte:
+      // no prompt isso é ruído, o que importa é a sequência de ideias.
+      .map((t) => String(t ?? '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+    if (!slides.length) return null;
+    return { titulo: String(r.titulo ?? ''), slides };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Lê o histórico e devolve o dossiê, ou null se não der (banco fora, role sem
  * permissão, tabela vazia). Quem chama segue sem ele.
  */
 export async function carregarDossie(database: Database): Promise<Dossie | null> {
   if (cache && Date.now() - cache.em < TTL_MS) return cache.dossie;
   try {
+    // LEFT JOIN com o card: quando a medição está vinculada, vêm o gancho (a capa
+    // que foi ao ar) e o CTA. É a diferença entre o modelo aprender com o texto
+    // real do post e aprender com os 300 caracteres truncados da legenda.
     const linhas = await database
       .select({
         tema: conteudoDesempenho.tema,
@@ -358,12 +488,17 @@ export async function carregarDossie(database: Database): Promise<Dossie | null>
         compartilhamentos: conteudoDesempenho.compartilhamentos,
         comentarios: conteudoDesempenho.comentarios,
         seguidores: conteudoDesempenho.seguidores,
+        gancho: conteudoPosts.gancho,
+        ctaFinal: conteudoPosts.ctaFinal,
+        tituloCard: conteudoPosts.titulo,
       })
       .from(conteudoDesempenho)
+      .leftJoin(conteudoPosts, eq(conteudoPosts.id, conteudoDesempenho.postId))
       .where(isNotNull(conteudoDesempenho.alcance));
 
     const dossie = montarDossie(linhas);
     if (!dossie.estruturas.length) return null;
+    dossie.espinhaDoCampeao = await carregarEspinha(database);
     cache = { em: Date.now(), dossie };
     return dossie;
   } catch (err) {
