@@ -157,71 +157,12 @@ export const dobroManifest: ClientManifest = {
         ],
       },
 
-      // 3) RELATÓRIO — a pauta da reunião semanal de marketing e lançamento
-      //    (documento do Raphael) virada tela. Menu PRÓPRIO, e não sub-aba de
-      //    Conteúdo, porque o público é outro: Conteúdo é de quem produz, o
-      //    Relatório é de quem apresenta na reunião. Lê as mesmas medições da aba
-      //    Desempenho e busca os cards do cronograma por dentro (planejado vs
-      //    publicado e objetivo de funil).
-      {
-        key: 'relatorio',
-        label: 'Relatório',
-        icon: 'FileText',
-        route: '/relatorio',
-        view: {
-          block: 'custom:conteudo-relatorio',
-          title: 'Relatório da semana',
-          subtitle: 'A pauta da reunião estratégica, com os números da semana',
-          config: {
-            // MESMOS benchmarks das abas Desempenho e Placar: a régua Forte /
-            // Saudável / Abaixo precisa ser uma só em todo o OS.
-            benchmarks: {
-              reel: {
-                compartilhamentos: [0.005, 0.015],
-                salvamentos: [0.003, 0.01],
-                retencao: [0.5, 0.7],
-              },
-              carrossel: {
-                compartilhamentos: [0.003, 0.01],
-                salvamentos: [0.005, 0.02],
-              },
-              post: {
-                compartilhamentos: [0.002, 0.007],
-                salvamentos: [0.002, 0.007],
-              },
-            },
-          },
-          dataSource: {
-            kind: 'query',
-            view: 'v_conteudo_desempenho',
-            select: [
-              'id',
-              'post_id',
-              'data',
-              'formato',
-              'tema',
-              'alcance',
-              'visualizacoes',
-              'curtidas',
-              'comentarios',
-              'compartilhamentos',
-              'salvamentos',
-              'visitas_perfil',
-              'seguidores',
-              'duracao_s',
-              'tempo_medio_s',
-              'permalink',
-            ],
-            orderBy: [{ field: 'data', dir: 'desc' }],
-            limit: 300,
-          },
-        },
-      },
-
-      // 4) CONTEÚDO — grupo com sub-abas (rotas próprias, compartilháveis):
+      // 3) CONTEÚDO — grupo com sub-abas (rotas próprias, compartilháveis):
       //      · Painel       (/conteudo/painel)       → dashboard: métricas + agenda + lista.
+      //      · Relatório    (/conteudo/relatorio)    → a pauta da reunião semanal.
       //      · Cronograma   (/conteudo/cronograma)   → página de edição da semana.
       //      · Desempenho   (/conteudo/desempenho)   → números de cada post publicado.
+      //      · Placar       (/conteudo/placar)       → previsto x real de cada post.
       //      · Estrategista (/conteudo/estrategista) → qual estrutura de carrossel rende.
       //      · Referências  (/conteudo/referencias)  → os perfis que nos inspiram.
       //    Painel e Cronograma leem os posts REAIS de v_conteudo_posts (allowlist).
@@ -323,6 +264,64 @@ export const dobroManifest: ClientManifest = {
                   { field: 'id', dir: 'asc' }, // desempate estável: sem isto a ordem embaralha a cada refresh
                 ],
                 limit: 100,
+              },
+            },
+          },
+          // RELATÓRIO — a pauta da reunião semanal de marketing e lançamento
+          // (documento do Raphael) virada tela. Vem logo depois do Painel: a
+          // reunião começa olhando a semana inteira e só então desmonta o que
+          // rendeu. Lê as mesmas medições da aba Desempenho e busca os cards do
+          // cronograma por dentro (planejado vs publicado e objetivo de funil).
+          {
+            id: 'relatorio',
+            label: 'Relatório',
+            icon: 'FileText',
+            view: {
+              block: 'custom:conteudo-relatorio',
+              title: 'Relatório da semana',
+              subtitle: 'A pauta da reunião estratégica, com os números da semana',
+              config: {
+                // MESMOS benchmarks das abas Desempenho e Placar: a régua Forte /
+                // Saudável / Abaixo precisa ser uma só em todo o OS.
+                benchmarks: {
+                  reel: {
+                    compartilhamentos: [0.005, 0.015],
+                    salvamentos: [0.003, 0.01],
+                    retencao: [0.5, 0.7],
+                  },
+                  carrossel: {
+                    compartilhamentos: [0.003, 0.01],
+                    salvamentos: [0.005, 0.02],
+                  },
+                  post: {
+                    compartilhamentos: [0.002, 0.007],
+                    salvamentos: [0.002, 0.007],
+                  },
+                },
+              },
+              dataSource: {
+                kind: 'query',
+                view: 'v_conteudo_desempenho',
+                select: [
+                  'id',
+                  'post_id',
+                  'data',
+                  'formato',
+                  'tema',
+                  'alcance',
+                  'visualizacoes',
+                  'curtidas',
+                  'comentarios',
+                  'compartilhamentos',
+                  'salvamentos',
+                  'visitas_perfil',
+                  'seguidores',
+                  'duracao_s',
+                  'tempo_medio_s',
+                  'permalink',
+                ],
+                orderBy: [{ field: 'data', dir: 'desc' }],
+                limit: 300,
               },
             },
           },
