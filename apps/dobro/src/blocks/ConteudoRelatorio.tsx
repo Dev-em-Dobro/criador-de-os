@@ -23,7 +23,7 @@
  * semana imediatamente anterior — é o recorte da reunião.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { SectionHeader, EmptyState, SkeletonCards } from '@os/core';
 import type { BlockDefinition, BlockProps } from '@os/core';
@@ -584,23 +584,17 @@ function ConteudoRelatorioBlock({ config, ctx }: BlockProps<RelatorioConfig>) {
   const { data, loading, error } = ctx;
   const bench = config.benchmarks ?? DEFAULT_BENCH;
 
-  // Semana exibida (segunda a domingo). Começa na semana corrente.
-  const [semanaIni, setSemanaIni] = useState<Date>(() => inicioSemana(new Date()));
-
-  // ...mas a reunião acontece na segunda, quando a semana corrente ainda não tem
-  // post nenhum — e a pauta é sobre a semana que FECHOU. Se a semana de hoje
-  // está vazia e a anterior tem posts medidos, abre na anterior. Só na primeira
-  // carga dos dados: depois disso quem manda é a navegação de quem está lendo.
-  const jaEscolheuSemana = useRef(false);
-  useEffect(() => {
-    if (jaEscolheuSemana.current) return;
-    const todas = asRows(data);
-    if (!todas.length) return;
-    jaEscolheuSemana.current = true;
-    if (todas.some((r) => dentro(dataDe(r), semanaIni, addDias(semanaIni, 7)))) return;
-    const anterior = addDias(semanaIni, -7);
-    if (todas.some((r) => dentro(dataDe(r), anterior, semanaIni))) setSemanaIni(anterior);
-  }, [data, semanaIni]);
+  // Semana exibida (segunda a domingo). A reunião acontece na segunda, e a pauta
+  // é a semana que FECHOU — não a que mal começou. Por isso segunda e terça
+  // abrem na semana anterior; de quarta em diante, na corrente. É por dia da
+  // semana e não por "tem post medido?": basta um post sair na segunda de manhã
+  // pra tela pular pra uma semana com um post só e −100% em tudo.
+  const [semanaIni, setSemanaIni] = useState<Date>(() => {
+    const hoje = new Date();
+    const segunda = inicioSemana(hoje);
+    const diaDaSemana = Math.floor((hoje.getTime() - segunda.getTime()) / (24 * 3600 * 1000));
+    return diaDaSemana < 2 ? addDias(segunda, -7) : segunda;
+  });
 
   // Semanas já FECHADAS (snapshot + registro da reunião). Ficam em estado local
   // e são recarregadas depois de cada fechamento.
