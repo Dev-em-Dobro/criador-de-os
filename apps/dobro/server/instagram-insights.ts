@@ -18,7 +18,11 @@
  *   MORTAS na v21: plays, impressions (viraram `views`), clips_replays_count.
  */
 
-import { getInstagramInsightsToken, getInstagramIgUserId } from './env.js';
+import {
+  getInstagramInsightsToken,
+  getInstagramIgUserId,
+  getInstagramTimezone,
+} from './env.js';
 
 const GRAPH = 'https://graph.facebook.com/v21.0';
 
@@ -128,16 +132,64 @@ export async function resolveIgUserId(): Promise<string> {
   return id;
 }
 
+/**
+ * Meia-noite (epoch em segundos) do dia de `ref` no fuso `tz`. É o corte que o
+ * app do Instagram usa pra fechar o dia — sem ele a janela do painel não bate
+ * com o que o cliente vê no celular.
+ */
+export function meiaNoiteNoFuso(ref: Date, tz: string): number {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(ref);
+  const p: Record<string, number> = {};
+  for (const { type, value } of partes) {
+    if (type !== 'literal') p[type] = Number(value);
+  }
+  // Diferença entre "o relógio local do fuso lido como UTC" e o instante real:
+  // é o offset do fuso naquele momento (cobre horário de verão automaticamente).
+  const comoSeFosseUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+  const offsetMs = comoSeFosseUtc - Math.floor(ref.getTime() / 1000) * 1000;
+  return Math.floor((Date.UTC(p.year, p.month - 1, p.day) - offsetMs) / 1000);
+}
+
 /** Métricas de NÍVEL DE CONTA agregadas num período (a "visão Conta" do painel). */
 export interface AccountInsights {
   /** Dias da janela efetivamente usada (1..30 — a API limita o range a 30 dias). */
   dias: number;
+  /** Início da janela (ISO) — meia-noite no fuso da conta. */
+  desde?: string;
+  /** Fim da janela (ISO) — meia-noite de hoje: o dia corrente NÃO entra. */
+  ate?: string;
   /** Contas ÚNICAS alcançadas no período (deduplicado no range — igual ao app). */
   reach?: number;
   /** Visualizações de TODO o conteúdo no período (feed + reels + stories). */
   views?: number;
-  /** Interações totais (curtidas+coment+compart+salv+…) no período. */
+  /**
+   * Interações do período como o app conta: curtidas + comentários +
+   * salvamentos + compartilhamentos. Ver `interactionsApi` para o número maior
+   * que a API chama de `total_interactions`.
+   */
   interactions?: number;
+  /**
+   * `total_interactions` cru da API — inclui anúncios e respostas de story, e
+   * por isso fica ACIMA do card do app (17/08/2026: 32.557 contra 28.217).
+   */
+  interactionsApi?: number;
+  /** Curtidas no período. */
+  likes?: number;
+  /** Comentários no período. */
+  comments?: number;
+  /** Salvamentos no período. */
+  saves?: number;
+  /** Compartilhamentos no período. */
+  shares?: number;
   /** Seguidores LÍQUIDOS no período (ganhos − perdidos) — igual ao app do Instagram. */
   followers?: number;
   /** Seguidores GANHOS no período (bruto, contas que começaram a seguir). */
@@ -152,6 +204,13 @@ export interface AccountInsights {
  * os posts publicados: aqui é a atividade da conta no período, incluindo posts
  * antigos/reels/stories que continuaram rodando — e o alcance é deduplicado.
  *
+ * JANELA (calibrada 17/08/2026 contra o app de @devemdobro): são `dias` FECHADOS
+ * terminando à MEIA-NOITE DE HOJE no fuso da conta — o dia corrente não entra.
+ * É exatamente o recorte do app: com 7 dias, ele deu 761.030 visualizações e
+ * +752 seguidores líquidos, e esta janela devolveu 761.026 e +752. A janela
+ * antiga (`agora − 7×24h`) descartava um dia inteiro e trocava por um pedaço do
+ * dia de hoje: 638.733 visualizações, 18% a menos.
+ *
  * A Graph API limita o range a 30 dias → `dias` é clampeado. Resiliente: cada
  * grupo de métricas num try isolado; o que falhar fica `undefined` (a UI degrada
  * aquele card, nunca a tela toda).
@@ -159,15 +218,21 @@ export interface AccountInsights {
 export async function fetchAccountInsights(dias = 7, igUserId?: string): Promise<AccountInsights> {
   const d = Math.min(Math.max(Math.round(dias), 1), 30);
   const id = igUserId ?? (await resolveIgUserId());
-  const until = Math.floor(Date.now() / 1000);
+  const until = meiaNoiteNoFuso(new Date(), getInstagramTimezone());
   const since = until - d * 24 * 3600;
   const su = { since: String(since), until: String(until) };
-  const out: AccountInsights = { dias: d };
+  const out: AccountInsights = {
+    dias: d,
+    desde: new Date(since * 1000).toISOString(),
+    ate: new Date(until * 1000).toISOString(),
+  };
 
-  // Agregado no range (total_value): reach dedup, views, interações — numa call.
+  // Agregado no range (total_value): reach dedup, views e as parcelas de
+  // interação — numa call. As 4 parcelas vêm separadas porque o card do app é a
+  // SOMA delas; `total_interactions` fica guardado à parte só como referência.
   try {
     const r = await api(`${id}/insights`, {
-      metric: 'reach,views,total_interactions',
+      metric: 'reach,views,total_interactions,likes,comments,saves,shares',
       period: 'day',
       metric_type: 'total_value',
       ...su,
@@ -178,12 +243,23 @@ export async function fetchAccountInsights(dias = 7, igUserId?: string): Promise
         const name = s(item.name);
         if (name === 'reach') out.reach = v;
         else if (name === 'views') out.views = v;
-        else if (name === 'total_interactions') out.interactions = v;
+        else if (name === 'total_interactions') out.interactionsApi = v;
+        else if (name === 'likes') out.likes = v;
+        else if (name === 'comments') out.comments = v;
+        else if (name === 'saves') out.saves = v;
+        else if (name === 'shares') out.shares = v;
       }
     }
   } catch {
     /* degrada — os cards de conta ficam sem esses números */
   }
+
+  // Interações como o app conta. Se nenhuma parcela veio, cai no número da API
+  // (maior, mas melhor que card vazio).
+  const parcelas = [out.likes, out.comments, out.saves, out.shares];
+  out.interactions = parcelas.some((p) => p != null)
+    ? parcelas.reduce((a: number, p) => a + (p ?? 0), 0)
+    : out.interactionsApi;
 
   // Seguidores LÍQUIDOS (ganhos − perdidos), como o "seguidores líquidos" do app.
   // `follows_and_unfollows` com breakdown `follow_type` devolve:

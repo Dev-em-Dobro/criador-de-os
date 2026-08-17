@@ -256,6 +256,17 @@ export function getInstagramIgUserId(): string | undefined {
   return process.env.INSTAGRAM_IG_USER_ID?.trim() || undefined;
 }
 
+/**
+ * Fuso da conta do Instagram — define onde o "dia" começa para as métricas de
+ * período. O app do Instagram fecha o dia à meia-noite NESTE fuso, e é assim que
+ * a janela de "7 dias" tem que ser montada pra bater com o que o cliente vê no
+ * celular. Configurável (`INSTAGRAM_TIMEZONE`) porque cada cliente do criador de
+ * OS pode estar num fuso diferente. Não é segredo.
+ */
+export function getInstagramTimezone(): string {
+  return process.env.INSTAGRAM_TIMEZONE?.trim() || 'America/Sao_Paulo';
+}
+
 /** Segredo que assina as sessões do Better Auth. Server-side. */
 export function getAuthSecret(): string {
   return requireEnv('BETTER_AUTH_SECRET');

@@ -201,15 +201,26 @@ export const dobroManifest: ClientManifest = {
                 // METAS SEMANAIS do "Relatório da rede". Cada card mostra a meta ao
                 // lado do número (barra + "faltam N"). Escalam com o período (7/30/90d).
                 // Alvos com { min, media, alta } têm 3 níveis; número = nível único.
-                // Calibradas 03/08/2026 pela distribuição real das últimas 8 semanas
-                // (mín ≈ bate quase sempre · média ≈ mediana · alta ≈ pico histórico).
+                //
+                // Recalibradas 17/08/2026 com `pnpm conteudo:calibrar-metas 8`, já na
+                // janela nova da visão Conta (7 dias fechados, meia-noite de Brasília).
+                // Base: as ÚLTIMAS 8 SEMANAS, não 12 — a conta virou de patamar em
+                // julho/2026 (antes disso perdia seguidores toda semana, de −41 a −450),
+                // e calibrar pelo período ruim daria meta negativa.
+                // Critério: min ≈ 7 das 8 semanas batem · media ≈ mediana (4 de 8) ·
+                // alta ≈ semana de lançamento (1 de 8).
                 metasSemana: {
                   // Novos seguidores é LÍQUIDO (ganhos − perdidos) na visão Conta.
-                  novosSeguidores: { min: 300, media: 600, alta: 1000 },
-                  visualizacoes: { min: 300000, media: 550000, alta: 1000000 },
-                  alcance: { min: 150000, media: 250000, alta: 400000 },
-                  interacoes: { min: 8000, media: 14000, alta: 20000 },
-                  posts: { min: 10, media: 14, alta: 18 },
+                  // Piso positivo de propósito: 2 das 8 semanas foram negativas, mas
+                  // "encolher menos" não é meta.
+                  novosSeguidores: { min: 150, media: 400, alta: 800 },
+                  visualizacoes: { min: 350000, media: 650000, alta: 1000000 },
+                  // ⚠️ Alcance é dedup: em 30 dias a conta faz ~770k, não 4× a semana.
+                  // A escala linear do período infla esta meta em 30/90d.
+                  alcance: { min: 100000, media: 175000, alta: 350000 },
+                  interacoes: { min: 10000, media: 16000, alta: 28000 },
+                  // `alta` é semana de lançamento (a de 10–16/08 teve 30 posts).
+                  posts: { min: 8, media: 12, alta: 20 },
                 },
                 // MÉTRICAS do perfil (@devemdobro). Engajamento e melhores posts são
                 // dado REAL coletado do Instagram (18/07). Seguidores e crescimento

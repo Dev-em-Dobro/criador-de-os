@@ -30,6 +30,7 @@
     "conteudo:vincular": "tsx server/scripts/vincular-desempenho.ts",
     "conteudo:previsoes-backfill": "tsx server/scripts/backfill-previsoes.ts",
     "conteudo:calibrar-regua": "tsx server/scripts/calibrar-regua.ts",
+    "conteudo:calibrar-metas": "tsx server/scripts/calibrar-metas.ts",
     "carrossel:render": "tsx server/scripts/render-carrossel.ts",
     "referencias:list": "tsx server/scripts/list-referencias.ts",
     "perfis:add": "tsx server/scripts/perfis-add.ts",

@@ -2931,6 +2931,10 @@ const PERIODO_PADRAO = 7;
 interface AccountInsightsResp {
   connected: boolean;
   dias?: number;
+  /** Início da janela (ISO) — meia-noite no fuso da conta. */
+  desde?: string;
+  /** Fim da janela (ISO) — meia-noite de hoje: o dia corrente não entra. */
+  ate?: string;
   reach?: number;
   views?: number;
   interactions?: number;
@@ -2939,6 +2943,18 @@ interface AccountInsightsResp {
   followersGained?: number;
   followersLost?: number;
   error?: string;
+}
+
+/**
+ * Data vinda do banco → Date. O `/api/query` devolve os `timestamp` SEM fuso
+ * ("2026-08-16 20:18:39") e o valor gravado é UTC. Sem o "Z" o navegador lê a
+ * string como hora LOCAL e joga tudo 3h pra frente — post publicado depois das
+ * 21h caía no dia seguinte e sumia da contagem da semana.
+ */
+function dataDoBanco(valor: string): Date {
+  const s = valor.trim();
+  const semFuso = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?$/.test(s);
+  return new Date(semFuso ? `${s.replace(' ', 'T')}Z` : s);
 }
 
 /** Início do dia (00:00 local) de `dias` atrás — corte inclusivo. */
@@ -3206,7 +3222,7 @@ function PostsPeriodoModal({
   const dataDe = (r: Row): string => {
     const s = toText(r.data);
     if (!s) return 'sem data';
-    const d = new Date(s);
+    const d = dataDoBanco(s);
     return Number.isFinite(d.getTime())
       ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
       : 'sem data';
@@ -3407,6 +3423,24 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
     };
   }, [fonte, periodDays]);
 
+  // Rótulo da janela usada pela visão "Conta" (ex.: "10 a 16 de ago"). O `ate`
+  // que a API devolve é a meia-noite de HOJE, ou seja, o último dia contado é o
+  // anterior — por isso o -1 dia antes de formatar.
+  const janelaConta = useMemo(() => {
+    if (!contaData?.desde || !contaData.ate) return null;
+    const ini = new Date(contaData.desde);
+    const fim = new Date(new Date(contaData.ate).getTime() - 24 * 3600 * 1000);
+    if (Number.isNaN(ini.getTime()) || Number.isNaN(fim.getTime())) return null;
+    const dia = (d: Date) => String(d.getUTCDate());
+    const mes = (d: Date) =>
+      ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][
+        d.getUTCMonth()
+      ];
+    return mes(ini) === mes(fim)
+      ? `${dia(ini)} a ${dia(fim)} de ${mes(fim)}`
+      : `${dia(ini)} de ${mes(ini)} a ${dia(fim)} de ${mes(fim)}`;
+  }, [contaData]);
+
   const [desempRows, setDesempRows] = useState<Row[]>([]);
   useEffect(() => {
     let alive = true;
@@ -3457,7 +3491,7 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
     const tsOf = (r: Row) => {
       const s = toText(r.data);
       if (!s) return null;
-      const t = new Date(s).getTime();
+      const t = dataDoBanco(s).getTime();
       return Number.isFinite(t) ? t : null;
     };
 
@@ -3470,16 +3504,27 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
       };
     }
 
-    // Janela atual [curStart, agora] vs. janela anterior [prevStart, curStart).
-    const curStart = cortePeriodo(periodDays).getTime();
-    const prevStart = cortePeriodo(periodDays * 2).getTime();
+    // Janela atual [curStart, curEnd) vs. anterior [prevStart, curStart).
+    // Na visão "Conta" o corte é o MESMO que a API usou (dias fechados até a
+    // meia-noite de hoje, no fuso da conta) — senão o card de posts fala de uma
+    // semana e os outros quatro falam de outra (o rolling local inclui hoje e
+    // perde o dia mais antigo).
+    const jc =
+      fonte === 'conta' && contaData?.desde && contaData.ate
+        ? { ini: new Date(contaData.desde).getTime(), fim: new Date(contaData.ate).getTime() }
+        : null;
+    const curStart = jc ? jc.ini : cortePeriodo(periodDays).getTime();
+    const curEnd = jc ? jc.fim : Number.POSITIVE_INFINITY;
+    const prevStart = jc
+      ? jc.ini - periodDays * 24 * 3600 * 1000
+      : cortePeriodo(periodDays * 2).getTime();
     const curRows: Row[] = [];
     const prevRows: Row[] = [];
     for (const r of desempRows) {
       const t = tsOf(r);
       if (t == null) continue;
-      if (t >= curStart) curRows.push(r);
-      else if (t >= prevStart) prevRows.push(r);
+      if (t >= curStart && t < curEnd) curRows.push(r);
+      else if (t >= prevStart && t < curStart) prevRows.push(r);
     }
     const cur = agg(curRows);
     const prev = agg(prevRows);
@@ -3496,7 +3541,7 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
         count: pct(cur.count, prev.count),
       },
     };
-  }, [desempRows, periodDays]);
+  }, [desempRows, periodDays, fonte, contaData]);
 
   // Metas SEMANAIS (config) escaladas ao período do relatório. "Tudo" (período
   // aberto) não tem janela definida → sem meta. 7d = "Meta da semana"; demais
@@ -3673,7 +3718,7 @@ function ConteudoDashboardBlock({ title, subtitle, config, ctx }: BlockProps<Con
 
       <p className="-mt-1 mb-3 text-xs leading-relaxed text-gray-500">
         {fonte === 'conta'
-          ? 'Atividade da conta no período — inclui posts antigos, reels e stories, e o alcance é de contas únicas (igual ao app do Instagram).'
+          ? `Atividade da conta no período — inclui posts antigos, reels e stories, e o alcance é de contas únicas (igual ao app do Instagram).${janelaConta ? ` Janela: ${janelaConta} (o dia de hoje ainda não entra, como no app).` : ''}`
           : 'Soma dos posts publicados no período — bom para avaliar o desempenho do conteúdo novo (cada post conta separado).'}
       </p>
 
