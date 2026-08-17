@@ -23,7 +23,7 @@
  * semana imediatamente anterior — é o recorte da reunião.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { SectionHeader, EmptyState, SkeletonCards } from '@os/core';
 import type { BlockDefinition, BlockProps } from '@os/core';
@@ -97,14 +97,26 @@ function addDias(d: Date, n: number): Date {
   x.setDate(x.getDate() + n);
   return x;
 }
-/** Data da linha (aceita ISO ou 'YYYY-MM-DD'); null quando não dá pra ler. */
+/**
+ * Dia da linha, normalizado pra 00:00 LOCAL (a semana da reunião é por dia de
+ * calendário); null quando não dá pra ler.
+ *
+ * Cuidado com o fuso: o `/api/query` devolve os `timestamp` SEM indicação de
+ * fuso ("2026-08-17 00:13:55") e o valor gravado é UTC. Ler só o prefixo da
+ * string joga o post no dia UTC — e aí tudo que foi publicado depois das 21h
+ * (00h–03h em UTC) aparece no dia seguinte, podendo até cair na semana seguinte
+ * e sumir do relatório. Por isso a hora é convertida antes de virar dia.
+ */
 function dataDe(r: Row, campo = 'data'): Date | null {
-  const s = str(r[campo]);
+  const s = str(r[campo]).trim();
   if (!s) return null;
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  const t = new Date(s);
-  return Number.isNaN(t.getTime()) ? null : t;
+  // Data pura ('YYYY-MM-DD'): já é o dia, não há hora pra converter.
+  const puro = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (puro) return new Date(Number(puro[1]), Number(puro[2]) - 1, Number(puro[3]));
+  const semFuso = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?$/.test(s);
+  const t = new Date(semFuso ? `${s.replace(' ', 'T')}Z` : s);
+  if (Number.isNaN(t.getTime())) return null;
+  return new Date(t.getFullYear(), t.getMonth(), t.getDate());
 }
 function dentro(d: Date | null, ini: Date, fim: Date): boolean {
   return d != null && d >= ini && d < fim;
@@ -567,6 +579,21 @@ function ConteudoRelatorioBlock({ config, ctx }: BlockProps<RelatorioConfig>) {
   // Semana exibida (segunda a domingo). Começa na semana corrente.
   const [semanaIni, setSemanaIni] = useState<Date>(() => inicioSemana(new Date()));
 
+  // ...mas a reunião acontece na segunda, quando a semana corrente ainda não tem
+  // post nenhum — e a pauta é sobre a semana que FECHOU. Se a semana de hoje
+  // está vazia e a anterior tem posts medidos, abre na anterior. Só na primeira
+  // carga dos dados: depois disso quem manda é a navegação de quem está lendo.
+  const jaEscolheuSemana = useRef(false);
+  useEffect(() => {
+    if (jaEscolheuSemana.current) return;
+    const todas = asRows(data);
+    if (!todas.length) return;
+    jaEscolheuSemana.current = true;
+    if (todas.some((r) => dentro(dataDe(r), semanaIni, addDias(semanaIni, 7)))) return;
+    const anterior = addDias(semanaIni, -7);
+    if (todas.some((r) => dentro(dataDe(r), anterior, semanaIni))) setSemanaIni(anterior);
+  }, [data, semanaIni]);
+
   // Semanas já FECHADAS (snapshot + registro da reunião). Ficam em estado local
   // e são recarregadas depois de cada fechamento.
   const [fechadas, setFechadas] = useState<Row[]>([]);
@@ -718,9 +745,14 @@ function ConteudoRelatorioBlock({ config, ctx }: BlockProps<RelatorioConfig>) {
     const pior = comTaxa.length > 1 ? comTaxa.sort((a, b) => a.taxa - b.taxa)[0].p : null;
     const alcanceMediano = mediana(posts.map((p) => num(p.row.alcance)));
 
+    // A semana fechou há menos de 7 dias? Então os posts dela ainda estão
+    // "verdes" perto dos da semana anterior (ver o aviso de maturação na tela).
+    const semanaRecemFechada = Date.now() - fimSemana.getTime() < 7 * 24 * 3600 * 1000;
+
     return {
       posts,
       cur,
+      semanaRecemFechada,
       delta: {
         alcance: delta(cur.alcance, prev.alcance),
         views: delta(cur.views, prev.views),
@@ -915,6 +947,18 @@ function ConteudoRelatorioBlock({ config, ctx }: BlockProps<RelatorioConfig>) {
             acento="posts"
           />
         </div>
+
+        {/* Aviso de MATURAÇÃO: um post continua somando alcance por dias depois de
+            publicado. Quando a semana exibida acabou de fechar, os posts dela têm
+            menos tempo de vida que os da semana anterior, e a comparação puxa pra
+            baixo sozinha. Sem essa linha, a reunião lê queda de desempenho onde
+            pode haver só post novo. Some quando a semana já amadureceu. */}
+        {rel.semanaRecemFechada && rel.cur.posts > 0 && (
+          <p className="mt-2 text-[11px] leading-relaxed text-amber-200/80">
+            Os posts desta semana tiveram menos tempo para acumular números que os da semana anterior — um
+            post segue ganhando alcance por vários dias. Parte da variação acima é maturação, não desempenho.
+          </p>
+        )}
 
         {/* As 5 perguntas de abertura da pauta, com a resposta de cada uma. As duas
             que saem dos dados vêm calculadas; as três que dependem de contexto do
