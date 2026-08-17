@@ -49,6 +49,19 @@ function montarPauta(car: Carrossel): string {
 
 
 /**
+ * Mime de um arquivo de imagem pela extensão. O mime precisa bater com o
+ * conteúdo: com png declarado como jpeg o Chrome até costuma renderizar, mas não
+ * é garantido, e webp declarado como jpeg não aparece.
+ */
+function mimeDe(caminho: string): string {
+  const p = caminho.toLowerCase();
+  if (p.endsWith('.png')) return 'image/png';
+  if (p.endsWith('.webp')) return 'image/webp';
+  if (p.endsWith('.gif')) return 'image/gif';
+  return 'image/jpeg';
+}
+
+/**
  * Converte a `dataProgramada` do carrossel em Date.
  *
  * 'YYYY-MM-DD' sozinho o JS lê como UTC, e no nosso fuso (UTC-3) isso joga o card
@@ -80,23 +93,22 @@ async function main(): Promise<void> {
       console.error(`[render] imagem de fundo ausente: ${bgPath}`);
       process.exit(1);
     }
-    // O mime precisa bater com o arquivo: com png declarado como jpeg o Chrome
-    // até costuma renderizar, mas não é garantido.
-    const mime = bgPath.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-    bgDataUri = `data:${mime};base64,${readFileSync(bgPath).toString('base64')}`;
+    bgDataUri = `data:${mimeDe(bgPath)};base64,${readFileSync(bgPath).toString('base64')}`;
   }
 
-  // Prints por slide (`slide.imagem`) — cada caminho vira um data URI só uma vez.
+  // Imagens por slide (o print em `imagem`, a foto do CTA em `foto`) — cada
+  // caminho vira um data URI só uma vez.
   const shots: Record<string, string> = {};
   for (const s of car.slides) {
-    if (!s.imagem || shots[s.imagem]) continue;
-    const p = resolve(appRoot, s.imagem);
-    if (!existsSync(p)) {
-      console.error(`[render] imagem de slide ausente: ${p}`);
-      process.exit(1);
+    for (const rel of [s.imagem, s.foto, s.selo]) {
+      if (!rel || shots[rel]) continue;
+      const p = resolve(appRoot, rel);
+      if (!existsSync(p)) {
+        console.error(`[render] imagem de slide ausente: ${p}`);
+        process.exit(1);
+      }
+      shots[rel] = `data:${mimeDe(p)};base64,${readFileSync(p).toString('base64')}`;
     }
-    const m = p.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
-    shots[s.imagem] = `data:${m};base64,${readFileSync(p).toString('base64')}`;
   }
 
   const html = buildHtml(car, bgDataUri, shots);
@@ -111,6 +123,8 @@ async function main(): Promise<void> {
 
   /** Onde a janelinha de cada slide com vídeo está, em pixels do PNG final. */
   const caixasDeVideo = new Map<number, Caixa>();
+  /** Capa com vídeo: PNG transparente (escurecido + texto) que vai por cima. */
+  const overlayPorSlide = new Map<number, string>();
 
   const browser = await chromium.launch();
   try {
@@ -124,6 +138,42 @@ async function main(): Promise<void> {
       // Mede a janelinha ENQUANTO a página está aberta: é a única hora em que dá
       // pra saber onde ela caiu, já que o layout é flex e depende do texto acima.
       if (!car.slides[i]?.videoArquivo) continue;
+
+      // CAPA COM VÍDEO: aqui não existe janelinha pra medir. O vídeo é o fundo,
+      // entra na caixa declarada em `videoCaixa` e o TEXTO precisa ficar por
+      // cima dele. Pra isso o slide é fotografado uma segunda vez sem a arte de
+      // fundo e sem cor de fundo nenhuma: sai um PNG transparente com só o
+      // escurecido e o texto, que o ffmpeg carimba por último.
+      if (car.slides[i]!.cover) {
+        const caixa = car.slides[i]!.videoCaixa;
+        if (!caixa) {
+          console.error(`[render] slide ${i + 1} é capa com vídeo mas não declara \`videoCaixa\`.`);
+          process.exit(1);
+        }
+        caixasDeVideo.set(i, caixa);
+
+        await page.evaluate((idx) => {
+          document.body.style.background = 'transparent';
+          const el = document.querySelectorAll('.slide')[idx] as HTMLElement;
+          el.style.background = 'transparent';
+          const arte = el.querySelector('.imgbg') as HTMLElement | null;
+          if (arte) arte.style.display = 'none';
+        }, i);
+        // Vai pro tmp, não pro outDir: é insumo do ffmpeg, e em public/ ele
+        // apareceria como se fosse mais um slide do carrossel.
+        const overlay = join(tmpdir(), `carrossel-${slug}-overlay-${i + 1}.png`);
+        await slide.screenshot({ path: overlay, omitBackground: true });
+        overlayPorSlide.set(i, overlay);
+        await page.evaluate((idx) => {
+          document.body.style.background = '';
+          const el = document.querySelectorAll('.slide')[idx] as HTMLElement;
+          el.style.background = '';
+          const arte = el.querySelector('.imgbg') as HTMLElement | null;
+          if (arte) arte.style.display = '';
+        }, i);
+        continue;
+      }
+
       const bSlide = await slide.boundingBox();
       const bPic = await slide.locator('.shot .pic').boundingBox();
       if (!bSlide || !bPic) {
@@ -165,9 +215,20 @@ async function main(): Promise<void> {
     const saida = join(outDir, `slide-${i + 1}.mp4`);
     // `increase` + `crop` reproduz o `background-size:cover` da janelinha: o vídeo
     // preenche a caixa e o que sobra é aparado, em vez de deformar a imagem.
-    const filtro =
+    //
+    // Na CAPA entra uma terceira camada: o PNG transparente com o texto, por
+    // último, senão o vídeo passa por cima do selo e do título.
+    const overlay = overlayPorSlide.get(i);
+    const encaixe =
       `[1:v]scale=${caixa.w}:${caixa.h}:force_original_aspect_ratio=increase,` +
-      `crop=${caixa.w}:${caixa.h},setsar=1[v];[0:v][v]overlay=${caixa.x}:${caixa.y}:shortest=1[out]`;
+      `crop=${caixa.w}:${caixa.h},setsar=1[v];`;
+    // O `shortest=1` do segundo overlay não é decoração: o PNG do texto entra com
+    // `-loop 1`, então sem ele o overlay repete o último quadro pra sempre, o
+    // `-shortest` global nunca dispara e o ffmpeg escreve um mp4 sem fim (o
+    // arquivo passou de 37MB e saiu sem moov atom antes disso ser corrigido).
+    const filtro = overlay
+      ? `${encaixe}[0:v][v]overlay=${caixa.x}:${caixa.y}:shortest=1[base];[base][3:v]overlay=0:0:shortest=1[out]`
+      : `${encaixe}[0:v][v]overlay=${caixa.x}:${caixa.y}:shortest=1[out]`;
     // A entrada 2 é uma faixa AAC muda. Vídeo sem trilha nenhuma costuma passar no
     // app, mas trava o processamento assíncrono da API de publicação da Meta sem
     // dizer por quê. Custa alguns KB e elimina a categoria inteira de problema.
@@ -176,6 +237,7 @@ async function main(): Promise<void> {
       ['-hide_banner', '-loglevel', 'error', '-y',
         '-loop', '1', '-i', fundo, '-i', origem,
         '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000',
+        ...(overlay ? ['-loop', '1', '-i', overlay] : []),
         '-filter_complex', filtro, '-map', '[out]', '-map', '2:a',
         '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-pix_fmt', 'yuv420p',
         '-c:a', 'aac', '-b:a', '64k',
