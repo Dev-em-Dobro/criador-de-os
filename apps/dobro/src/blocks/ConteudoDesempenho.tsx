@@ -72,23 +72,32 @@ function pad2(n: number): string {
   return String(n).padStart(2, '0');
 }
 
-/** Date → "12 mar 26". */
-function fmtData(value: unknown): string {
-  const s = str(value);
-  if (!s) return '—';
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return '—';
-  return `${pad2(d.getDate())} ${MESES_ABBR[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+/**
+ * Data vinda do banco → Date. O `/api/query` devolve os `timestamp` SEM fuso
+ * ("2026-08-17 00:13:55") e o valor gravado é UTC. Sem o "Z" o navegador lê como
+ * hora LOCAL e joga 3h pra frente — post publicado depois das 21h aparecia com a
+ * data do dia seguinte, e caía no período errado no filtro.
+ */
+function dataDoBanco(valor: unknown): Date | null {
+  const s = str(valor).trim();
+  if (!s) return null;
+  const puro = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (puro) return new Date(Number(puro[1]), Number(puro[2]) - 1, Number(puro[3]));
+  const semFuso = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?$/.test(s);
+  const d = new Date(semFuso ? `${s.replace(' ', 'T')}Z` : s);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** 'YYYY-MM-DD' de um valor ISO (para o <input type=date>). */
+/** Date → "12 mar 26". */
+function fmtData(value: unknown): string {
+  const d = dataDoBanco(value);
+  return d ? `${pad2(d.getDate())} ${MESES_ABBR[d.getMonth()]} ${String(d.getFullYear()).slice(2)}` : '—';
+}
+
+/** 'YYYY-MM-DD' do DIA LOCAL do valor (para o <input type=date>). */
 function toDateInput(value: unknown): string {
-  const s = str(value);
-  if (!s) return '';
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const d = dataDoBanco(value);
+  return d ? `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` : '';
 }
 
 /** Inteiro pt-BR (1234 → "1.234"); "—" se null. */
@@ -956,10 +965,8 @@ function ConteudoDesempenhoBlock({ config, ctx }: BlockProps<ConteudoDesempenhoC
     if (periodDays == null) return { rows: sortedRows, cutoffLabel: null as string | null };
     const corte = cortePeriodo(periodDays).getTime();
     const filtered = sortedRows.filter((r) => {
-      const s = str(r.data);
-      if (!s) return false;
-      const t = new Date(s).getTime();
-      return Number.isFinite(t) && t >= corte;
+      const t = dataDoBanco(r.data)?.getTime();
+      return t != null && Number.isFinite(t) && t >= corte;
     });
     return { rows: filtered, cutoffLabel: fmtData(cortePeriodo(periodDays).toISOString()) };
   }, [sortedRows, periodDays]);
