@@ -123,6 +123,25 @@ const CSS = `
   .it-t{font-size:14px;font-weight:700;} .dark .it-t,.purple .it-t,.grafite .it-t{color:#fff;} .light .it-t{color:#1a1330;}
   .it-s{font-size:11.5px;line-height:1.4;margin-top:1px;} .dark .it-s,.grafite .it-s{color:#9a94ad;} .light .it-s{color:#7d7791;} .purple .it-s{color:rgba(255,255,255,.85);}
   .num{font-size:17px;font-weight:700;flex-shrink:0;width:24px;} .dark .num,.grafite .num{color:#8f83f0;}
+  /* .vs: bloco COMPARATIVO (ruim × bom). É um GRID de duas colunas com as células
+     intercaladas, não duas listas soltas: assim cada par cai na mesma linha do
+     grid e as duas frases ficam na mesma altura, que é o que faz o olho comparar
+     uma com a outra. Lado bom leva o roxo da marca; o ruim fica apagado. */
+  .vs{position:relative;z-index:2;margin-top:14px;display:grid;grid-template-columns:1fr 1fr;column-gap:16px;}
+  .vs-lb{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    padding-bottom:8px;border-bottom:2px solid rgba(255,255,255,.14);}
+  .light .vs-lb{border-bottom-color:rgba(0,0,0,.12);}
+  .dark .vs-lb,.grafite .vs-lb{color:#9a94ad;} .light .vs-lb{color:#7d7791;} .purple .vs-lb{color:rgba(255,255,255,.8);}
+  .vs-lb.bom{border-bottom-color:#7c4dff;color:#6d3ad6;}
+  .dark .vs-lb.bom,.grafite .vs-lb.bom{color:#a78bfa;} .purple .vs-lb.bom{color:#fff;}
+  .vs-l{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.38;padding:12px 0 0;}
+  .dark .vs-l,.grafite .vs-l{color:#cfc9de;} .light .vs-l{color:#3c3550;} .purple .vs-l{color:rgba(255,255,255,.92);}
+  /* marcador: × no lado ruim, ✓ no bom. Fica no CSS e não no texto pra não virar
+     caractere solto se alguém copiar a frase pra legenda. */
+  .vs-l::before{content:'×';flex:0 0 auto;font-weight:700;line-height:1.3;opacity:.5;}
+  .vs-l.bom::before{content:'✓';opacity:1;color:#6d3ad6;}
+  .dark .vs-l.bom::before,.grafite .vs-l.bom::before{color:#a78bfa;}
+  .purple .vs-l.bom::before{color:#fff;}
   /* .dense: prompt longo cabendo no slide (letra menor, entrelinha menor). Opt-in por slide. */
   .dense h1{font-size:25px;line-height:1.14;}
   .dense .callout p{font-size:10.2px;line-height:1.42;}
@@ -393,7 +412,13 @@ function renderSlide(s: Slide, i: number, n: number, bg: string, shots: Record<s
     const callout = s.callout
       ? `<div class="callout"><div class="lb">${s.calloutLabel ?? ''}</div><p>${s.callout}</p></div>`
       : '';
-    const hasBloco = !!(s.itens || s.steps || s.terminal || (s.callout && !s.calloutDepois));
+    const hasBloco = !!(
+      s.itens ||
+      s.steps ||
+      s.terminal ||
+      s.versus ||
+      (s.callout && !s.calloutDepois)
+    );
     if (s.corpo && !hasBloco) top.push(`<div class="body">${realce(s.corpo)}</div>`);
     if (callout && !s.calloutDepois) top.push(callout);
     if (s.itens) {
@@ -405,6 +430,20 @@ function renderSlide(s: Slide, i: number, n: number, bg: string, shots: Record<s
       top.push('<div class="list">');
       for (const st of s.steps) top.push(`<div class="item"><div class="num">${st.n}</div><div><div class="it-t">${st.titulo}</div><div class="it-s">${st.sub}</div></div></div>`);
       top.push('</div>');
+    }
+    if (s.versus) {
+      const { ruim, bom } = s.versus;
+      const celulas = [`<div class="vs-lb">${ruim.rotulo}</div><div class="vs-lb bom">${bom.rotulo}</div>`];
+      // Intercalado (esquerda, direita, esquerda, ...) pra o grid parear as linhas.
+      // `max` cobre lados de tamanhos diferentes sem furar a grade.
+      const n = Math.max(ruim.linhas.length, bom.linhas.length);
+      for (let i = 0; i < n; i++) {
+        const e = ruim.linhas[i];
+        const d = bom.linhas[i];
+        celulas.push(e ? `<div class="vs-l"><span>${realce(e)}</span></div>` : '<div></div>');
+        celulas.push(d ? `<div class="vs-l bom"><span>${realce(d)}</span></div>` : '<div></div>');
+      }
+      top.push(`<div class="vs">${celulas.join('')}</div>`);
     }
     if (s.terminal) top.push(`<div class="term">${s.terminal.map(termLine).join('')}</div>`);
     if (s.corpo && hasBloco) top.push(`<div class="body" style="margin-top:12px">${realce(s.corpo)}</div>`);

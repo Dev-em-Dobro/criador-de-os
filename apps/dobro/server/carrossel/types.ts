@@ -29,6 +29,25 @@ export interface Step {
   sub: string;
 }
 
+/**
+ * Uma coluna do bloco COMPARATIVO (`versus`). O `rotulo` é o nome do lado
+ * ("Eterno estudante" × "Dev contratável") e as `linhas` são frases curtas, uma
+ * por comportamento. As duas colunas devem ter o MESMO número de linhas: elas
+ * são lidas em pares, e desalinhar quebra a comparação.
+ */
+export interface VersusLado {
+  rotulo: string;
+  linhas: string[];
+}
+
+/** Bloco comparativo: dois lados, um ruim e um bom, lado a lado. */
+export interface Versus {
+  /** Coluna da esquerda: o comportamento que NÃO leva a lugar nenhum. */
+  ruim: VersusLado;
+  /** Coluna da direita: o que muda o jogo (fica com o realce roxo). */
+  bom: VersusLado;
+}
+
 /** Um slide do carrossel. `titulo` aceita **destaque** (vira roxo) e \n (quebra de linha). */
 export interface Slide {
   variant: Variant;
@@ -56,6 +75,8 @@ export interface Slide {
   itens?: Item[];
   /** Passos numerados. */
   steps?: Step[];
+  /** Bloco comparativo em duas colunas (ruim × bom). */
+  versus?: Versus;
   /** Linhas do bloco de terminal (prefixo →/$/✓ é colorido). */
   terminal?: string[];
   /** Layout centralizado (ex.: slide "salva esse post"). */
