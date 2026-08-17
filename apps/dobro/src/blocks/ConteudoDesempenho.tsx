@@ -85,7 +85,15 @@ function dataDoBanco(valor: unknown): Date | null {
   if (puro) return new Date(Number(puro[1]), Number(puro[2]) - 1, Number(puro[3]));
   const semFuso = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?$/.test(s);
   const d = new Date(semFuso ? `${s.replace(' ', 'T')}Z` : s);
-  return Number.isNaN(d.getTime()) ? null : d;
+  if (Number.isNaN(d.getTime())) return null;
+  // Meia-noite UTC exata = data de CALENDÁRIO, não instante: é o que sai daqui
+  // quando alguém corrige a data no <input type=date> (o valor vai como
+  // 'YYYY-MM-DD'). O dia é o que foi digitado; converter pro fuso local voltaria
+  // um dia a cada leitura.
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0) {
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  }
+  return d;
 }
 
 /** Date → "12 mar 26". */

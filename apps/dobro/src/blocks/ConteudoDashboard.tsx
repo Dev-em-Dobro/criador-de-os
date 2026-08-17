@@ -2954,7 +2954,19 @@ interface AccountInsightsResp {
 function dataDoBanco(valor: string): Date {
   const s = valor.trim();
   const semFuso = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?$/.test(s);
-  return new Date(semFuso ? `${s.replace(' ', 'T')}Z` : s);
+  const d = new Date(semFuso ? `${s.replace(' ', 'T')}Z` : s);
+  // Meia-noite UTC exata = data de CALENDÁRIO (data digitada sem hora), não um
+  // instante: o dia é o que está escrito, sem conversão de fuso.
+  if (
+    !Number.isNaN(d.getTime()) &&
+    d.getUTCHours() === 0 &&
+    d.getUTCMinutes() === 0 &&
+    d.getUTCSeconds() === 0 &&
+    d.getUTCMilliseconds() === 0
+  ) {
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  }
+  return d;
 }
 
 /** Início do dia (00:00 local) de `dias` atrás — corte inclusivo. */

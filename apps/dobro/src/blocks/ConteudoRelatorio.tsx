@@ -116,6 +116,14 @@ function dataDe(r: Row, campo = 'data'): Date | null {
   const semFuso = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?$/.test(s);
   const t = new Date(semFuso ? `${s.replace(' ', 'T')}Z` : s);
   if (Number.isNaN(t.getTime())) return null;
+  // Meia-noite UTC exata = data de CALENDÁRIO, não instante. É como `semana_inicio`
+  // é gravada (o servidor normaliza a segunda-feira em UTC) e como chega a data
+  // programada de um card digitada sem hora. Aqui o dia é o que está escrito:
+  // converter pro fuso de quem lê voltaria um dia e a semana fechada apareceria
+  // como a anterior.
+  if (t.getUTCHours() === 0 && t.getUTCMinutes() === 0 && t.getUTCSeconds() === 0 && t.getUTCMilliseconds() === 0) {
+    return new Date(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
+  }
   return new Date(t.getFullYear(), t.getMonth(), t.getDate());
 }
 function dentro(d: Date | null, ini: Date, fim: Date): boolean {
