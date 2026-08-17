@@ -1,132 +1,214 @@
 /**
- * apps/dobro — carrossel do n8n auto-hospedado (automação rodando na sua própria
- * máquina, edição Community gratuita).
+ * apps/dobro — carrossel do n8n auto-hospedado, com o eixo VIRADO PARA SERVIÇO
+ * VENDÁVEL: qual automação montar, pra quem, e quanto cobrar.
  *
- * Encaixe no veredito: ferramenta grátis que roda no SEU PC, e é exatamente o
- * perfil que o dono definiu pro público (dev web com IA e automações com n8n).
- * Casa com o carrossel do Ollama: os dois juntos são automação com IA sem custo
- * por execução.
+ * MUDANÇA DE EIXO (pedido do dono, 15/08/2026): a versão anterior era "ferramenta
+ * grátis que roda na sua máquina" e não falava de dinheiro em lugar nenhum. O
+ * dono pediu exemplos práticos de uso e de quanto a pessoa poderia cobrar, com o
+ * agente de agendamento pra clínica como exemplo âncora ("pelo menos 800 reais").
+ * O post inteiro foi remontado em torno disso.
  *
- * Precisão (Article IV, conferido em docs.n8n.io em 05/08/2026): o n8n tem duas
- * formas de uso, Cloud gerenciado e Self-hosted na sua própria infraestrutura;
- * a edição Community é gratuita e traz quase o conjunto completo de recursos;
- * criar uma conta gratuita libera recursos extras como pastas e depuração no
- * editor; existem planos pagos (Business e Enterprise) com SSO, ambientes e
- * projetos. NÃO afirmamos comando exato de instalação, licença específica nem
- * limite de execuções, que não foram verificados nesta sessão. SEM travessão.
+ * ⚠️ PREÇO É AFIRMAÇÃO VERIFICÁVEL, e por isso não saiu da cabeça de ninguém.
+ * Faixas conferidas em DUAS fontes brasileiras independentes (15/08/2026):
+ *   · horadecodar.com.br, guia "Quanto cobrar automação n8n": simples (integração
+ *     básica entre dois sistemas) R$ 400 a R$ 900; intermediária (várias
+ *     integrações, lógica condicional, tratamento de erro) R$ 900 a R$ 2.500;
+ *     avançada (várias plataformas, APIs externas, notificação por WhatsApp)
+ *     R$ 2.500 a R$ 10.000 ou mais.
+ *   · automacaohoje.com, guia de 14/07/2026: as mesmas duas primeiras faixas, e
+ *     "o dinheiro consistente está na operação mensal", com a mensalidade tendo
+ *     que cobrir VPS (US$ 20 a 50 por cliente), consumo de API de IA, horas de
+ *     suporte e margem.
+ * O R$ 1.500 do título (o dono subiu de 800 pra 1.500 em 17/08/2026) cai no MEIO
+ * da faixa intermediária das duas fontes, R$ 900 a R$ 2.500, que é onde o serviço
+ * de fato mora: o agendamento da clínica tem várias integrações, decisão no meio
+ * do fluxo e notificação por WhatsApp, e não a "integração básica entre dois
+ * sistemas" da faixa simples. O 800 anterior era o piso da simples, escolhido por
+ * conservadorismo; 1.500 é o preço honesto do que está sendo descrito, e continua
+ * abaixo do teto da faixa. Os outros slides falam do serviço pela faixa MÉDIA.
+ *
+ * FATOS DA FERRAMENTA, NA FONTE PRIMÁRIA (15/08/2026):
+ *   · n8n-io/n8n, 200.765 estrelas, TypeScript, push no mesmo dia
+ *   · a licença NÃO é open source padrão: é modelo fair-code, sob Sustainable
+ *     Use License e n8n Enterprise License (a API do GitHub devolve NOASSERTION).
+ *     O carrossel diz "código aberto pra ler e hospedar", nunca "open source".
+ *   · docs.n8n.io: duas formas de uso, Cloud gerenciado e Self-hosted; sobre a
+ *     Community, LITERAL: "You can stick with the basic Community edition for
+ *     free, indefinitely" e "self-hosting with almost the complete feature set".
+ *     A Registered Community, também gratuita, acrescenta pastas, depuração no
+ *     editor e dados de execução customizados.
+ *   · o comando de instalação e o endereço do editor (localhost:5678) NÃO entram
+ *     em slide: vivem no presente (ver memória carrossel-lacuna-do-endereco).
+ *   · número de integrações NÃO é afirmado: o README diz 1500+ e a descrição do
+ *     repositório diz 400+, então a casa não repassa nenhum dos dois.
+ *
+ * SEM TRAVESSÃO em nenhum texto de conteúdo.
  */
 import type { Carrossel } from '../types';
 
 export const n8nSelfHost: Carrossel = {
   slug: 'n8n-self-host',
-  titulo: 'A ferramenta de automação que roda de graça na sua máquina',
-  gancho: 'Você paga por automação que cobra por execução. Dá pra rodar na sua própria máquina, de graça.',
-  refsLinks: 'https://docs.n8n.io/choose-how-to-use-n8n/',
+  titulo: 'A automação que você monta de graça e vende por R$ 1.500',
+  gancho: 'Dá pra montar uma automação de graça na sua máquina e vender ela por R$ 1.500.',
+  dataProgramada: '2026-08-18',
+  refsLinks:
+    'https://docs.n8n.io/choose-how-to-use-n8n/ (Community gratuita, indefinidamente)\n' +
+    'https://github.com/n8n-io/n8n (README: comandos, fair-code, Sustainable Use License)\n' +
+    'https://www.horadecodar.com.br/quanto-cobrar-automacao-n8n/ (faixas de preço no Brasil)\n' +
+    'https://automacaohoje.com/guias/automacao-como-servico-agencia-n8n/ (14/07/2026, faixas e modelo mensal)',
+  /**
+   * Presente do "comenta N8N" (Notion, 15/08/2026): o comando pra subir na
+   * máquina, o desenho do fluxo do agendamento passo a passo, a tabela de preço
+   * com as fontes e o roteiro de como oferecer pra primeira clínica.
+   *
+   * LINK PRIVADO: trocar pelo `.notion.site` depois de Compartilhar > Publicar.
+   * PENDENTE: colar o link de inscrição do DevQuest no lugar do placeholder.
+   */
+  linkPresente: 'https://app.notion.com/p/3bd6dd01fb4881359911fd3f83db4351',
   slides: [
     {
       variant: 'photo',
       cover: true,
       semFundo: true,
-      titulo: 'Você paga por\nautomação que\ncobra por execução.\nDá pra rodar na\nsua máquina,\n**de graça**.',
-      corpo: 'Passa pro lado que eu te mostro 👉',
-    },
-    {
-      variant: 'dark',
-      eyebrow: 'O que é',
-      titulo: 'Chama **n8n**, e você\npode hospedar sozinho',
-      steps: [
-        { n: '01', titulo: 'Você monta o fluxo arrastando', sub: 'Cada caixa é um passo: recebe, decide, transforma, envia' },
-        { n: '02', titulo: 'A edição Community é grátis', sub: 'Ela traz quase tudo, sem cobrança por execução' },
-        { n: '03', titulo: 'Roda na sua infraestrutura', sub: 'Na sua máquina ou no seu servidor, do seu jeito' },
-        { n: '04', titulo: 'Também tem versão em nuvem', sub: 'Se você não quiser cuidar do servidor, existe a opção gerenciada' },
-      ],
+      baixo: true,
+      // Quebras curtas de propósito: a 36.8px cabem ~15 caracteres por linha, e
+      // as linhas antigas ("você monta de graça", "e vende por R$ 800") passavam
+      // disso e quebravam sozinhas de novo, deixando "graça" solta numa linha e,
+      // pior, separando "R$" do número. Cada linha aqui cabe inteira.
+      titulo: 'A automação que\nvocê monta de\ngraça e vende\npor **R$ 1.500**',
+      subtitulo: 'A clínica perde consulta porque ninguém atende o WhatsApp.',
+      swipe: 'Deslize e veja ›',
     },
     {
       variant: 'light',
       layout: 'center',
-      icone: 'follow',
-      eyebrow: 'Antes de continuar',
-      titulo: 'Segue o\n**@devemdobro**',
-      corpo: 'Toda semana eu mostro IA e automação que rodam no seu PC, de graça. Segue pra não perder as próximas.',
+      icone: 'loop',
+      eyebrow: 'A ferramenta',
+      titulo: 'Chama **n8n**, e roda\nna sua máquina',
+      corpo:
+        'Você monta a automação **arrastando caixas**, sem escrever código. A edição Community é **gratuita, sem prazo**, e você hospeda no seu próprio computador ou servidor.',
+    },
+    {
+      variant: 'dark',
+      layout: 'center',
+      icone: 'bookmark',
+      titulo: 'Salva esse post\npra montar depois',
+      corpo: 'O serviço, o fluxo e a tabela de preço vêm nos próximos slides.',
+    },
+    {
+      variant: 'purple',
+      eyebrow: 'O serviço que vende sozinho',
+      titulo: 'Agendamento pra clínica',
+      // Quatro itens, sub de uma linha (memória slide-com-4-itens-nao-cabe-corpo).
+      itens: [
+        { icone: 'instagram', titulo: 'Chega mensagem no WhatsApp', sub: 'Pedindo horário, de madrugada, com a clínica fechada' },
+        { icone: 'ai', titulo: 'A IA lê e entende o pedido', sub: 'Texto ou áudio, e responde na hora, em português' },
+        { icone: 'map', titulo: 'Olha a agenda e marca', sub: 'Confere o horário livre e grava a consulta' },
+        { icone: 'loop', titulo: 'Lembra o paciente na véspera', sub: 'É o que derruba a falta, e é o que a clínica sente' },
+      ],
+    },
+    {
+      variant: 'light',
+      denso: true,
+      eyebrow: 'Salva esse slide',
+      titulo: 'Quanto **cobrar**',
+      // Uma linha por faixa, curta: a 1ª versão quebrava a coluna da direita e
+      // o alinhamento em espaços virava escada (conferido no PNG do 1º render).
+      terminal: [
+        'SIMPLES   R$ 400 a 900     2 sistemas',
+        'MÉDIA     R$ 900 a 2.500   com decisão',
+        'COM IA    R$ 2.500+        agente que responde',
+        'MENSAL    a combinar       manutenção',
+      ],
+      corpo:
+        'Faixas praticadas no mercado brasileiro em 2026, segundo dois guias de precificação. **O agendamento da clínica fica na média, uns R$ 1.500**, e sobe conforme o que você plugar nele.',
     },
     {
       variant: 'dark',
       denso: true,
-      eyebrow: 'Salva esse slide',
+      eyebrow: 'A parte que serve pra tudo',
       titulo: 'A anatomia de\n**qualquer** automação',
       terminal: [
-        '1. GATILHO  → o que dispara (form, horário, msg)',
-        '2. DADO     → de onde vem (planilha, banco, API)',
+        '1. GATILHO  → o que dispara (mensagem, horário)',
+        '2. DADO     → de onde vem (agenda, planilha, API)',
         '3. DECISÃO  → o que fazer (filtrar, classificar)',
-        '4. AÇÃO     → onde termina (e-mail, CRM, zap)',
+        '4. AÇÃO     → onde termina (responde, marca, avisa)',
       ],
-      corpo: 'Toda automação que você já viu é alguma combinação desses quatro. Depois que você enxerga isso, monta qualquer uma.',
-    },
-    {
-      variant: 'purple',
-      eyebrow: 'Por que auto-hospedar',
-      titulo: 'A conta muda quando\no volume cresce',
-      itens: [
-        { icone: 'loop', titulo: 'Sem custo por execução', sub: 'O fluxo roda mil vezes e a fatura não muda por causa disso' },
-        { icone: 'eye', titulo: 'O dado não sai da sua casa', sub: 'Base de cliente e contrato ficam onde você controla' },
-        { icone: 'code', titulo: 'Você pluga o que quiser', sub: 'Inclusive um modelo de IA rodando na mesma máquina' },
-      ],
-    },
-    {
-      variant: 'light',
-      eyebrow: 'O combo que ninguém faz',
-      titulo: 'n8n mais uma IA\n**local**',
       corpo:
-        'Se você já roda um modelo local, o fluxo do n8n fala com ele pelo endereço da máquina. Resultado: automação com IA que classifica, resume e responde sem pagar por chamada e sem mandar dado pra fora.',
-    },
-    {
-      variant: 'dark',
-      eyebrow: 'Pra que serve na prática',
-      titulo: 'Automação que se paga\nna **primeira semana**',
-      itens: [
-        { icone: 'instagram', titulo: 'Lead que chega e some', sub: 'Recebe o formulário, classifica com IA e manda pro CRM na hora' },
-        { icone: 'film', titulo: 'Conteúdo em série', sub: 'Áudio vira transcrição, transcrição vira resumo, tudo sozinho' },
-        { icone: 'follow', titulo: 'Relatório que ninguém monta', sub: 'Toda segunda ele junta os números e te manda pronto' },
-      ],
+        'Troque as quatro peças e o mesmo fluxo vira outro serviço: **orçamento que some**, lead que ninguém responde, relatório que ninguém monta.',
     },
     {
       variant: 'light',
       eyebrow: 'Um aviso honesto',
-      titulo: 'Auto-hospedar é\nde graça, não é\n**sem trabalho**',
+      titulo: 'De graça pra você,\nnão pro **cliente**',
       corpo:
-        'Você passa a cuidar de atualização, backup e do servidor de pé. Se o seu volume é pequeno e seu tempo é curto, a versão gerenciada pode sair mais barata na conta real.',
+        'O n8n não cobra por execução, mas a operação tem custo: **servidor de pé, atualização, backup** e, se tiver IA no meio, a conta do modelo. Isso entra na sua mensalidade, não no seu prejuízo.\n\n' +
+        'E o preço não é pela sua hora, é pelo que a clínica **para de perder**.',
     },
     {
-      variant: 'purple',
+      variant: 'grafite',
       tipo: 'cta',
+      fotoTopo: true,
       logo: 'Dev em Dobro',
       handle: '@devemdobro',
-      titulo: 'Quer o passo a passo\ne um fluxo pronto?',
-      botao: 'Comente N8N 👇',
-      corpo: 'Comenta N8N que eu te mando o guia pra subir na sua máquina e um fluxo pronto pra importar.',
+      titulo: 'Quer o fluxo e a\ntabela de preço?',
+      botao: 'Comenta N8N 👇',
+      corpo:
+        'Te mando o comando pra subir na sua máquina, o fluxo do agendamento desenhado passo a passo e a tabela de quanto cobrar em cada tipo de automação.',
+      foto: 'server/carrossel/assets/founders-bg.webp',
     },
   ],
   legenda:
-    'Automação boa é a que roda sozinha e não te cobra por isso. O n8n resolve os dois lados.\n\n' +
-    'Você monta o fluxo arrastando caixas, e cada caixa é um passo: o que dispara, de onde vem o dado, o que fazer ' +
-    'com ele e onde termina. Depois que você enxerga essa anatomia, monta qualquer automação.\n\n' +
-    'O ponto que muda tudo: além da versão em nuvem, dá pra auto-hospedar na sua própria infraestrutura, e a edição ' +
-    'Community é gratuita, com quase o conjunto completo de recursos. Sem cobrança por execução.\n\n' +
-    'E tem o combo que quase ninguém faz: se você já roda um modelo de IA local, o fluxo do n8n conversa com ele pelo ' +
-    'endereço da sua própria máquina. Automação com IA que classifica, resume e responde sem pagar por chamada e sem ' +
-    'mandar dado pra fora.\n\n' +
-    'Um aviso honesto: auto-hospedar é de graça, mas não é sem trabalho. Você passa a cuidar de atualização, backup e ' +
-    'do servidor de pé. Se o volume é pequeno, a versão gerenciada pode sair melhor.\n\n' +
-    'Comenta N8N aqui embaixo que eu te mando o guia pra subir na sua máquina e um fluxo pronto pra importar. 👇',
-  hashtags: 'n8n automacao lowcode inteligenciaartificial opensource devweb programacao devemdobro produtividade selfhosted',
-  ctaFinal: 'Comenta N8N que eu te mando o guia pra subir na sua máquina e um fluxo pronto pra importar.',
+    'Comenta N8N que eu te mando o fluxo e a tabela de preço. 🤖\n\n' +
+    'Toda clínica pequena perde consulta pelo mesmo motivo: chega mensagem no WhatsApp fora do horário e ninguém responde. No dia seguinte a pessoa já marcou em outro lugar.\n\n' +
+    'Esse problema tem conserto, e o conserto é uma automação que você consegue montar de graça.\n\n' +
+    'A ferramenta chama n8n. Você monta o fluxo arrastando caixas, sem escrever código, e a edição Community é gratuita por tempo indeterminado, rodando na sua própria máquina ou num servidor seu.\n\n' +
+    'O fluxo do agendamento é assim: chega a mensagem no WhatsApp, a IA lê (texto ou áudio) e entende o que a pessoa quer, o fluxo olha a agenda, marca o horário livre e ainda manda o lembrete na véspera, que é o que derruba a falta.\n\n' +
+    'Agora a parte que quase ninguém fala. Quanto cobrar por isso, segundo os guias de precificação brasileiros de 2026:\n\n' +
+    'Automação simples, dois sistemas conversando: R$ 400 a R$ 900.\n' +
+    'Automação média, várias etapas com decisão no meio: R$ 900 a R$ 2.500.\n' +
+    'Com agente de IA que lê, decide e responde: a partir de R$ 2.500.\n' +
+    'E a mensalidade de manutenção, que é onde mora o dinheiro que se repete.\n\n' +
+    'O agendamento da clínica fica na média, uns R$ 1.500, e sobe conforme o que você plugar nele.\n\n' +
+    'O aviso honesto: o n8n não cobra por execução, mas a operação tem custo. Servidor de pé, atualização, backup e a conta do modelo de IA, se tiver um. Isso entra na sua mensalidade, não no seu prejuízo. E o preço nunca é pela sua hora, é pelo que o cliente para de perder.\n\n' +
+    'Comenta N8N aqui embaixo que eu te mando o comando pra subir na sua máquina, o fluxo do agendamento desenhado passo a passo e a tabela de quanto cobrar em cada tipo de automação. 👇',
+  hashtags:
+    'n8n automacao inteligenciaartificial freelancer rendaextra programacao devbr devemdobro produtividade whatsapp',
+  ctaFinal:
+    'Comenta N8N que eu te mando o comando pra subir na sua máquina, o fluxo do agendamento desenhado passo a passo e a tabela de quanto cobrar em cada tipo de automação.',
   briefing:
-    'FÓRMULA: ferramenta grátis que roda no SEU PC. É o perfil que o dono definiu pro público (dev web com IA e ' +
-    'automações com n8n) e casa com o carrossel do Ollama.\n\n' +
-    'FATOS CONFERIDOS em 05/08/2026 (docs.n8n.io)\n' +
-    'Duas formas de uso: Cloud gerenciado e Self-hosted na própria infraestrutura. A edição Community é gratuita e ' +
-    'traz quase o conjunto completo de recursos. Conta gratuita libera extras como pastas e depuração no editor. ' +
-    'Existem planos pagos (Business e Enterprise) com SSO, ambientes e projetos.\n' +
-    'NÃO afirmamos comando de instalação, licença específica nem limite de execuções, que não foram verificados.\n\n' +
-    'PENDENTE: arte de capa. O ideal é um print de um fluxo montado no editor do n8n.',
+    'EIXO NOVO (pedido do dono, 15/08/2026): sai "ferramenta grátis que roda na sua máquina", entra "monta de graça e ' +
+    'vende". O dono pediu exemplos práticos de uso e de quanto cobrar, e deu o exemplo âncora: agente de agendamento ' +
+    'pra clínica, pelo menos R$ 800 (o dono subiu esse âncora pra R$ 1.500 em 17/08/2026).\n\n' +
+    'PREÇOS CONFERIDOS EM DUAS FONTES INDEPENDENTES (15/08/2026), porque preço é afirmação verificável:\n' +
+    '  · horadecodar.com.br ("Quanto cobrar automação n8n"): simples R$ 400 a 900; intermediária R$ 900 a 2.500; ' +
+    'avançada R$ 2.500 a 10.000 ou mais.\n' +
+    '  · automacaohoje.com (14/07/2026): mesmas faixas iniciais, e "o dinheiro consistente está na operação mensal". ' +
+    'A mensalidade tem que cobrir VPS (US$ 20 a 50 por cliente), consumo de API de IA, horas de suporte e margem.\n' +
+    'O R$ 1.500 do título (o dono subiu de 800 pra 1.500 em 17/08/2026) cai no meio da faixa intermediária das duas ' +
+    'fontes, R$ 900 a R$ 2.500, que é onde o serviço mora de verdade: várias integrações, decisão no meio do fluxo e ' +
+    'notificação por WhatsApp. O 800 era o piso da faixa simples.\n\n' +
+    'OUTROS SERVIÇOS VENDÁVEIS COM O MESMO FLUXO (estão no presente, e servem de pauta pra outros posts):\n' +
+    '  1. Agendamento pra clínica, salão, barbearia ou consultório: WhatsApp + agenda + lembrete na véspera. ' +
+    'R$ 800 a R$ 2.500, e o argumento de venda é a falta que deixa de acontecer.\n' +
+    '  2. Qualificação de lead: formulário chega, a IA classifica, o quente vai pro CRM e o vendedor é avisado na ' +
+    'hora. O guia da automacaohoje cita um fluxo desses que poupa 20 horas mensais de um vendedor.\n' +
+    '  3. Orçamento que some: cliente pediu, ninguém respondeu. O fluxo cobra sozinho em 24h, 3 dias e 7 dias.\n' +
+    '  4. Relatório de segunda: junta os números da semana e entrega pronto no WhatsApp do dono. Faixa simples, ' +
+    'R$ 400 a 900, e é a porta de entrada mais fácil de vender.\n' +
+    '  5. Onboarding de cliente novo: contrato assinado dispara pastas, e-mail de boas-vindas e a call agendada.\n\n' +
+    'FERRAMENTA, NA FONTE PRIMÁRIA: n8n-io/n8n com 200.765 estrelas; Community "free, indefinitely" com "almost the ' +
+    'complete feature set" (docs.n8n.io); modelo fair-code sob Sustainable Use License, que NÃO é open source padrão, ' +
+    'por isso nenhum slide usa esse termo; número de integrações não é citado porque o README (1500+) e a descrição ' +
+    'do repositório (400+) se contradizem.\n\n' +
+    'A LACUNA: o comando de instalação e o localhost:5678 não aparecem em slide nenhum, só no presente.\n\n' +
+    'FURA A BOLHA\n' +
+    'Regra 1 (capa pro dedo): tem número, tem dinheiro e tem a dor da clínica no subtítulo.\n' +
+    'Regra 2 (o slide 2 confirma): a ferramenta é de graça e roda na sua máquina.\n' +
+    'Regra 3 (slide sozinho): o serviço, a tabela, a anatomia, o aviso.\n' +
+    'Regra 4 (salvável): o slide da tabela de preço, que é o mais salvável que a conta já fez.\n' +
+    'Regra 5 (CTA único): comenta N8N.\n\n' +
+    'SEMANA DE CARRINHO DO DEVQUEST (17 a 21/08): o carrossel não vende curso. A matrícula aparece só no presente, ' +
+    'sem o GIF do GTA 6.\n\n' +
+    'PENDENTE ANTES DE PUBLICAR: arte de capa (hoje é o gradiente de fallback) e o link de inscrição do DevQuest.',
 };

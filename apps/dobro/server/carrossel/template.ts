@@ -267,13 +267,20 @@ function realce(t: string): string {
   return t.replace(/\*\*([\s\S]+?)\*\*/g, '<span class="hl">$1</span>').replace(/\n/g, '<br>');
 }
 
-/** Uma linha de terminal: prefixo →/$/✓ colorido, resto branco. */
+/**
+ * Uma linha de terminal: prefixo →/$/✓ colorido, resto branco.
+ *
+ * O espaçamento entre o prefixo e o resto é PRESERVADO como veio (o bloco é
+ * `white-space:pre-wrap` em fonte mono). Antes a linha era remontada com um
+ * espaço fixo, o que colapsava o alinhamento de quem usa o terminal como TABELA
+ * ("SIMPLES  R$ 400 a 900") e deixava as colunas em escada.
+ */
 function termLine(line: string): string {
-  const m = line.match(/^(\S+)\s+([\s\S]*)$/);
+  const m = line.match(/^(\S+)(\s+)([\s\S]*)$/);
   if (m) {
     const tok = m[1];
     const cls = tok === '✓' ? 'g' : tok === '→' || tok === '$' ? 'p' : 'w';
-    return `<div><span class="${cls}">${tok}</span> <span class="w">${m[2]}</span></div>`;
+    return `<div><span class="${cls}">${tok}</span>${m[2]}<span class="w">${m[3]}</span></div>`;
   }
   // Linha vazia vira &nbsp;: um <div> sem conteúdo inline não gera line box e
   // colapsa pra altura zero, então a linha em branco que separa os blocos de um
