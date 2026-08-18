@@ -82,11 +82,27 @@ export const n8nSelfHost: Carrossel = {
     {
       variant: 'light',
       layout: 'center',
-      icone: 'loop',
       eyebrow: 'A ferramenta',
       titulo: 'Chama **n8n**, e roda\nna sua máquina',
       corpo:
         'Você monta a automação **arrastando caixas**, sem escrever código. A edição Community é **gratuita, sem prazo**, e você hospeda no seu próprio computador ou servidor.',
+      // O ícone genérico de `loop` saiu e entrou o logo da própria ferramenta
+      // (pedido do dono, 17/08/2026): o slide apresenta o n8n pelo nome, então a
+      // marca fecha a apresentação melhor que um símbolo qualquer.
+      //
+      // A primeira escolha do dono era um print de automação de agendamento no
+      // n8n, e eu não consegui um decente: os templates de agendamento no
+      // n8n.io são pagos, o preview do canvas vem em baixa (1415x314, ilegível
+      // ampliado) e o banner de cookies do site cobre a tela no headless. Se
+      // aparecer um print bom, é só trocar `selo` por `imagem` aqui.
+      //
+      // Arquivo oficial (assets/n8n-logo.png do repositório n8n-io/n8n) montado
+      // num cartão branco 1200x784. O logo cru NÃO serve aqui: o bloco `.selo`
+      // dimensiona pela ALTURA (auto 62%), então uma arte larga feito um logo
+      // (458x124) vira gigante e sai cortada nas laterais. Com a margem em volta,
+      // a proporção do arquivo fica perto da do bloco e ele entra inteiro.
+      selo: 'server/carrossel/assets/n8n-self-host/n8n-card.png',
+      seloFundo: '#ffffff',
     },
     {
       variant: 'dark',
@@ -158,22 +174,23 @@ export const n8nSelfHost: Carrossel = {
       foto: 'server/carrossel/assets/founders-bg.webp',
     },
   ],
+  // Legenda pela METADE e 5 hashtags: padrão novo pedido pelo dono em 17/08/2026.
+  // O que saiu daqui não se perdeu, está nos slides e no presente: o detalhe das
+  // quatro faixas de preço, o custo de operação e o "o preço é pelo que o cliente
+  // para de perder".
   legenda:
     'Comenta N8N que eu te mando o fluxo e a tabela de preço. 🤖\n\n' +
-    'Toda clínica pequena perde consulta pelo mesmo motivo: chega mensagem no WhatsApp fora do horário e ninguém responde. No dia seguinte a pessoa já marcou em outro lugar.\n\n' +
-    'Esse problema tem conserto, e o conserto é uma automação que você consegue montar de graça.\n\n' +
-    'A ferramenta chama n8n. Você monta o fluxo arrastando caixas, sem escrever código, e a edição Community é gratuita por tempo indeterminado, rodando na sua própria máquina ou num servidor seu.\n\n' +
-    'O fluxo do agendamento é assim: chega a mensagem no WhatsApp, a IA lê (texto ou áudio) e entende o que a pessoa quer, o fluxo olha a agenda, marca o horário livre e ainda manda o lembrete na véspera, que é o que derruba a falta.\n\n' +
-    'Agora a parte que quase ninguém fala. Quanto cobrar por isso, segundo os guias de precificação brasileiros de 2026:\n\n' +
-    'Automação simples, dois sistemas conversando: R$ 400 a R$ 900.\n' +
-    'Automação média, várias etapas com decisão no meio: R$ 900 a R$ 2.500.\n' +
-    'Com agente de IA que lê, decide e responde: a partir de R$ 2.500.\n' +
-    'E a mensalidade de manutenção, que é onde mora o dinheiro que se repete.\n\n' +
-    'O agendamento da clínica fica na média, uns R$ 1.500, e sobe conforme o que você plugar nele.\n\n' +
-    'O aviso honesto: o n8n não cobra por execução, mas a operação tem custo. Servidor de pé, atualização, backup e a conta do modelo de IA, se tiver um. Isso entra na sua mensalidade, não no seu prejuízo. E o preço nunca é pela sua hora, é pelo que o cliente para de perder.\n\n' +
-    'Comenta N8N aqui embaixo que eu te mando o comando pra subir na sua máquina, o fluxo do agendamento desenhado passo a passo e a tabela de quanto cobrar em cada tipo de automação. 👇',
-  hashtags:
-    'n8n automacao inteligenciaartificial freelancer rendaextra programacao devbr devemdobro produtividade whatsapp',
+    'Toda clínica pequena perde consulta pelo mesmo motivo: chega mensagem no WhatsApp fora do horário, ninguém ' +
+    'responde, e no dia seguinte a pessoa já marcou em outro lugar.\n\n' +
+    'A ferramenta que conserta isso chama n8n. Você monta o fluxo arrastando caixas, sem escrever código, e a ' +
+    'edição Community é gratuita por tempo indeterminado, rodando na sua máquina.\n\n' +
+    'O fluxo: chega a mensagem, a IA lê e entende, olha a agenda, marca o horário e manda o lembrete na véspera, ' +
+    'que é o que derruba a falta.\n\n' +
+    'Quanto cobrar, segundo os guias de precificação brasileiros de 2026: simples R$ 400 a 900, média R$ 900 a ' +
+    '2.500, com agente de IA a partir de R$ 2.500. O agendamento da clínica fica na média, uns R$ 1.500.\n\n' +
+    'Comenta N8N que eu te mando o comando, o fluxo desenhado passo a passo e a tabela de preço. 👇',
+  // Cinco, uma de cada função: nicho exato, categoria, alcance, intenção, marca.
+  hashtags: 'n8n automacao inteligenciaartificial freelancer devemdobro',
   ctaFinal:
     'Comenta N8N que eu te mando o comando pra subir na sua máquina, o fluxo do agendamento desenhado passo a passo e a tabela de quanto cobrar em cada tipo de automação.',
   briefing:

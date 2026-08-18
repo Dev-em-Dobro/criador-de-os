@@ -9,8 +9,8 @@
  *   pnpm --filter @app/dobro conteudo:agendar <id|latest> <YYYY-MM-DD>
  *   ex.: pnpm --filter @app/dobro conteudo:agendar latest 2026-07-28
  *
- * A data é gravada como o app grava (meia-noite UTC do dia escolhido), então o
- * board a exibe no dia certo, sem drift de fuso.
+ * A data é ancorada no MEIO-DIA local do dia escolhido (mesma regra do
+ * `carrossel:render`), pra o board exibir o card no dia que você pediu.
  */
 
 import { desc, eq } from 'drizzle-orm';
@@ -43,7 +43,11 @@ async function main(): Promise<void> {
     id = row.id;
   }
 
-  const dataProgramada = new Date(`${dia}T00:00:00.000Z`);
+  // Meio-dia LOCAL, igual ao `carrossel:render`. Com meia-noite UTC (que é o que
+  // este script fazia até 12/08/2026) o card cai no dia ANTERIOR no nosso fuso
+  // (UTC-3): pedir 12/08 gravava 11/08 às 21h, e o post sumia do dia certo tanto
+  // no `listar-cronograma` quanto no board, que leem a data em horário local.
+  const dataProgramada = new Date(`${dia}T12:00:00`);
   const [updated] = await db
     .update(conteudoPosts)
     .set({ dataProgramada, updatedAt: new Date() })

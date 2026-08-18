@@ -17,7 +17,7 @@
 
 import { chromium } from 'playwright';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -201,6 +201,18 @@ async function main(): Promise<void> {
     await browser.close();
   }
   console.log(`[render] ${n} PNGs em public/carrosseis/${slug}/`);
+
+  // Carrossel que ENCOLHEU deixa os arquivos do tamanho antigo pra trás, e eles
+  // não somem sozinhos: a pasta é a fonte da verdade na hora de subir no
+  // Instagram, então um slide-8.png de duas versões atrás entraria no post.
+  for (let k = n + 1; ; k++) {
+    const png = join(outDir, `slide-${k}.png`);
+    const mp4 = join(outDir, `slide-${k}.mp4`);
+    if (!existsSync(png) && !existsSync(mp4)) break;
+    if (existsSync(png)) rmSync(png);
+    if (existsSync(mp4)) rmSync(mp4);
+    console.log(`[render] sobra do render anterior apagada: slide-${k}`);
+  }
 
   // Slides com vídeo viram TAMBÉM um MP4 do slide inteiro, com o vídeo encaixado
   // exatamente onde estava o print. É esse arquivo que sobe no Instagram.

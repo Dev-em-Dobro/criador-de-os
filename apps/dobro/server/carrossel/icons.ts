@@ -26,6 +26,9 @@ export const ICONS: Record<string, string> = {
   car: '<path d="M5 13l1.5-4A2 2 0 0 1 8.4 8h7.2a2 2 0 0 1 1.9 1.3L19 13v4H5z"/><circle cx="8" cy="17" r="1.3"/><circle cx="16" cy="17" r="1.3"/>',
   map: '<path d="M9 4L3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5 9 4z"/><path d="M9 4v13M15 6.5v13"/>',
   instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle class="f" cx="17.2" cy="6.8" r="1.2"/>',
+  // Balão de conversa. Serve pra item que fala de WhatsApp/mensagem: antes o
+  // slide usava o ícone do Instagram, que dizia a rede errada.
+  chat: '<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.5 9.5 0 0 1-3.4-.6L3 21l1.7-4.5A8 8 0 0 1 3.6 11.5 8.4 8.4 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z"/>',
   skull: '<path d="M12 3a7 7 0 0 0-7 7v3a2 2 0 0 0 1.2 1.8l.8.4V18a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.8l.8-.4A2 2 0 0 0 19 13v-3a7 7 0 0 0-7-7z"/><circle class="f" cx="9.3" cy="11.2" r="1.6"/><circle class="f" cx="14.7" cy="11.2" r="1.6"/><path class="f" d="M12 13.8l-.9 1.8h1.8z"/>',
   robot: '<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1.3"/><circle class="f" cx="9.2" cy="13" r="1.3"/><circle class="f" cx="14.8" cy="13" r="1.3"/><path d="M2 12v3M22 12v3"/>',
   loop: '<path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/>',
@@ -43,12 +46,44 @@ export function svgIcon(nome: string): string {
  * de ICONS (monocromático via currentColor): cada marca traz sua própria cor.
  * `path` = interior do `<svg viewBox="0 0 24 24">`; `label` = wordmark opcional.
  */
-export const BRANDS: Record<string, { path: string; color: string; label?: string }> = {
+export const BRANDS: Record<
+  string,
+  { path: string; color: string; label?: string; viewBox?: string }
+> = {
   // Git logo (Jason Long, simple-icons), fill único na laranja oficial.
   git: {
     path:
       '<path d="M23.546 10.93L13.067.452c-.604-.603-1.582-.603-2.188 0L8.708 2.627l2.76 2.76c.645-.215 1.379-.07 1.889.441.516.515.658 1.258.438 1.9l2.658 2.66c.645-.223 1.387-.078 1.9.435.721.72.721 1.884 0 2.604-.719.719-1.881.719-2.6 0-.539-.541-.674-1.337-.404-1.996L12.86 8.955v6.525c.176.086.342.203.488.348.713.721.713 1.883 0 2.6-.719.721-1.889.721-2.609 0-.719-.719-.719-1.879 0-2.598.177-.176.383-.309.602-.396V8.882c-.219-.086-.425-.221-.602-.398-.543-.545-.674-1.342-.4-2.002L7.636 3.767 1.05 10.353c-.603.604-.603 1.582 0 2.187l10.48 10.477c.604.604 1.582.604 2.186 0l10.43-10.43c.605-.603.605-1.582 0-2.187"/>',
     color: '#F05032',
     label: 'git',
+  },
+  /**
+   * As três abaixo entraram pro slide de ferramentas do "brinca-com-ia". Os
+   * caminhos são os OFICIAIS: Vercel e Replit vieram do simple-icons, Lovable do
+   * svgl (o original é um gradiente com máscara, aqui fica só a silhueta).
+   *
+   * `viewBox` existe porque o Lovable não é 24×24 como os outros. Quem desenha
+   * precisa respeitar a caixa da marca, senão o logo sai esticado.
+   */
+  vercel: {
+    path: '<path d="m12 1.608 12 20.784H0Z"/>',
+    // A Vercel é monocromática e inverte com o fundo: PRETO no claro (é o caso
+    // do slide de ferramentas), branco no escuro. Se um dia entrar em slide
+    // escuro, o triângulo some e a cor tem que virar #FFFFFF.
+    color: '#000000',
+    label: 'v0 da Vercel',
+  },
+  replit: {
+    path:
+      '<path d="M2 1.5A1.5 1.5 0 0 1 3.5 0h7A1.5 1.5 0 0 1 12 1.5V8H3.5A1.5 1.5 0 0 1 2 6.5ZM12 8h8.5A1.5 1.5 0 0 1 22 9.5v5a1.5 1.5 0 0 1-1.5 1.5H12ZM2 17.5A1.5 1.5 0 0 1 3.5 16H12v6.5a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 2 22.5Z"/>',
+    color: '#F26207',
+    label: 'Replit',
+  },
+  lovable: {
+    path:
+      '<path d="M36.069 0c19.92 0 36.068 16.155 36.068 36.084v13.713h12.004c19.92 0 36.069 16.156 36.069 36.084 0 19.928-16.149 36.083-36.069 36.083H0v-85.88C0 16.155 16.148 0 36.069 0Z"/>',
+    color: '#FF6B8A',
+    label: 'Lovable',
+    viewBox: '0 0 121 122',
   },
 };

@@ -251,24 +251,21 @@ export const sbtVagas: Carrossel = {
       foto: 'server/carrossel/assets/founders-bg.webp',
     },
   ],
+  // Legenda pela METADE e 5 hashtags: padrão novo pedido pelo dono em 17/08/2026.
+  // O que saiu daqui está nos slides e no presente: as 16 posições da empresa de
+  // seguros, o um terço da demanda e a divisão do tempo pra fechar a vaga.
   legenda:
     'Comenta VAGA que eu te mando o link da reportagem e o caminho. 📺\n\n' +
-    'Saiu no SBT há 8 dias e começa com um contraste que dói: mais de 6 milhões de brasileiros sem emprego, e ao ' +
-    'mesmo tempo um monte de empresa com cadeira vazia que ninguém ocupa. Principalmente quando a vaga é de ' +
-    'tecnologia.\n\n' +
-    'A empresa que aparece na reportagem nem é de tecnologia, é de seguros, e está com 16 posições abertas: dados, ' +
-    'cybersegurança e gente que entenda de IA.\n\n' +
-    'A pesquisa que a Ford fez com o Datafolha, ouvindo 250 gestores de RH e tecnologia, explica por que essas ' +
-    'vagas não fecham. 98% das empresas têm dificuldade pra contratar. O que reprova é falta de conhecimento ' +
-    'técnico (72%), falta de experiência (mais da metade) e comportamento (quase 40% cortam gente que sabe ' +
-    'programar). Faculdade não aparece na lista.\n\n' +
-    'E tem uma frase na reportagem que todo iniciante precisa ouvir, dita pelo RH: "o hard, o técnico, você vai ' +
-    'aprender". O Brasil forma só um terço da demanda que existe. A porta está aberta, o filtro é que continua no ' +
-    'lugar.\n\n' +
+    'Saiu no SBT há 8 dias e começa com um contraste que dói: mais de 6 milhões de brasileiros sem emprego, e um ' +
+    'monte de empresa com cadeira vazia que ninguém ocupa. Principalmente quando a vaga é de tecnologia.\n\n' +
+    'A pesquisa que a Ford fez com o Datafolha, com 250 gestores de RH, explica por que essas vagas não fecham. ' +
+    '98% das empresas têm dificuldade pra contratar. O que reprova é falta de conhecimento técnico (72%), falta de ' +
+    'experiência (mais da metade) e comportamento (quase 40% cortam gente que sabe programar). Faculdade não ' +
+    'aparece na lista.\n\n' +
+    'E o RH entrevistado solta a frase que todo iniciante precisa ouvir: "o hard, o técnico, você vai aprender".\n\n' +
     'Comenta VAGA que eu te mando o link da reportagem completa e o que fazer pra se preparar pra essas vagas.',
-  hashtags:
-    'programacao carreiratech vagadev primeiroemprego devbr aprenderprogramar mercadodetrabalho vagatech ' +
-    'devemdobro empregos',
+  // Cinco, uma de cada função: nicho exato, categoria, alcance, intenção, marca.
+  hashtags: 'vagadev programacao carreiratech primeiroemprego devemdobro',
   ctaFinal:
     'Comenta VAGA que eu te mando o link da reportagem completa e o que fazer pra se preparar pra essas vagas, ' +
     'item por item do que as empresas dizem que reprova.',

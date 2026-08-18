@@ -15,15 +15,36 @@ import type { Carrossel } from '../types';
 
 export const gitComandosDia: Carrossel = {
   slug: 'git-comandos-dia',
-  titulo: 'Os comandos de Git que resolvem quase todo o seu dia',
+  // O NÚMERO ENTROU NO TÍTULO em 15/08/2026, e não é cosmético: na base medida,
+  // carrossel com número contável no título tem alcance mediano de 9.429 contra
+  // 4.769 dos sem número, e 69,6 salvamentos por mil contra 47,5. Como este post
+  // é uma cola (vive de salvamento), é o formato certo. O gancho já dizia "os
+  // mesmos sete": o número só subiu pro lugar onde é visto antes do swipe.
+  titulo: 'Os 7 comandos de Git que resolvem quase todo o seu dia',
   gancho: 'Git tem centenas de comandos e você usa sempre os mesmos sete. Salva essa cola.',
+  dataProgramada: '2026-08-18',
+  /**
+   * Presente do "comenta COMANDOS" (Notion, 15/08/2026): a cola completa em
+   * tabela (os 7 + os 3 de emergência), o passo a passo do conflito com as marcas
+   * do Git explicadas e o `git merge --abort` como saída de emergência, a régua
+   * da mensagem de commit e o Learn Git Branching. No fim, o convite do DevQuest.
+   *
+   * LINK PRIVADO: trocar pelo `.notion.site` depois de Compartilhar > Publicar.
+   * PENDENTE: colar o link de inscrição do DevQuest no lugar do placeholder.
+   */
+  linkPresente: 'https://app.notion.com/p/3bd6dd01fb48815695fffefbaa2f69a6',
   slides: [
     {
       variant: 'photo',
       cover: true,
       semFundo: true,
-      titulo: 'Git tem centenas\nde comandos.\nNo dia a dia você\nusa sempre os\nmesmos **sete**.\nSalva essa cola.',
-      corpo: 'Passa pro lado que eu te mostro 👉',
+      baixo: true,
+      // A capa REPETE O TÍTULO do post e a tensão desce pro subtítulo (memórias
+      // capas-carrossel-padrao e subtitulo-da-capa-e-tensao). A versão anterior
+      // tinha um título de seis linhas que era o post inteiro escrito na capa.
+      titulo: 'Os **7 comandos**\nde Git que\nresolvem seu dia',
+      subtitulo: 'Git tem centenas. Você usa sempre os mesmos sete.',
+      swipe: 'Deslize e veja ›',
     },
     {
       variant: 'dark',
@@ -47,6 +68,7 @@ export const gitComandosDia: Carrossel = {
     {
       variant: 'dark',
       denso: true,
+      brandLogo: 'git',
       eyebrow: 'Salva esse slide',
       titulo: 'A cola dos **sete**',
       terminal: [
@@ -62,7 +84,9 @@ export const gitComandosDia: Carrossel = {
     {
       variant: 'purple',
       eyebrow: 'O que salva sua pele',
-      titulo: 'Os dois que você\nvai precisar no susto',
+      // Dizia "os dois" e listava TRÊS (restore, stash, diff). Corrigido em
+      // 15/08/2026, antes de publicar.
+      titulo: 'Os três que você\nvai precisar no susto',
       itens: [
         { icone: 'loop', titulo: 'git restore arquivo.js', sub: 'Desfaz o que você mexeu num arquivo e ainda não commitou' },
         { icone: 'bookmark', titulo: 'git stash', sub: 'Guarda o que está pela metade pra você trocar de branch em paz' },
@@ -98,9 +122,12 @@ export const gitComandosDia: Carrossel = {
       tipo: 'cta',
       logo: 'Dev em Dobro',
       handle: '@devemdobro',
-      titulo: 'Quer a cola em\nPDF pra deixar\ndo lado?',
-      botao: 'Comente COMANDOS 👇',
-      corpo: 'Comenta COMANDOS que eu te mando a cola em PDF e o link do jogo que ensina o resto de Git.',
+      titulo: 'Quer a cola pra\ndeixar do lado?',
+      botao: 'Comenta COMANDOS 👇',
+      // TRÊS entregas, não duas. Na semana medida, CTA com três entregas ficou
+      // entre 19,7 e 29,5 comentários por mil; com duas, entre 13,8 e 17,0.
+      corpo:
+        'Te mando a cola completa pra deixar do lado, o passo a passo de quando dá conflito e o link do jogo que ensina o resto de Git.',
     },
   ],
   legenda:
@@ -118,9 +145,11 @@ export const gitComandosDia: Carrossel = {
     'o que passou a funcionar. O diff já mostra o código, então use a mensagem pra contar a intenção.\n\n' +
     'Um aviso honesto: cola resolve o dia, não o conceito. Na hora do conflito ou do rebase, você vai precisar ' +
     'entender o que acontece com o histórico.\n\n' +
-    'Comenta COMANDOS aqui embaixo que eu te mando a cola em PDF e o link do jogo que ensina o resto. 👇',
+    'Comenta COMANDOS aqui embaixo que eu te mando a cola completa, o passo a passo de quando dá conflito e o link do ' +
+    'jogo que ensina o resto. 👇',
   hashtags: 'git github programacao devweb carreiratech primeiroemprego aprenderprogramar devemdobro versionamento dicasdev',
-  ctaFinal: 'Comenta COMANDOS que eu te mando a cola em PDF e o link do jogo que ensina o resto de Git.',
+  ctaFinal:
+    'Comenta COMANDOS que eu te mando a cola completa pra deixar do lado, o passo a passo de quando dá conflito e o link do jogo que ensina o resto de Git.',
   briefing:
     'FÓRMULA: conceito que destrava iniciante, a segunda estrutura mais consistente da conta (não depende de viral). ' +
     'Complementa o carrossel do Learn Git Branching: lá é o jogo, aqui é a cola.\n\n' +

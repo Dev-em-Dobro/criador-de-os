@@ -166,6 +166,16 @@ const CSS = `
   /* pre-wrap: preserva a indentação de linha continuada (ex.: uma URL longa). */
   .term{position:relative;z-index:2;margin-top:12px;background:#14101f;border-radius:10px;padding:13px 15px;font-size:12.5px;line-height:1.75;white-space:pre-wrap;}
   .term .p{color:#8f83f0;} .term .g{color:#f5c518;} .term .w{color:#e6e6ee;}
+  /* .marcas: fileira de logos com o nome embaixo. O logo fica num disco pra
+     marca clara não sumir em slide claro nem a escura sumir no escuro. */
+  .marcas{position:relative;z-index:2;display:flex;gap:10px;margin-top:14px;}
+  .marcas .chip{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;
+    padding:13px 6px 11px;border-radius:12px;background:rgba(124,58,237,.10);border:1px solid rgba(124,58,237,.26);}
+  .light .marcas .chip{background:rgba(109,58,214,.07);border-color:rgba(109,58,214,.20);}
+  .marcas .chip svg{width:26px;height:26px;display:block;stroke:none;}
+  .marcas .chip span{font-size:11.5px;font-weight:700;text-align:center;line-height:1.15;}
+  .dark .marcas .chip span,.purple .marcas .chip span,.photo .marcas .chip span,.grafite .marcas .chip span{color:#e8e4f5;}
+  .light .marcas .chip span{color:#2a2340;}
   .brand{position:relative;z-index:2;display:flex;align-items:center;gap:7px;margin-top:16px;}
   .brand svg{width:25px;height:25px;display:block;stroke:none;}
   .brand span{font-size:14px;font-weight:700;letter-spacing:.01em;}
@@ -476,8 +486,22 @@ function renderSlide(s: Slide, i: number, n: number, bg: string, shots: Record<s
   const brand = s.brandLogo ? BRANDS[s.brandLogo] : undefined;
   if (brand) {
     parts.push(
-      `<div class="brand"><svg viewBox="0 0 24 24" style="fill:${brand.color}">${brand.path}</svg>${brand.label ? `<span>${brand.label}</span>` : ''}</div>`,
+      `<div class="brand"><svg viewBox="${brand.viewBox ?? '0 0 24 24'}" style="fill:${brand.color}">${brand.path}</svg>${brand.label ? `<span>${brand.label}</span>` : ''}</div>`,
     );
+  }
+
+  // Fileira de marcas: vários logos lado a lado, com o nome embaixo de cada um.
+  // Serve pro slide que responde "com o quê?", onde uma marca só mentiria por
+  // omissão (a pessoa acha que existe uma ferramenta, e existem várias).
+  if (s.marcas?.length) {
+    const chips = s.marcas
+      .map((nome) => {
+        const m = BRANDS[nome];
+        if (!m) return '';
+        return `<div class="chip"><svg viewBox="${m.viewBox ?? '0 0 24 24'}" style="fill:${m.color}">${m.path}</svg><span>${m.label ?? nome}</span></div>`;
+      })
+      .join('');
+    if (chips) parts.push(`<div class="marcas">${chips}</div>`);
   }
 
   parts.push(foot(i, n));

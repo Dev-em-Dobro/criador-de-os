@@ -212,6 +212,12 @@ export interface Slide {
   videoLabel?: string;
   /** Logo de marca colorido no rodapé do slide (chave no mapa BRANDS, ex.: 'git'). */
   brandLogo?: string;
+  /**
+   * FILEIRA de marcas no rodapé (chaves do mapa BRANDS), cada uma com o logo e o
+   * nome. Diferente do `brandLogo`, que mostra uma só: aqui a resposta é "existem
+   * várias, escolhe uma", que é o caso do slide de ferramentas.
+   */
+  marcas?: string[];
 }
 
 /** Definição completa de um carrossel. */

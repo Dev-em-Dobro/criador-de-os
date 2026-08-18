@@ -32,6 +32,18 @@ import { claudeLinkedinPerfil } from './carrosseis/claude-linkedin-perfil';
 import { seteRepos } from './carrosseis/7-repos';
 import { cincoPastas } from './carrosseis/5-pastas';
 import { quatroMcpGratis } from './carrosseis/4-mcp-gratis';
+import { claudeMd } from './carrosseis/claude-md';
+import { graphify } from './carrosseis/graphify';
+import { curriculoLimbo } from './carrosseis/curriculo-limbo';
+import { ruflo } from './carrosseis/ruflo';
+import { claudeSkills } from './carrosseis/claude-skills';
+import { githubPerfil } from './carrosseis/github-perfil';
+import { treinarEntrevista } from './carrosseis/treinar-entrevista';
+import { designApple } from './carrosseis/design-apple';
+import { hermes } from './carrosseis/hermes';
+import { bitburner } from './carrosseis/bitburner';
+import { sbtVagas } from './carrosseis/sbt-vagas';
+import { brincaComIa } from './carrosseis/brinca-com-ia';
 
 const CARROSSEIS: Record<string, Carrossel> = {
   [gta6.slug]: gta6,
@@ -63,6 +75,18 @@ const CARROSSEIS: Record<string, Carrossel> = {
   [seteRepos.slug]: seteRepos,
   [cincoPastas.slug]: cincoPastas,
   [quatroMcpGratis.slug]: quatroMcpGratis,
+  [claudeMd.slug]: claudeMd,
+  [graphify.slug]: graphify,
+  [curriculoLimbo.slug]: curriculoLimbo,
+  [ruflo.slug]: ruflo,
+  [claudeSkills.slug]: claudeSkills,
+  [githubPerfil.slug]: githubPerfil,
+  [treinarEntrevista.slug]: treinarEntrevista,
+  [designApple.slug]: designApple,
+  [hermes.slug]: hermes,
+  [bitburner.slug]: bitburner,
+  [sbtVagas.slug]: sbtVagas,
+  [brincaComIa.slug]: brincaComIa,
 };
 
 export function getCarrossel(slug: string): Carrossel | undefined {
