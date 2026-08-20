@@ -94,8 +94,12 @@ export const n8nSelfHost: Carrossel = {
    * /p/3bd6dd01fb4881359911fd3f83db4351 (o que ensinava a subir o n8n e desenhava
    * o fluxo do agendamento caixa por caixa); ele não foi apagado, só saiu do card.
    *
-   * PENDENTE na página nova: o link de inscrição do DevQuest, que está como
-   * placeholder no último bloco.
+   * FECHADO em 20/08/2026. O link de inscrição já estava lá (este comentário é
+   * que estava desatualizado), mas o utm_content vinha grudado: `mapa-automacao-
+   * n8n19-08`, sem o hífen antes da data e sem seguir o slug. Corrigido pra
+   * `n8n-self-host-19-08`, no padrão `<slug>-<dd-mm>` dos outros presentes.
+   * Como o post já foi publicado em 19/08, os cliques anteriores ao conserto
+   * ficaram no relatório sob o valor velho.
    */
   linkPresente: 'https://app.notion.com/p/3c16dd01fb488150a6dec3d4078a4310',
   /**

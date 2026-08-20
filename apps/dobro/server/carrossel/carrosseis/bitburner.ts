@@ -81,7 +81,12 @@ export const bitburner: Carrossel = {
    * como aquecimento da etapa 1, não como destino.
    *
    * LINK PRIVADO: trocar pelo `.notion.site` depois de Compartilhar > Publicar.
-   * PENDENTE: colar o link de inscrição do DevQuest no lugar do placeholder.
+   * JÁ FECHADO (visto em 20/08/2026): o link de matrícula está na página, tanto
+   * no callout do topo quanto na seção do fim. Duas ressalvas anotadas e NÃO
+   * mexidas, porque o post já foi publicado em 19/08: o utm_content é
+   * `jogo-Bitburner-19-08`, que foge do padrão `<slug>-<dd-mm>` e tem maiúscula
+   * (o relatório trata como linha separada), e o pedido de matrícula aparece
+   * duas vezes na mesma página.
    */
   linkPresente: 'https://app.notion.com/p/3bd6dd01fb488128aa0dfea9842b712d',
   slides: [
@@ -235,5 +240,6 @@ export const bitburner: Carrossel = {
     'Regra 5 (CTA único): comenta HACKER.\n\n' +
     'SEMANA DE CARRINHO DO DEVQUEST (17 a 21/08): o carrossel não vende. A matrícula aparece só na página do ' +
     'presente, sem o GIF do GTA 6 (decisão do dono, 15/08/2026).\n\n' +
-    'PENDENTE ANTES DE PUBLICAR: arte de capa (hoje é o gradiente de fallback) e o link de inscrição do DevQuest.',
+    'O link de inscrição do DevQuest já está no presente (conferido em 20/08). Publicado em 19/08 com a capa no ' +
+    'gradiente de fallback.',
 };

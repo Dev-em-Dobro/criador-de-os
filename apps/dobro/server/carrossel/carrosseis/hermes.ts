@@ -74,7 +74,11 @@ export const hermes: Carrossel = {
    * convite do DevQuest no lugar do convite da Semana.
    *
    * LINK PRIVADO: trocar pelo `.notion.site` depois de Compartilhar > Publicar.
-   * PENDENTE: colar o link de inscrição do DevQuest no lugar do placeholder.
+   * JÁ FECHADO (visto em 20/08/2026): o link de matrícula está no callout do
+   * topo, e o fim da página não repete o pedido. O utm_content é
+   * `hermes-jarvis-aprende-sozinho-17-08`, que foge do padrão `<slug>-<dd-mm>`
+   * mas está bem formado; não foi trocado porque o post saiu em 17/08 e mudar
+   * agora quebraria o histórico do relatório em duas linhas.
    */
   linkPresente: 'https://app.notion.com/p/3bd6dd01fb488123871af5c8936afd21',
   /**

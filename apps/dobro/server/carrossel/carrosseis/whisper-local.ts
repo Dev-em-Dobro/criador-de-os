@@ -57,7 +57,13 @@ export const whisperLocal: Carrossel = {
    * a tabela de preço por nicho e o roteiro de como oferecer pro primeiro cliente.
    *
    * LINK PRIVADO: trocar pelo `.notion.site` depois de Compartilhar > Publicar.
-   * PENDENTE: colar o link de inscrição do DevQuest no lugar do placeholder.
+   * FECHADO em 20/08/2026: o placeholder virou o link real de matrícula, com
+   * utm_content `whisper-local-22-08` (data do card no board).
+   *
+   * ⚠️ MAS ATENÇÃO À DATA: o card está agendado pro dia 22/08 e a semana de
+   * carrinho do DevQuest vai até 21/08. Se o carrinho fechar mesmo no dia 21, a
+   * frase "As matrículas estão abertas esta semana" no presente estará errada no
+   * dia em que o post sair. Ou o card antecipa, ou essa linha do presente muda.
    */
   linkPresente: 'https://app.notion.com/p/3bd6dd01fb48818ead0ad49680e2e233',
   slides: [
@@ -200,5 +206,7 @@ export const whisperLocal: Carrossel = {
     'Regra 5 (CTA único): comenta AUDIO.\n\n' +
     'SEMANA DE CARRINHO DO DEVQUEST (17 a 21/08): o carrossel não vende curso. A matrícula aparece só no presente, ' +
     'sem o GIF do GTA 6.\n\n' +
-    'PENDENTE ANTES DE PUBLICAR: arte de capa (hoje é o gradiente de fallback) e o link de inscrição do DevQuest.',
+    'PENDENTE ANTES DE PUBLICAR: arte de capa (hoje é o gradiente de fallback). O link do DevQuest já entrou no ' +
+    'presente em 20/08, mas o card está agendado pro dia 22 e o carrinho fecha dia 21: ou antecipa o post, ou muda ' +
+    'a linha "as matrículas estão abertas esta semana" na página.',
 };

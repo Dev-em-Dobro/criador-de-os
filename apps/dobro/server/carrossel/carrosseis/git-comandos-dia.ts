@@ -30,7 +30,9 @@ export const gitComandosDia: Carrossel = {
    * da mensagem de commit e o Learn Git Branching. No fim, o convite do DevQuest.
    *
    * LINK PRIVADO: trocar pelo `.notion.site` depois de Compartilhar > Publicar.
-   * PENDENTE: colar o link de inscrição do DevQuest no lugar do placeholder.
+   * FECHADO em 20/08/2026: o placeholder virou o link real de matrícula, com
+   * utm_content `git-comandos-dia-18-08`. Este card não existe mais no board
+   * (casado por slug), então a data veio da `dataProgramada` daqui.
    */
   linkPresente: 'https://app.notion.com/p/3bd6dd01fb48815695fffefbaa2f69a6',
   slides: [
