@@ -68,14 +68,21 @@ export const manusGratis: Carrossel = {
    */
   linkPresente: 'https://app.notion.com/p/3c16dd01fb4881d495a8d674b0600881',
   /**
-   * Capa gerada pelo dono em 19/08/2026: panda e tigre de roupa de kung fu num
-   * confronto sobre plataforma de pedra, com pôr do sol dourado nas montanhas.
-   * O chinês vem do próprio Manus, que é uma empresa chinesa.
+   * Capa trocada pelo dono em 20/08/2026 (a anterior era panda e tigre de kung fu
+   * numa plataforma de pedra): panda de óculos escuros e jaqueta debruçado na
+   * janela de um Hongqi preto, com a marca 红旗 ("bandeira vermelha") em relevo na
+   * porta. O chinês vem do
+   * próprio Manus, que é uma empresa chinesa, e agora entra pelo carro em vez de
+   * pelo cenário.
    *
    * Não é personagem de estúdio nenhum, é criatura nossa, na mesma família do
-   * gambá do 7-repos e do macaco do cara-de-caro. A arte já nasceu com os dois
-   * animais nos dois terços de cima e a plataforma vazia embaixo, que é
-   * exatamente onde o texto entra.
+   * gambá do 7-repos e do macaco do cara-de-caro.
+   *
+   * ENCAIXE (memória capa-gerada-por-ia-encaixe): o panda ocupa os dois terços de
+   * cima e o terço de baixo é a porta do carro, preta e vazia — que é justamente
+   * onde o texto do template entra. Por isso NÃO precisa de `bgPos`: a arte já
+   * nasceu com o rodapé livre, e o escuro da porta dá contraste pro título branco
+   * sem depender do scrim.
    */
   bgImage: 'server/carrossel/assets/manus-gratis/capa.png',
   slides: [
