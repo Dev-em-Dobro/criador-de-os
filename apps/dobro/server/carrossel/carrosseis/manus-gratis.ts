@@ -63,8 +63,12 @@ export const manusGratis: Carrossel = {
    * landing page com as fontes, o que fazer quando a cota diária acabar e a ordem
    * sugerida pros dias que sobram.
    *
-   * PENDENTE na página: o link de inscrição do DevQuest, que está como placeholder
-   * no último bloco.
+   * FECHADO em 20/08/2026: o placeholder do DevQuest saiu e a página entrou no
+   * padrão do lote (claude-500-vagas, claude-mem, repos-matadores) — o convite de
+   * matrícula virou callout no TOPO, com o link real e utm_content
+   * `manus-gratis-20-08` (a data é a do card no board, não a do arquivo), e o fim
+   * agora é o callout de assinatura. Com isso saiu a seção "Consegue montar, mas
+   * trava na hora de entregar?", que era boa mas duplicaria o pedido de matrícula.
    */
   linkPresente: 'https://app.notion.com/p/3c16dd01fb4881d495a8d674b0600881',
   /**
@@ -274,5 +278,7 @@ export const manusGratis: Carrossel = {
     'Regra 3 (slide sozinho): o que ele entrega, como ativar, o que fica de fora, a tarefa pra testar.\n' +
     'Regra 4 (salvável): o slide do passo a passo de ativação.\n' +
     'Regra 5 (CTA único): comenta MANUS.\n\n' +
-    'PENDENTE ANTES DE PUBLICAR: confirmar o popup, criar a página do presente no Notion e a arte de capa.',
+    'PENDENTE ANTES DE PUBLICAR: confirmar o popup da oferta dentro do app logado, que é o único item do gate de ' +
+    'precisão que nenhuma fonte pública sustenta. O presente no Notion está pronto (com o link do DevQuest) e a arte ' +
+    'de capa foi feita pelo dono em 20/08.',
 };
