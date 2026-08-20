@@ -44,6 +44,10 @@ import { hermes } from './carrosseis/hermes';
 import { bitburner } from './carrosseis/bitburner';
 import { sbtVagas } from './carrosseis/sbt-vagas';
 import { brincaComIa } from './carrosseis/brinca-com-ia';
+import { manusGratis } from './carrosseis/manus-gratis';
+import { claude500Vagas } from './carrosseis/claude-500-vagas';
+import { claudeMem } from './carrosseis/claude-mem';
+import { reposMatadores } from './carrosseis/repos-matadores';
 
 const CARROSSEIS: Record<string, Carrossel> = {
   [gta6.slug]: gta6,
@@ -87,6 +91,10 @@ const CARROSSEIS: Record<string, Carrossel> = {
   [bitburner.slug]: bitburner,
   [sbtVagas.slug]: sbtVagas,
   [brincaComIa.slug]: brincaComIa,
+  [manusGratis.slug]: manusGratis,
+  [claude500Vagas.slug]: claude500Vagas,
+  [claudeMem.slug]: claudeMem,
+  [reposMatadores.slug]: reposMatadores,
 };
 
 export function getCarrossel(slug: string): Carrossel | undefined {

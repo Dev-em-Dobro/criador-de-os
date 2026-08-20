@@ -21,11 +21,12 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { inArray } from 'drizzle-orm';
+import { inArray, or, sql } from 'drizzle-orm';
 import { db } from '../../db/client';
 import { conteudoPosts } from '../../db/schema';
 import { getCarrossel, listSlugs } from '../carrossel/registry';
 import { buildHtml } from '../carrossel/template';
+import { avaliarGancho, formatarVeredito } from '../carrossel/regua';
 import type { Carrossel } from '../carrossel/types';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -276,10 +277,19 @@ async function main(): Promise<void> {
   // a arte NÃO pode devolver o card pra `dataProgramada` do .ts: isso jogava o
   // post pra uma semana passada e ele "sumia" do cronograma, que mostra uma
   // semana por vez. A data do arquivo só vale pra card NOVO.
+  // Casa o card anterior por TÍTULO **ou** pelo slug gravado no roteiro. Só por
+  // título não bastava: trocar o gancho mudava o título, o render não achava o
+  // card antigo e deixava os dois no board (aconteceu três vezes em 19/08/2026,
+  // e cada vez alguém teve que apagar na mão). O slug é o que não muda.
+  const mesmoCarrossel = or(
+    inArray(conteudoPosts.titulo, [car.titulo]),
+    sql`${conteudoPosts.roteiro}->>'slug' = ${slug}`,
+  );
+
   const [anterior] = await db
     .select({ dataProgramada: conteudoPosts.dataProgramada, estado: conteudoPosts.estado })
     .from(conteudoPosts)
-    .where(inArray(conteudoPosts.titulo, [car.titulo]))
+    .where(mesmoCarrossel)
     .limit(1);
   const dataProgramada = anterior?.dataProgramada ?? parseDataProgramada(car.dataProgramada);
   const estado = anterior?.estado ?? 'rascunho';
@@ -291,7 +301,7 @@ async function main(): Promise<void> {
     console.log(`[render] card já existia: mantendo agendamento (${quando}) e estado "${estado}".`);
   }
 
-  await db.delete(conteudoPosts).where(inArray(conteudoPosts.titulo, [car.titulo]));
+  await db.delete(conteudoPosts).where(mesmoCarrossel);
   const [row] = await db
     .insert(conteudoPosts)
     .values({
@@ -314,6 +324,11 @@ async function main(): Promise<void> {
     .returning({ id: conteudoPosts.id });
 
   console.log(`[render] OK — "${car.titulo}" pronto no board (card ${row?.id}). Dá refresh no /conteudo.`);
+
+  // A régua roda SEMPRE, no fim, e imprime o que falta por extenso. Não bloqueia
+  // nada: quem decide publicar card de nota baixa é o dono. Ela existe pra ele
+  // não precisar ser o primeiro a perguntar "isso não vai converter menos?".
+  console.log(formatarVeredito(avaliarGancho({ titulo: car.titulo, ctaFinal: car.ctaFinal }), car.titulo));
 }
 
 main().catch((err) => {

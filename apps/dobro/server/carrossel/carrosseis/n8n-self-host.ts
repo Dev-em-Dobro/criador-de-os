@@ -1,12 +1,34 @@
 /**
- * apps/dobro — carrossel do n8n auto-hospedado, com o eixo VIRADO PARA SERVIÇO
- * VENDÁVEL: qual automação montar, pra quem, e quanto cobrar.
+ * apps/dobro — carrossel do n8n, com o eixo na TESE DO DONO: quem ganha dinheiro
+ * com tecnologia é quem usa a tecnologia pra devolver tempo ou dinheiro pra outra
+ * pessoa. A ferramenta é meio, não assunto.
  *
- * MUDANÇA DE EIXO (pedido do dono, 15/08/2026): a versão anterior era "ferramenta
- * grátis que roda na sua máquina" e não falava de dinheiro em lugar nenhum. O
- * dono pediu exemplos práticos de uso e de quanto a pessoa poderia cobrar, com o
- * agente de agendamento pra clínica como exemplo âncora ("pelo menos 800 reais").
- * O post inteiro foi remontado em torno disso.
+ * REESCRITA (pedido do dono, 19/08/2026). O que mudou e por quê:
+ *   · A TESE virou o slide 2, antes de qualquer ferramenta. A versão anterior
+ *     abria apresentando o n8n, o que é conversa de dev. O público é quem quer
+ *     construir com IA (memória publico-alvo-vibe-code), e pra esse público o
+ *     assunto é o problema do cliente, não o software.
+ *   · Entrou a CONTA da clínica (slide 3), que é o coração do argumento: a clínica
+ *     grande deixa dinheiro na mesa em atendimento lento e em paciente que nunca
+ *     é chamado de volta. Sem esse número, "R$ 1.500" fica caro; com ele, barato.
+ *   · O 4º item do serviço deixou de ser "lembra na véspera" repetido e virou
+ *     "chama quem sumiu": o retorno que ninguém cobra, que o dono apontou como a
+ *     segunda fonte de perda.
+ *   · Entrou o comparativo (slide 7): o que ela paga × o que ela para de perder.
+ *     É a conta que fecha a venda, e é a resposta pra objeção do preço.
+ *   · O CTA saiu de "N8N" pra "FLUXO". A palavra do comentário precisa ser
+ *     pronunciável: "n8n" mistura letra e número, e cada pessoa que digita n8m,
+ *     nan ou N8 é um comentário que o robô não responde.
+ *   · O PRESENTE mudou de natureza (pedido do dono): NÃO ensina a conectar o n8n
+ *     no WhatsApp, que é complexo demais pra entregar em página. Ensina o que é o
+ *     n8n e como PLANEJAR o fluxo antes de abrir a ferramenta, que é a parte que
+ *     separa quem vende de quem só mexe.
+ *
+ * AIDA, slide a slide:
+ *   Atenção   1  a capa, com o número e o dinheiro
+ *   Interesse 2  a tese  ·  3 a conta que mostra o dinheiro parado
+ *   Desejo    4  o que você entrega  ·  5 dá pra montar sem código  ·  6 o preço
+ *   Ação      7  por que é barato pra ela  ·  8 o pedido
  *
  * ⚠️ PREÇO É AFIRMAÇÃO VERIFICÁVEL, e por isso não saiu da cabeça de ninguém.
  * Faixas conferidas em DUAS fontes brasileiras independentes (15/08/2026):
@@ -19,24 +41,21 @@
  *     "o dinheiro consistente está na operação mensal", com a mensalidade tendo
  *     que cobrir VPS (US$ 20 a 50 por cliente), consumo de API de IA, horas de
  *     suporte e margem.
- * O R$ 1.500 do título (o dono subiu de 800 pra 1.500 em 17/08/2026) cai no MEIO
- * da faixa intermediária das duas fontes, R$ 900 a R$ 2.500, que é onde o serviço
- * de fato mora: o agendamento da clínica tem várias integrações, decisão no meio
- * do fluxo e notificação por WhatsApp, e não a "integração básica entre dois
- * sistemas" da faixa simples. O 800 anterior era o piso da simples, escolhido por
- * conservadorismo; 1.500 é o preço honesto do que está sendo descrito, e continua
- * abaixo do teto da faixa. Os outros slides falam do serviço pela faixa MÉDIA.
+ * O R$ 1.500 cai no MEIO da faixa intermediária das duas fontes.
+ *
+ * ⚠️ A CONTA DA CLÍNICA É EXEMPLO, E O SLIDE DIZ ISSO. Não existe pesquisa citada
+ * ali: são 300 pacientes por semana, 1 em cada 10 faltando e ticket de R$ 200,
+ * declarados como exemplo no próprio corpo do slide. É aritmética à vista, não
+ * alegação de mercado. Se algum dia entrar um número de fonte (taxa real de falta
+ * em consulta odontológica, por exemplo), ele precisa vir com a fonte no briefing.
  *
  * FATOS DA FERRAMENTA, NA FONTE PRIMÁRIA (15/08/2026):
  *   · n8n-io/n8n, 200.765 estrelas, TypeScript, push no mesmo dia
  *   · a licença NÃO é open source padrão: é modelo fair-code, sob Sustainable
  *     Use License e n8n Enterprise License (a API do GitHub devolve NOASSERTION).
- *     O carrossel diz "código aberto pra ler e hospedar", nunca "open source".
- *   · docs.n8n.io: duas formas de uso, Cloud gerenciado e Self-hosted; sobre a
- *     Community, LITERAL: "You can stick with the basic Community edition for
- *     free, indefinitely" e "self-hosting with almost the complete feature set".
- *     A Registered Community, também gratuita, acrescenta pastas, depuração no
- *     editor e dados de execução customizados.
+ *     Nenhum slide usa o termo "open source".
+ *   · docs.n8n.io: sobre a Community, LITERAL: "You can stick with the basic
+ *     Community edition for free, indefinitely".
  *   · o comando de instalação e o endereço do editor (localhost:5678) NÃO entram
  *     em slide: vivem no presente (ver memória carrossel-lacuna-do-endereco).
  *   · número de integrações NÃO é afirmado: o README diz 1500+ e a descrição do
@@ -48,118 +67,209 @@ import type { Carrossel } from '../types';
 
 export const n8nSelfHost: Carrossel = {
   slug: 'n8n-self-host',
-  titulo: 'A automação que você monta de graça e vende por R$ 1.500',
-  gancho: 'Dá pra montar uma automação de graça na sua máquina e vender ela por R$ 1.500.',
-  dataProgramada: '2026-08-18',
+  titulo: 'O n8n é de graça. O cliente paga R$ 1.500.',
+  gancho:
+    'O n8n é de graça e o cliente paga R$ 1.500, porque pra ele isso ainda é barato.',
+  dataProgramada: '2026-08-19',
   refsLinks:
     'https://docs.n8n.io/choose-how-to-use-n8n/ (Community gratuita, indefinidamente)\n' +
-    'https://github.com/n8n-io/n8n (README: comandos, fair-code, Sustainable Use License)\n' +
+    'https://github.com/n8n-io/n8n (README: fair-code, Sustainable Use License)\n' +
     'https://www.horadecodar.com.br/quanto-cobrar-automacao-n8n/ (faixas de preço no Brasil)\n' +
     'https://automacaohoje.com/guias/automacao-como-servico-agencia-n8n/ (14/07/2026, faixas e modelo mensal)',
   /**
-   * Presente do "comenta N8N" (Notion, 15/08/2026): o comando pra subir na
-   * máquina, o desenho do fluxo do agendamento passo a passo, a tabela de preço
-   * com as fontes e o roteiro de como oferecer pra primeira clínica.
+   * Presente do "comenta FLUXO" — REFAZER NO NOTION (19/08/2026). O presente
+   * antigo ensinava a subir o n8n e desenhava o fluxo do agendamento passo a
+   * passo; o dono cortou isso porque conectar n8n ao WhatsApp é complexo demais
+   * pra caber numa página e frustra quem chega do zero.
    *
-   * LINK PRIVADO: trocar pelo `.notion.site` depois de Compartilhar > Publicar.
-   * PENDENTE: colar o link de inscrição do DevQuest no lugar do placeholder.
+   * O presente novo tem três partes, na ordem:
+   *   1. O que é o n8n em um minuto: pra que serve, por que é de graça, e o que
+   *      você vê quando abre (sem comando de instalação como pré-requisito).
+   *   2. O mapa pra planejar o fluxo ANTES de abrir a ferramenta: as quatro peças
+   *      (gatilho, dado, decisão, ação) com um exemplo preenchido e um em branco.
+   *   3. As cinco perguntas de diagnóstico que revelam onde o cliente perde
+   *      dinheiro, mais a conta pronta pra transformar a resposta em proposta.
+   *
+   * Página criada em 19/08/2026. O presente ANTIGO continua existindo em
+   * /p/3bd6dd01fb4881359911fd3f83db4351 (o que ensinava a subir o n8n e desenhava
+   * o fluxo do agendamento caixa por caixa); ele não foi apagado, só saiu do card.
+   *
+   * PENDENTE na página nova: o link de inscrição do DevQuest, que está como
+   * placeholder no último bloco.
    */
-  linkPresente: 'https://app.notion.com/p/3bd6dd01fb4881359911fd3f83db4351',
+  linkPresente: 'https://app.notion.com/p/3c16dd01fb488150a6dec3d4078a4310',
+  /**
+   * Capa gerada pelo dono em 19/08/2026, na família "personagem que encarna o
+   * conceito" (a mesma do gambá do 7-repos e do macaco do cara-de-caro): preguiça
+   * de terno e óculos escuros contando dinheiro na cadeira do dentista. A preguiça
+   * é o "sem escrever código" e a cadeira amarra com o exemplo do slide 3.
+   *
+   * O arquivo já veio em 4:5 com o bicho nos dois terços de cima e o rodapé
+   * escuro e vazio, que é exatamente o que o scrim do template espera.
+   */
+  bgImage: 'server/carrossel/assets/n8n-self-host/capa.png',
   slides: [
     {
       variant: 'photo',
       cover: true,
-      semFundo: true,
       baixo: true,
-      // Quebras curtas de propósito: a 36.8px cabem ~15 caracteres por linha, e
-      // as linhas antigas ("você monta de graça", "e vende por R$ 800") passavam
-      // disso e quebravam sozinhas de novo, deixando "graça" solta numa linha e,
-      // pior, separando "R$" do número. Cada linha aqui cabe inteira.
-      titulo: 'A automação que\nvocê monta de\ngraça e vende\npor **R$ 1.500**',
-      subtitulo: 'A clínica perde consulta porque ninguém atende o WhatsApp.',
+      // Título 30% menor (25.8px), como nas duas capas campeãs da conta (gambá do
+      // 7-repos e macaco do cara-de-caro). No primeiro render a 36.8px o texto
+      // subia até o meio do slide e cobria o maço de dinheiro nas mãos da
+      // preguiça, que é justamente o que faz a cena significar alguma coisa.
+      tituloMenor: true,
+      // GANCHO TROCADO em 19/08/2026. O anterior era "A automação que você monta
+      // sem código e vende por R$ 1.500": linear, 57 caracteres, e sem o "de
+      // graça", que é o traço com maior lift medido nos 150 carrosséis da conta.
+      //
+      // Os campeões de dinheiro daqui não enfileiram, CONTRASTAM: "Enquanto você
+      // brinca com IA, outros ganham de R$ 2.000 a R$ 5.000", "Transcrição custa
+      // R$ 225 a hora e o seu PC faz de graça", "7 repos que substituem software
+      // pago". Sempre o caro de um lado e o grátis do outro. A assimetria é a
+      // tese deste post, e estava fora da capa.
+      //
+      // Agora tem os quatro traços de uma vez: "de graça", contraste, número e
+      // título curto (45 caracteres). O "sem código" não se perdeu, desceu pro
+      // subtítulo. Quebras curtas de propósito: a 36.8px cabem ~15 caracteres por
+      // linha, e "R$" nunca se separa do número.
+      // NOME PRÓPRIO na capa, medido em 19/08/2026 sobre os 150 carrosséis:
+      // título com nome de ferramenta (Claude, n8n, GitHub, MCP) tem mediana de
+      // 50,5 salv/1k, 17,2 com/1k e 22 SEGUIDORES; com termo genérico (IA,
+      // automação, código) cai pra 14,2 / 3,2 / 1 seguidor; e sem âncora nenhuma,
+      // 12,3 / 4,5 / ZERO. Categoria não dá o que salvar, nome próprio dá.
+      //
+      // A versão anterior ("Você monta de graça. O cliente paga R$ 1.500") caía
+      // na terceira faixa. Mantém o contraste, o "de graça", o número e as três
+      // linhas; troca só o sujeito por quem tem nome.
+      titulo: 'O n8n é de graça.\nO cliente paga\n**R$ 1.500**',
+      // Subtítulo é TENSÃO, nunca argumento (memória subtitulo-da-capa-e-tensao).
+      // "E ele ainda acha barato" é a curiosidade que só fecha no slide 7.
+      subtitulo: 'Sem escrever uma linha de código. E ele ainda acha barato.',
       swipe: 'Deslize e veja ›',
     },
     {
-      variant: 'light',
-      layout: 'center',
-      eyebrow: 'A ferramenta',
-      titulo: 'Chama **n8n**, e roda\nna sua máquina',
+      variant: 'dark',
+      topIcon: 'ai',
+      eyebrow: 'A virada',
+      titulo: 'Ninguém paga pela\n**ferramenta**',
       corpo:
-        'Você monta a automação **arrastando caixas**, sem escrever código. A edição Community é **gratuita, sem prazo**, e você hospeda no seu próprio computador ou servidor.',
-      // O ícone genérico de `loop` saiu e entrou o logo da própria ferramenta
-      // (pedido do dono, 17/08/2026): o slide apresenta o n8n pelo nome, então a
-      // marca fecha a apresentação melhor que um símbolo qualquer.
-      //
-      // A primeira escolha do dono era um print de automação de agendamento no
-      // n8n, e eu não consegui um decente: os templates de agendamento no
-      // n8n.io são pagos, o preview do canvas vem em baixa (1415x314, ilegível
-      // ampliado) e o banner de cookies do site cobre a tela no headless. Se
-      // aparecer um print bom, é só trocar `selo` por `imagem` aqui.
-      //
-      // Arquivo oficial (assets/n8n-logo.png do repositório n8n-io/n8n) montado
-      // num cartão branco 1200x784. O logo cru NÃO serve aqui: o bloco `.selo`
-      // dimensiona pela ALTURA (auto 62%), então uma arte larga feito um logo
-      // (458x124) vira gigante e sai cortada nas laterais. Com a margem em volta,
-      // a proporção do arquivo fica perto da do bloco e ele entra inteiro.
+        'Pagam pelo que ela devolve: **tempo** ou **dinheiro**. Quem ganha com tecnologia é quem resolve o problema de outra pessoa com ela. O resto é hobby.',
+      // Callout DEPOIS do corpo, e SEM citar a clínica: aqui ela ainda não foi
+      // apresentada (a capa fala de automação e preço, não de cliente), e entrar
+      // com "nenhuma clínica quer um robô" soa como continuação de uma conversa
+      // que o leitor não teve. O exemplo da clínica só nasce no slide 3, com
+      // artigo indefinido, que é o que apresenta.
+      calloutLabel: 'Traduzindo',
+      callout: 'Ninguém compra um robô. Compram o problema resolvido.',
+      calloutDepois: true,
+    },
+    {
+      variant: 'light',
+      // O eyebrow é a PRIMEIRA linha lida do slide, e é onde o exemplo se
+      // apresenta: a pessoa sabe que vem uma clínica odontológica antes de ler
+      // "uma clínica perde". Era "Onde o dinheiro vaza", que anunciava o assunto
+      // mas não o caso.
+      eyebrow: 'Exemplo: clínica odontológica',
+      // "Uma clínica", não "A clínica": é aqui que o exemplo é APRESENTADO. O
+      // artigo definido pressupunha uma clínica que o leitor nunca viu.
+      titulo: 'Uma clínica perde\nna **cadeira vazia**',
+      terminal: [
+        '300 pacientes por semana',
+        '1 em cada 10 falta   → 30 cadeiras vazias',
+        'ticket de R$ 200     → R$ 6 mil na semana',
+        'no mês               → R$ 24 mil parados',
+      ],
+      corpo:
+        'Números de exemplo, e a conta é essa. Ninguém na recepção tem tempo de ligar pra 30 pessoas, nem de chamar quem sumiu há seis meses.',
+    },
+    {
+      variant: 'purple',
+      eyebrow: 'O que roda sozinho',
+      titulo: 'O que você entrega\npra ela',
+      // Quatro itens, sub de uma linha (memória slide-com-4-itens-nao-cabe-corpo).
+      itens: [
+        { icone: 'chat', titulo: 'Responde na hora', sub: 'Mensagem de madrugada não espera até segunda' },
+        { icone: 'map', titulo: 'Marca na agenda', sub: 'Confere o horário livre e grava a consulta' },
+        { icone: 'loop', titulo: 'Lembra na véspera', sub: 'É o lembrete que derruba a falta' },
+        { icone: 'follow', titulo: 'Chama quem sumiu', sub: 'Paciente sem retorno há meses recebe convite' },
+      ],
+    },
+    {
+      variant: 'light',
+      eyebrow: 'A ferramenta',
+      // Título é o NOME, e o subtítulo diz o que ele faz numa frase: é o uso que
+      // o `subtitulo` tem fora da capa (ver types.ts).
+      titulo: 'Chama **n8n**',
+      subtitulo: 'Você monta arrastando caixas, sem escrever uma linha de código.',
+      corpo:
+        'A edição Community é **gratuita, sem prazo**, e roda no seu computador ou num servidor barato. Não precisa saber programar pra montar o primeiro fluxo.',
+      // Logo oficial montado num cartão branco: o bloco `.selo` dimensiona pela
+      // ALTURA, então o logo cru (458x124) viraria gigante e sairia cortado.
       selo: 'server/carrossel/assets/n8n-self-host/n8n-card.png',
       seloFundo: '#ffffff',
     },
     {
       variant: 'dark',
-      layout: 'center',
-      icone: 'bookmark',
-      titulo: 'Salva esse post\npra montar depois',
-      corpo: 'O serviço, o fluxo e a tabela de preço vêm nos próximos slides.',
-    },
-    {
-      variant: 'purple',
-      eyebrow: 'O serviço que vende sozinho',
-      titulo: 'Agendamento pra clínica',
-      // Quatro itens, sub de uma linha (memória slide-com-4-itens-nao-cabe-corpo).
-      itens: [
-        { icone: 'instagram', titulo: 'Chega mensagem no WhatsApp', sub: 'Pedindo horário, de madrugada, com a clínica fechada' },
-        { icone: 'ai', titulo: 'A IA lê e entende o pedido', sub: 'Texto ou áudio, e responde na hora, em português' },
-        { icone: 'map', titulo: 'Olha a agenda e marca', sub: 'Confere o horário livre e grava a consulta' },
-        { icone: 'loop', titulo: 'Lembra o paciente na véspera', sub: 'É o que derruba a falta, e é o que a clínica sente' },
-      ],
-    },
-    {
-      variant: 'light',
-      denso: true,
       eyebrow: 'Salva esse slide',
       titulo: 'Quanto **cobrar**',
-      // Uma linha por faixa, curta: a 1ª versão quebrava a coluna da direita e
-      // o alinhamento em espaços virava escada (conferido no PNG do 1º render).
-      terminal: [
-        'SIMPLES   R$ 400 a 900     2 sistemas',
-        'MÉDIA     R$ 900 a 2.500   com decisão',
-        'COM IA    R$ 2.500+        agente que responde',
-        'MENSAL    a combinar       manutenção',
+      // Era um bloco de terminal com quatro linhas ("SIMPLES R$ 400 a 900 / 2
+      // sistemas"), e o dono derrubou por dois motivos: a fonte do terminal é
+      // pequena demais pro número, que é o que interessa aqui, e as descrições
+      // estavam resumidas a ponto de não explicar nada ("2 sistemas", "com
+      // decisão", "agente que responde").
+      //
+      // Como itens, o VALOR vira o título do item (grande) e a explicação ganha
+      // uma frase inteira, com exemplo concreto. Três itens, não quatro, pra
+      // sobrar espaço pro corpo levar a âncora do R$ 1.500.
+      //
+      // FIDELIDADE À FONTE: a faixa de cima é definida pelos dois guias como
+      // "várias plataformas, APIs externas, notificação por WhatsApp", NÃO por
+      // ter IA. O texto anterior dizia "COM IA / agente que responde", que era
+      // interpretação nossa em cima do número da fonte. Corrigido.
+      itens: [
+        {
+          icone: 'loop',
+          titulo: 'R$ 400 a 900',
+          sub: 'Liga dois sistemas e acabou: chegou formulário no site, cai na planilha e te avisa',
+        },
+        {
+          icone: 'puzzle',
+          titulo: 'R$ 900 a 2.500',
+          sub: 'Vários sistemas juntos, e o fluxo decide sozinho o que fazer com cada caso',
+        },
+        {
+          icone: 'ai',
+          titulo: 'R$ 2.500 ou mais',
+          sub: 'Muita peça conectada, com aviso no WhatsApp e plano pra quando algo falha',
+        },
       ],
       corpo:
-        'Faixas praticadas no mercado brasileiro em 2026, segundo dois guias de precificação. **O agendamento da clínica fica na média, uns R$ 1.500**, e sobe conforme o que você plugar nele.',
-    },
-    {
-      variant: 'dark',
-      denso: true,
-      eyebrow: 'A parte que serve pra tudo',
-      titulo: 'A anatomia de\n**qualquer** automação',
-      terminal: [
-        '1. GATILHO  → o que dispara (mensagem, horário)',
-        '2. DADO     → de onde vem (agenda, planilha, API)',
-        '3. DECISÃO  → o que fazer (filtrar, classificar)',
-        '4. AÇÃO     → onde termina (responde, marca, avisa)',
-      ],
-      corpo:
-        'Troque as quatro peças e o mesmo fluxo vira outro serviço: **orçamento que some**, lead que ninguém responde, relatório que ninguém monta.',
+        'Faixas praticadas no Brasil em 2026, segundo dois guias de precificação. **O agendamento da clínica é o do meio, uns R$ 1.500.** A manutenção mensal se cobra à parte.',
     },
     {
       variant: 'light',
-      eyebrow: 'Um aviso honesto',
-      titulo: 'De graça pra você,\nnão pro **cliente**',
+      eyebrow: 'A conta que fecha a venda',
+      titulo: 'Por que R$ 1.500 é\n**barato** pra ela',
+      // As duas colunas são lidas EM PARES, linha a linha. A primeira versão
+      // quebrava uma frase única em três linhas do lado direito ("R$ 24 mil" /
+      // "em cadeira vazia" / "todo mês"), e no PNG cada pedaço ganhou seu próprio
+      // ✓, virando três itens que não pareavam com nada à esquerda. Agora cada
+      // linha da esquerda tem a resposta dela na mesma altura, à direita.
+      versus: {
+        ruim: { rotulo: 'O que ela paga', linhas: ['R$ 1.500 uma vez', 'mais a manutenção'] },
+        bom: { rotulo: 'O que ela recupera', linhas: ['R$ 24 mil por mês', 'todo mês, sozinho'] },
+      },
       corpo:
-        'O n8n não cobra por execução, mas a operação tem custo: **servidor de pé, atualização, backup** e, se tiver IA no meio, a conta do modelo. Isso entra na sua mensalidade, não no seu prejuízo.\n\n' +
-        'E o preço não é pela sua hora, é pelo que a clínica **para de perder**.',
+        'Seu preço não é pela sua hora. É por **uma fração do que ela deixa de perder** enquanto ninguém responde.',
+      // Fechamento pedido pelo dono (19/08/2026): o argumento não para em "1.500
+      // é barato", ele estica até o teto. R$ 10 mil NÃO é número inventado pra
+      // impressionar: é o topo da faixa avançada nos dois guias de precificação
+      // (R$ 2.500 a R$ 10.000 ou mais), e a frase é condicional de propósito
+      // ("dependendo do negócio"), porque o que sustenta o preço é o tamanho do
+      // que o cliente deixa de perder, não a automação em si.
+      calloutLabel: 'Ou seja',
+      callout: 'Se você cobrasse R$ 10 mil por essa automação, dependendo do negócio o cliente ainda paga feliz.',
+      calloutDepois: true,
     },
     {
       variant: 'grafite',
@@ -167,65 +277,68 @@ export const n8nSelfHost: Carrossel = {
       fotoTopo: true,
       logo: 'Dev em Dobro',
       handle: '@devemdobro',
-      titulo: 'Quer o fluxo e a\ntabela de preço?',
-      botao: 'Comenta N8N 👇',
+      titulo: 'Quer montar o\nseu primeiro?',
+      botao: 'Comenta FLUXO 👇',
       corpo:
-        'Te mando o comando pra subir na sua máquina, o fluxo do agendamento desenhado passo a passo e a tabela de quanto cobrar em cada tipo de automação.',
+        'Te mando o que é o n8n em um minuto, o mapa pra planejar o fluxo antes de abrir a ferramenta e as 5 perguntas que revelam onde o cliente está perdendo dinheiro.',
       foto: 'server/carrossel/assets/founders-bg.webp',
     },
   ],
-  // Legenda pela METADE e 5 hashtags: padrão novo pedido pelo dono em 17/08/2026.
-  // O que saiu daqui não se perdeu, está nos slides e no presente: o detalhe das
-  // quatro faixas de preço, o custo de operação e o "o preço é pelo que o cliente
-  // para de perder".
+  // Legenda pela METADE e 5 hashtags (padrão do dono, 17/08/2026). A linha
+  // "Segue @devemdobro..." NÃO entra aqui: ela é montada na hora pela
+  // descricao-insta.ts, e o pipeline proíbe gravá-la na legenda.
   legenda:
-    'Comenta N8N que eu te mando o fluxo e a tabela de preço. 🤖\n\n' +
-    'Toda clínica pequena perde consulta pelo mesmo motivo: chega mensagem no WhatsApp fora do horário, ninguém ' +
-    'responde, e no dia seguinte a pessoa já marcou em outro lugar.\n\n' +
-    'A ferramenta que conserta isso chama n8n. Você monta o fluxo arrastando caixas, sem escrever código, e a ' +
-    'edição Community é gratuita por tempo indeterminado, rodando na sua máquina.\n\n' +
-    'O fluxo: chega a mensagem, a IA lê e entende, olha a agenda, marca o horário e manda o lembrete na véspera, ' +
-    'que é o que derruba a falta.\n\n' +
-    'Quanto cobrar, segundo os guias de precificação brasileiros de 2026: simples R$ 400 a 900, média R$ 900 a ' +
-    '2.500, com agente de IA a partir de R$ 2.500. O agendamento da clínica fica na média, uns R$ 1.500.\n\n' +
-    'Comenta N8N que eu te mando o comando, o fluxo desenhado passo a passo e a tabela de preço. 👇',
+    'Comenta FLUXO que eu te mando o mapa pra planejar a sua primeira automação. 🤖\n\n' +
+    'Quem ganha dinheiro com tecnologia não é quem sabe mexer na ferramenta. É quem usa a ferramenta pra devolver ' +
+    'tempo ou dinheiro pra outra pessoa.\n\n' +
+    'Pensa numa clínica grande, com centenas de pacientes por semana. Se 1 em cada 10 falta e o ticket é de R$ 200, ' +
+    'são uns R$ 24 mil parados por mês em cadeira vazia. E ninguém na recepção tem tempo de ligar pra 30 pessoas, ' +
+    'nem de chamar quem sumiu há seis meses.\n\n' +
+    'A automação que resolve isso você monta arrastando caixas no n8n, sem escrever código. Ela responde na hora, ' +
+    'marca na agenda, lembra na véspera e chama quem sumiu.\n\n' +
+    'Quanto cobrar: os guias brasileiros de 2026 colocam esse tipo de fluxo entre R$ 900 e R$ 2.500. Uns R$ 1.500. ' +
+    'Pra ela, é uma fração do que para de perder.\n\n' +
+    'Comenta FLUXO aqui embaixo. 👇',
   // Cinco, uma de cada função: nicho exato, categoria, alcance, intenção, marca.
   hashtags: 'n8n automacao inteligenciaartificial freelancer devemdobro',
   ctaFinal:
-    'Comenta N8N que eu te mando o comando pra subir na sua máquina, o fluxo do agendamento desenhado passo a passo e a tabela de quanto cobrar em cada tipo de automação.',
+    'Comenta FLUXO que eu te mando o que é o n8n em um minuto, o mapa pra planejar o fluxo antes de abrir a ferramenta e as 5 perguntas que revelam onde o cliente está perdendo dinheiro.',
   briefing:
-    'EIXO NOVO (pedido do dono, 15/08/2026): sai "ferramenta grátis que roda na sua máquina", entra "monta de graça e ' +
-    'vende". O dono pediu exemplos práticos de uso e de quanto cobrar, e deu o exemplo âncora: agente de agendamento ' +
-    'pra clínica, pelo menos R$ 800 (o dono subiu esse âncora pra R$ 1.500 em 17/08/2026).\n\n' +
+    'TESE DO DONO (19/08/2026), e é o eixo do post inteiro: quem ganha dinheiro com tecnologia é quem usa ela pra ' +
+    'ajudar OUTRAS pessoas a terem mais resultado, seja mais tempo ou mais dinheiro. A ferramenta é meio, não ' +
+    'assunto. Por isso a tese vem no slide 2, antes do n8n aparecer.\n\n' +
+    'O EXEMPLO ÂNCORA: clínica odontológica grande, centenas de pacientes por semana. Ela deixa dinheiro na mesa em ' +
+    'dois lugares: atendimento lento (mensagem que ninguém responde) e retorno que ninguém cobra (paciente que ' +
+    'sumiu e nunca é chamado de volta). Uma automação montada sem saber programar resolve os dois, e vale no mínimo ' +
+    'R$ 1.500 pra quem monta. Pra clínica é barato, porque o que está parado é ordem de grandeza maior.\n\n' +
+    'A CONTA DO SLIDE 3 É EXEMPLO DECLARADO, não pesquisa: 300 pacientes por semana, 1 em cada 10 faltando, ticket ' +
+    'de R$ 200, dá R$ 24 mil por mês. O próprio slide diz "números de exemplo". Nenhum número de fonte é alegado ' +
+    'ali. Se um dia entrar taxa real de falta, tem que vir com a fonte.\n\n' +
     'PREÇOS CONFERIDOS EM DUAS FONTES INDEPENDENTES (15/08/2026), porque preço é afirmação verificável:\n' +
-    '  · horadecodar.com.br ("Quanto cobrar automação n8n"): simples R$ 400 a 900; intermediária R$ 900 a 2.500; ' +
-    'avançada R$ 2.500 a 10.000 ou mais.\n' +
-    '  · automacaohoje.com (14/07/2026): mesmas faixas iniciais, e "o dinheiro consistente está na operação mensal". ' +
-    'A mensalidade tem que cobrir VPS (US$ 20 a 50 por cliente), consumo de API de IA, horas de suporte e margem.\n' +
-    'O R$ 1.500 do título (o dono subiu de 800 pra 1.500 em 17/08/2026) cai no meio da faixa intermediária das duas ' +
-    'fontes, R$ 900 a R$ 2.500, que é onde o serviço mora de verdade: várias integrações, decisão no meio do fluxo e ' +
-    'notificação por WhatsApp. O 800 era o piso da faixa simples.\n\n' +
-    'OUTROS SERVIÇOS VENDÁVEIS COM O MESMO FLUXO (estão no presente, e servem de pauta pra outros posts):\n' +
-    '  1. Agendamento pra clínica, salão, barbearia ou consultório: WhatsApp + agenda + lembrete na véspera. ' +
-    'R$ 800 a R$ 2.500, e o argumento de venda é a falta que deixa de acontecer.\n' +
-    '  2. Qualificação de lead: formulário chega, a IA classifica, o quente vai pro CRM e o vendedor é avisado na ' +
-    'hora. O guia da automacaohoje cita um fluxo desses que poupa 20 horas mensais de um vendedor.\n' +
-    '  3. Orçamento que some: cliente pediu, ninguém respondeu. O fluxo cobra sozinho em 24h, 3 dias e 7 dias.\n' +
-    '  4. Relatório de segunda: junta os números da semana e entrega pronto no WhatsApp do dono. Faixa simples, ' +
-    'R$ 400 a 900, e é a porta de entrada mais fácil de vender.\n' +
-    '  5. Onboarding de cliente novo: contrato assinado dispara pastas, e-mail de boas-vindas e a call agendada.\n\n' +
-    'FERRAMENTA, NA FONTE PRIMÁRIA: n8n-io/n8n com 200.765 estrelas; Community "free, indefinitely" com "almost the ' +
-    'complete feature set" (docs.n8n.io); modelo fair-code sob Sustainable Use License, que NÃO é open source padrão, ' +
-    'por isso nenhum slide usa esse termo; número de integrações não é citado porque o README (1500+) e a descrição ' +
-    'do repositório (400+) se contradizem.\n\n' +
-    'A LACUNA: o comando de instalação e o localhost:5678 não aparecem em slide nenhum, só no presente.\n\n' +
+    '  · horadecodar.com.br: simples R$ 400 a 900; intermediária R$ 900 a 2.500; avançada R$ 2.500 a 10.000+.\n' +
+    '  · automacaohoje.com (14/07/2026): mesmas faixas, e "o dinheiro consistente está na operação mensal".\n' +
+    'O R$ 1.500 cai no meio da faixa intermediária das duas fontes, que é onde esse serviço mora.\n\n' +
+    'A PALAVRA DO CTA MUDOU DE N8N PRA FLUXO: palavra de comentário precisa ser pronunciável. As que renderam na ' +
+    'conta foram HACKER, GRANA, JARVIS, TIMES, PASTA, DESIGN, REPO. "N8N" mistura letra e número e cada pessoa que ' +
+    'digita n8m, nan ou N8 é um comentário que o robô não responde.\n\n' +
+    'PRESENTE (refazer no Notion): NÃO ensina a conectar n8n no WhatsApp, que é complexo demais pra página e ' +
+    'frustra quem chega do zero. Ensina, nesta ordem: (1) o que é o n8n em um minuto, (2) o mapa das quatro peças ' +
+    'pra planejar o fluxo ANTES de abrir a ferramenta, com um exemplo preenchido e um em branco, (3) as cinco ' +
+    'perguntas de diagnóstico que revelam onde o cliente perde dinheiro, com a conta pronta pra virar proposta.\n\n' +
+    'A LACUNA: as quatro peças do fluxo saíram dos slides de propósito e viraram o miolo do presente. É o que dá ' +
+    'razão pro CTA existir (memória carrossel-lacuna-do-endereco).\n\n' +
+    'OUTROS SERVIÇOS COM O MESMO FLUXO (pauta pra outros posts): qualificação de lead; orçamento que some, com ' +
+    'cobrança automática em 24h, 3 e 7 dias; relatório de segunda pronto no WhatsApp do dono; onboarding de cliente ' +
+    'novo disparando pastas, e-mail e call.\n\n' +
+    'AUXÍLIO VISUAL EM TODO SLIDE (pedido do dono, 19/08/2026): eyebrow anunciando o que vem, ícone no slide da ' +
+    'tese, quatro ícones no slide do serviço, logo do n8n no slide da ferramenta, bloco de terminal com seta nos ' +
+    'slides 3 e 6, comparativo de duas colunas no 7 e o swipe na capa.\n\n' +
     'FURA A BOLHA\n' +
-    'Regra 1 (capa pro dedo): tem número, tem dinheiro e tem a dor da clínica no subtítulo.\n' +
-    'Regra 2 (o slide 2 confirma): a ferramenta é de graça e roda na sua máquina.\n' +
-    'Regra 3 (slide sozinho): o serviço, a tabela, a anatomia, o aviso.\n' +
-    'Regra 4 (salvável): o slide da tabela de preço, que é o mais salvável que a conta já fez.\n' +
-    'Regra 5 (CTA único): comenta N8N.\n\n' +
-    'SEMANA DE CARRINHO DO DEVQUEST (17 a 21/08): o carrossel não vende curso. A matrícula aparece só no presente, ' +
-    'sem o GIF do GTA 6.\n\n' +
-    'PENDENTE ANTES DE PUBLICAR: arte de capa (hoje é o gradiente de fallback) e o link de inscrição do DevQuest.',
+    'Regra 1 (capa pro dedo): o contraste "de graça x R$ 1.500", que é a tese do post na primeira linha.\n' +
+    'Regra 2 (o slide 2 confirma): a tese, que é a promessa da capa dita por extenso.\n' +
+    'Regra 3 (slide sozinho): a conta, o serviço, a ferramenta, o preço, o comparativo.\n' +
+    'Regra 4 (salvável): o slide do preço, marcado com "salva esse slide".\n' +
+    'Regra 5 (CTA único): comenta FLUXO.\n\n' +
+    'PENDENTE ANTES DE PUBLICAR: arte de capa (hoje é o gradiente de fallback) e a página nova do presente no ' +
+    'Notion, com o link trocado em linkPresente.',
 };
