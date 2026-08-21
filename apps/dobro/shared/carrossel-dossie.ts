@@ -43,7 +43,12 @@
  * a MESMA medição, e precisam ser atualizados juntos.
  */
 
-import type { DossieSecao, Fonte } from './dossie-tipos';
+// `.js` obrigatório: tudo em `shared/` entra na cadeia da function da Vercel, que
+// builda como ESM nodenext. Este import é só de TIPO e some na compilação, então
+// a falta da extensão não quebrou o runtime — mas o build da Vercel reportou o
+// erro (TS2835) e bastaria alguém importar um VALOR daqui para virar
+// ERR_MODULE_NOT_FOUND em produção. O typecheck local usa `bundler` e não pega.
+import type { DossieSecao, Fonte } from './dossie-tipos.js';
 
 export const CARROSSEL_DOSSIE: DossieSecao[] = [
   // ============================================================

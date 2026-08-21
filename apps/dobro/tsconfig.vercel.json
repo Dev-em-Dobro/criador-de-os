@@ -1,0 +1,21 @@
+{
+  // Replica a resolução de módulo que a VERCEL usa ao buildar a function
+  // (`api/index.ts`), que é ESM nodenext. É o que o `tsconfig.node.json` NÃO faz:
+  // ele usa `bundler`, onde import relativo sem extensão é válido, e por isso o
+  // `pnpm typecheck` passa enquanto a produção quebra com ERR_MODULE_NOT_FOUND.
+  //
+  // `files` (e não `include`) de propósito: o programa começa no entry da function
+  // e puxa só o que ela realmente importa. Os scripts de `server/scripts/` ficam
+  // de fora porque rodam via tsx local e nunca entram no bundle da function.
+  //
+  // Rode por `pnpm check:function`, que filtra só o erro de extensão (TS2835).
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "jsx": "react-jsx"
+  },
+  "files": ["api/index.ts"]
+}
