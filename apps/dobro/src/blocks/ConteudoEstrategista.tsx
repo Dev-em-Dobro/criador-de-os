@@ -40,11 +40,12 @@ import {
   CARROSSEL_DOSSIE_EM,
   CARROSSEL_DOSSIE_TOTAL,
 } from '../../shared/carrossel-dossie';
+import { FUNIL_DOSSIE, FUNIL_FONTES, FUNIL_DOSSIE_EM, FUNIL_DOSSIE_TOTAL } from '../../shared/funil-dossie';
 import { CONFIANCA_LABEL, type Confianca, type DossieSecao, type Fonte } from '../../shared/dossie-tipos';
 
 type Row = Record<string, unknown>;
 /** Qual frente a aba está mostrando. */
-type Foco = 'carrossel' | 'yap';
+type Foco = 'carrossel' | 'yap' | 'funil';
 interface ConteudoEstrategistaConfig {
   meta?: Meta;
   foco?: Foco;
@@ -241,6 +242,7 @@ function FocoToggle({ foco, onChange }: { foco: Foco; onChange: (f: Foco) => voi
   const opcoes: ReadonlyArray<[Foco, string]> = [
     ['carrossel', '🎠 Carrossel'],
     ['yap', '🎙️ Reels · Yap'],
+    ['funil', '🔻 Funil'],
   ];
   return (
     <div className="inline-flex rounded-xl border border-gray-700 bg-gray-900/40 p-1">
@@ -422,6 +424,39 @@ function GuiaYap() {
 }
 
 /**
+ * O cardápio de formatos por etapa do funil.
+ *
+ * É o único dos três que NÃO tem número nosso: é repertório emprestado de uma
+ * referência, para quando a pauta já está definida e falta escolher a embalagem.
+ * O aviso no topo diz isso na cara, porque a diferença entre "medido aqui" e
+ * "boa ideia de outra pessoa" é justamente o que este sistema inteiro existe
+ * para não deixar borrar.
+ */
+function GuiaFunil() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.05] px-4 py-3">
+        <p className="text-[12.5px] leading-relaxed text-gray-300">
+          Isto é <span className="font-semibold text-amber-200">cardápio, não régua</span>. Nada aqui foi medido na
+          nossa conta: veio de uma referência que o dono mandou, e serve para quando a pauta já está decidida e falta
+          escolher a EMBALAGEM. A lista de formatos veio inteira do vídeo; a etapa de cada um só está confirmada onde
+          o selo diz <span className="text-sky-300/90">indício</span>. Onde diz{' '}
+          <span className="text-amber-300/90">hipótese nossa</span>, a etapa é leitura nossa e ainda precisa do seu
+          aval.
+        </p>
+      </div>
+
+      <ListaDossie
+        secoes={FUNIL_DOSSIE}
+        abrirPorPadrao={['topo', 'meio', 'fundo', 'nosso-buraco']}
+        fontes={FUNIL_FONTES}
+        rotuloFontes={`A referência · extraído em ${FUNIL_DOSSIE_EM}`}
+      />
+    </div>
+  );
+}
+
+/**
  * Os achados do carrossel: a leitura HUMANA dos números que o ranking acima
  * mostra. O ranking diz o que rende; isto diz por que e o que fazer.
  *
@@ -467,7 +502,6 @@ function ConteudoEstrategistaBlock({ config, ctx }: BlockProps<ConteudoEstrategi
   const conf = useMemo(() => nivelConfianca(posts), [posts]);
   const aggsRanked = useMemo(() => rankearEstruturas(agregarPorEstrutura(posts), meta), [posts, meta]);
 
-  const emYap = foco === 'yap';
   const semDados = conf.n === 0;
 
   /**
@@ -507,28 +541,45 @@ function ConteudoEstrategistaBlock({ config, ctx }: BlockProps<ConteudoEstrategi
     );
   }
 
+  /**
+   * Cabeçalho por frente. Um mapa, e não um encadeado de ternários: com a
+   * terceira frente (funil) o `emYap ? a : b` já não fechava, e a próxima
+   * frente que entrar só precisa de uma linha aqui.
+   */
+  const CABECALHO: Record<Foco, { title: string; subtitle: string; icon: string; selo: string }> = {
+    carrossel: {
+      title: 'Estrategista de carrossel',
+      subtitle: 'Qual estrutura mais rende, pelos seus números reais, e o que a conta já aprendeu.',
+      icon: '🎯',
+      selo: `base: ${conf.n} carrosséis · confiança ${conf.nivel}`,
+    },
+    yap: {
+      title: 'Estrategista de reels · yap',
+      subtitle: 'O que o formato de falar pra câmera exige. Pesquisa de campo, com fonte.',
+      icon: '🎙️',
+      selo: `pesquisa de ${YAP_PESQUISA_EM} · 0 reels medidos`,
+    },
+    funil: {
+      title: 'Cardápio de formatos por etapa',
+      subtitle: 'Que embalagem usar quando falta conteúdo de topo, de meio ou de fundo de funil.',
+      icon: '🔻',
+      selo: `${FUNIL_DOSSIE_TOTAL} formatos · extraído em ${FUNIL_DOSSIE_EM}`,
+    },
+  };
+  const cab = CABECALHO[foco];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <SectionHeader
-          title={emYap ? 'Estrategista de reels · yap' : 'Estrategista de carrossel'}
-          subtitle={
-            emYap
-              ? 'O que o formato de falar pra câmera exige — pesquisa de campo, com fonte.'
-              : 'Qual estrutura de carrossel mais rende — pelos seus números reais.'
-          }
-          icon={emYap ? '🎙️' : '🎯'}
-        />
-        <span className="rounded-full border border-gray-700 px-3 py-1 text-[11px] text-gray-400">
-          {emYap ? `pesquisa de ${YAP_PESQUISA_EM} · 0 reels medidos` : `base: ${conf.n} carrosséis · confiança ${conf.nivel}`}
-        </span>
+        <SectionHeader title={cab.title} subtitle={cab.subtitle} icon={cab.icon} />
+        <span className="rounded-full border border-gray-700 px-3 py-1 text-[11px] text-gray-400">{cab.selo}</span>
       </div>
 
       <FocoToggle foco={foco} onChange={setFoco} />
 
-      {emYap ? (
-        <GuiaYap />
-      ) : (
+      {foco === 'yap' && <GuiaYap />}
+      {foco === 'funil' && <GuiaFunil />}
+      {foco === 'carrossel' && (
         <>
           {numerosCarrossel()}
           <AchadosCarrossel />
