@@ -9,9 +9,19 @@
  * carrossel, na cabeça de quem estava naquele dia. O dono pediu para cadastrar
  * isso num lugar só, e este é o lugar.
  *
- * A DIFERENÇA PARA O RANKING: o ranking é recalculado a cada medição e diz O QUE
- * rende. Este dossiê é escrito à mão e diz POR QUE, e principalmente O QUE FAZER.
- * Um não substitui o outro; a tela mostra os dois lado a lado.
+ * DOIS CONSUMIDORES, UM FATO:
+ *   · a TELA (`ConteudoEstrategista.tsx`) mostra o campo `texto`, que explica com
+ *     contexto e serve para o dono ler e discordar;
+ *   · o PROMPT do gerador (`server/conteudo-pipeline.ts`) recebe o campo `regra`,
+ *     que é a mesma ideia como ordem curta. Item sem `regra` fica só na tela.
+ * Escrever os dois no mesmo lugar é o ponto: quando um achado muda, ele muda para
+ * quem lê e para quem gera ao mesmo tempo.
+ *
+ * A DIFERENÇA PARA O RANKING AUTOMÁTICO: `server/conteudo-dossie.ts` é
+ * recalculado a cada medição e diz O QUE rende, com os números de hoje. Este
+ * dossiê é escrito à mão e diz POR QUE, e principalmente O QUE FAZER. Por isso o
+ * ranking em si NÃO vira `regra` aqui: repetir número fixo que o outro bloco já
+ * traz fresco é a receita para os dois se contradizerem no mesmo prompt.
  *
  * A DIFERENÇA PARA O `yap-dossie`: aquele é pesquisa de fora sobre um formato que
  * ainda não publicamos. Este é quase todo número da nossa própria conta, medido
@@ -50,6 +60,9 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '18x do topo ao fim',
         fonte: '130 carrosséis medidos, 10/08/2026',
         confianca: 'medido',
+        // SEM `regra` de propósito: o dossiê automático já injeta este ranking no
+        // prompt com os números de hoje. Fixar a foto de 10/08 aqui garantiria
+        // que um dia os dois blocos apareceriam juntos dizendo coisas diferentes.
       },
       {
         titulo: 'Contrarian está sobre-representado',
@@ -58,6 +71,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: 'n=32 publicados · 1,37% de salvamento',
         fonte: 'banco, 10/08/2026',
         confianca: 'medido',
+        regra:
+          'Não escreva post contrarian genérico nem motivacional ("o problema não é falta de esforço"). É o tipo mais publicado da conta e um dos que menos rendem.',
       },
       {
         titulo: 'Notícia serve à atração, não ao salvamento',
@@ -66,6 +81,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '0,23% salv · 1,4 seg/1k · 4,3 com/1k',
         fonte: 'banco, 10/08/2026',
         confianca: 'indicio',
+        regra:
+          'Se o tema for notícia, o objetivo é atrair, não ser salvo: mire seguidor e comentário e não prometa material guardável.',
       },
       {
         titulo: 'Conceito explica, ferramenta converte',
@@ -74,6 +91,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '28,2 contra 10,1 comentários/mil',
         fonte: 'banco, 15/08/2026',
         confianca: 'medido',
+        regra:
+          'Prefira apresentar uma FERRAMENTA a explicar um conceito (28,2 contra 10,1 comentários por mil). Se o tema for conceito, ele ainda precisa prometer algo concreto no fim, nunca virar aula.',
       },
     ],
   },
@@ -92,6 +111,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: 'de 32,8 a 78,8 comentários/mil',
         fonte: 'conteudo_desempenho, 17/08/2026',
         confianca: 'medido',
+        regra:
+          'O gancho da capa replica a fórmula dos nossos campeões: algo CARO ou inacessível, e a resposta rodando na máquina de quem lê. Nunca abra descrevendo o que a ferramenta faz ("o agente de IA que lembra de tudo"): descrição de funcionalidade não aparece em nenhum gancho de taxa alta nossa.',
       },
       {
         titulo: 'Nome próprio de ferramenta é o traço mais pesado',
@@ -100,6 +121,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '22 · 1 · 0 seguidores (mediana)',
         fonte: '150 carrosséis, 19/08/2026 (_tmp-tracos-limpo.ts)',
         confianca: 'medido',
+        regra:
+          'Ponha o NOME PRÓPRIO da ferramenta no título (Claude, n8n, Manus, MCP): 22 seguidores de mediana contra 1 com termo genérico e 0 sem âncora. "IA", "automação", "sistema" e "agente" são categoria e não contam.',
       },
       {
         titulo: 'Os seis traços de título que a régua pontua',
@@ -108,6 +131,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: 'forte ≥ 60 · ok ≥ 35 · abaixo disso, fraco',
         fonte: 'server/carrossel/regua.ts',
         confianca: 'medido',
+        regra:
+          'O título é pontuado por uma régua automática: nome próprio (30), CTA com 3+ entregas (20), número contável (15), "de graça" (15), comparação ou superlativo (10), até 45 caracteres (10). Escreva mirando 60 ou mais.',
       },
       {
         titulo: '"De graça" é o traço de maior lift',
@@ -116,6 +141,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '21% dos campeões contra 2% do resto',
         fonte: '150 carrosséis, 19/08/2026',
         confianca: 'medido',
+        regra:
+          'Se a ferramenta é gratuita, escreva "de graça" ou "grátis" no título: aparece em 21% dos nossos campeões e em 2% do resto.',
       },
       {
         titulo: 'Número no título e CTA são alavancas diferentes',
@@ -124,6 +151,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '66,1 contra 43,9 salvamentos/mil',
         fonte: 'banco, 15 e 19/08/2026',
         confianca: 'medido',
+        regra:
+          'Número no título move salvamento (66,1 contra 43,9 por mil); o CTA move comentário. São alavancas diferentes: use as duas, não troque uma pela outra.',
       },
       {
         titulo: 'Comparação ou superlativo, sempre que couber',
@@ -132,6 +161,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '58,2 salv/1k e 27,7 com/1k, contra 47,5 e 14,7',
         fonte: '150 carrosséis, 19/08/2026',
         confianca: 'medido',
+        regra:
+          'Nomeie o inimigo caro no título ("melhor que curso pago", "substitui software pago", "o mais hypado"): sobe salvamento e comentário ao mesmo tempo.',
       },
       {
         titulo: 'O subtítulo da capa é tensão, nunca argumento',
@@ -139,6 +170,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'O melhor argumento técnico do post NÃO vai na capa: vai no slide onde tem espaço para convencer. Título carrega o número ou a promessa; subtítulo carrega o conflito (quem se incomoda, o que parece proibido, o que está prestes a mudar). Argumento pede leitura e avaliação, e quem rola o feed não faz nenhuma das duas.',
         fonte: 'corte do dono no carrossel do Graphify, 12/08/2026',
         confianca: 'decisao',
+        regra:
+          'O subtítulo da capa é TENSÃO ou conflito, nunca argumento ou explicação. O melhor argumento técnico do post vai num slide do meio, onde tem espaço para convencer.',
       },
       {
         titulo: 'Gancho de fora não salva formato errado',
@@ -147,6 +180,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '1 seguidor',
         fonte: 'posts de 07 a 18/08/2026 (_tmp-desempenho-titulo.ts)',
         confianca: 'medido',
+        regra:
+          'Não copie gancho que bombou em conta gringa sem checar se ele já foi testado aqui: o do Graphify fez 10.659 comentários lá fora e 1 seguidor na nossa conta.',
       },
     ],
   },
@@ -165,6 +200,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '84,7 e 70,1 salvamentos/1k',
         fonte: 'capas lidas uma a uma, 19/08/2026',
         confianca: 'medido',
+        regra:
+          'A ideia de capa é uma destas três: personagem que ENCARNA o conceito (o gambá ladrão dos "7 repos que parecem ilegais", 282 seguidores), objeto icônico gigante em cena dramática, ou tipografia pura sem imagem.',
       },
       {
         titulo: 'Família 2: objeto icônico gigante em cena dramática',
@@ -180,6 +217,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '382 seguidores sem arte',
         fonte: 'banco + capas, 19/08/2026',
         confianca: 'medido',
+        regra:
+          'Capa de tipografia pura, sem imagem nenhuma, é opção legítima: o nosso maior post do mês (382 seguidores) saiu só com o gradiente de fallback.',
       },
       {
         titulo: 'O anti-padrão: fotografia realista de ambiente',
@@ -187,12 +226,16 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           '"Cadeira odontológica vazia num consultório, luz suave de janela" é bonita e morta. Não tem personagem, não tem drama, não tem objeto icônico, e some no scroll. Foto de banco de imagem cai no mesmo buraco. A pergunta não é "que imagem ilustra o tema?", é "o que faz o dedo parar?".',
         fonte: 'corte do dono, 19/08/2026',
         confianca: 'decisao',
+        regra:
+          'NUNCA proponha fotografia realista de ambiente ("consultório vazio com luz de janela") nem foto de banco de imagem: é bonita, morta e some no scroll. A pergunta não é que imagem ilustra o tema, é o que faz o dedo parar.',
       },
       {
         titulo: 'O denominador comum das três',
         texto:
           'UMA coisa domina o quadro, e o texto é grande o bastante para ler no feed a 10% de zoom. O terço inferior fica sempre reservado para o texto, o que também define como pedir a arte: com o rodapé vazio.',
         confianca: 'consenso',
+        regra:
+          'Na capa, UMA coisa domina o quadro e o terço inferior fica livre para o texto. Ao descrever a arte, peça o rodapé vazio.',
       },
     ],
   },
@@ -211,6 +254,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '65,3 contra 7,3 comentários/mil',
         fonte: 'JARVIS 04/07 × 12-coisas 09/08/2026',
         confianca: 'medido',
+        regra:
+          'NUNCA ponha endereço, link ou comando de instalação dentro de um slide. Eles são a razão de a pessoa comentar e vivem no presente. Quem já resolveu o problema no slide não comenta: 65,3 contra 7,3 comentários por mil.',
       },
       {
         titulo: 'O que pode e o que não pode ficar no slide',
@@ -218,6 +263,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'Endereço, comando de instalação e link vão para o presente, nunca para o slide. No slide ficam o nome da ferramenta, o que ela faz, os pré-requisitos, os passos sem o comando e o resultado esperado. Exceção consciente: post que é COLA (os 7 comandos de Git) vive de mostrar o conteúdo, e aí o presente precisa entregar outra coisa.',
         fonte: 'memória carrossel-lacuna-do-endereco',
         confianca: 'decisao',
+        regra:
+          'No slide ficam: o nome da ferramenta, o que ela faz, os pré-requisitos, os passos SEM o comando, e o resultado esperado. Exceção: post que é COLA (lista de comandos) vive de mostrar o conteúdo, e aí o presente precisa entregar outra coisa.',
       },
       {
         titulo: 'Os 8 slides do JARVIS',
@@ -225,12 +272,16 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           '1 capa cinematográfica · 2 contexto e a virada · 3 um slide inteiro só pedindo para salvar · 4 na prática, com um item sensorial (ativa com 2 palmas) · 5 pré-requisitos e "só isso, tudo de graça" · 6 instalação em passos numerados · 7 o teste que prova que está vivo · 8 CTA com palavra-gatilho. O pedido de salvar vem CEDO, no slide 3, não no fim.',
         fonte: 'decupagem do post de 04/07/2026',
         confianca: 'medido',
+        regra:
+          'A espinha do post de ferramenta, do nosso maior post: capa · contexto e a virada · um slide inteiro só pedindo para salvar (CEDO, no 3, não no fim) · na prática com um item sensorial · pré-requisitos e "tudo de graça" · instalação em passos numerados · o teste que prova que está vivo · CTA.',
       },
       {
         titulo: 'Todo post de ferramenta precisa das "2 palmas"',
         texto:
           'Um truque físico e sensorial que dá vontade de testar hoje. No JARVIS são as duas palmas que disparam o Spotify; no Hermes, a mensagem que chega sozinha no Telegram de manhã. Sem esse momento, o post explica mas não provoca.',
         confianca: 'decisao',
+        regra:
+          'Todo post de ferramenta precisa de um momento SENSORIAL que dê vontade de testar hoje (as 2 palmas que ligam o Spotify; a mensagem que chega sozinha no Telegram). Sem isso o post explica mas não provoca.',
       },
       {
         titulo: 'O slide 2 é o divisor de águas',
@@ -238,6 +289,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'Comparando duas versões do mesmo carrossel, a que CONFIRMA o gancho no slide 2 e move o problema para o slide 3 vence com folga a que abre pelo problema. É o ponto de maior evasão do post. Segundo maior ganho: nomear o slide salvável ("SALVA ESSE SLIDE" no eyebrow) em vez de só ter um slide salvável mudo.',
         fonte: 'comparação elevator-saga, 01/08/2026',
         confianca: 'indicio',
+        regra:
+          'O slide 2 CONFIRMA o gancho e dá motivo de ficar. O problema vai para o slide 3, nunca para o 2: o slide 2 é o ponto de maior evasão do post.',
       },
       {
         titulo: 'As 5 regras do Fura a Bolha, a régua de qualidade da casa',
@@ -245,6 +298,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           '1. Capa = parar o dedo, função única. 2. Slide 2 confirma o gancho e dá motivo para ficar. 3. Cada slide funciona sozinho (se printar solto, faz sentido). 4. Um slide que vale salvar. 5. Legenda continua o post e o CTA é UM pedido só. Tensão conhecida: a regra 2 briga com o AIDA clássico de abrir pelo problema; harmoniza reordenando os slides 2 e 3.',
         fonte: 'sistema do Rafael Araújo (@rafaelaraujocn), usado pelo dono',
         confianca: 'decisao',
+        regra:
+          'Cada slide tem que funcionar SOZINHO se for printado solto, um deles tem que valer salvar (e ser nomeado assim, com "SALVA ESSE SLIDE"), e o CTA é UM pedido só. CTA empilhado mata a ação.',
       },
     ],
   },
@@ -263,6 +318,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '22,4 a 27,0 contra 12,9 contra 7,3',
         fonte: 'carrosséis de 07 a 14/08/2026',
         confianca: 'medido',
+        regra:
+          'O CTA promete TRÊS entregas distintas e concretas: o material + o que fazer quando dá errado + o próximo passo. Três rendem de 22,4 a 27,0 comentários por mil; duas rendem 12,9; uma rende 7,3. O molde é sempre "Comenta PALAVRA que eu te mando X na DM".',
       },
       {
         titulo: 'A palavra do CTA precisa ser pronunciável',
@@ -270,6 +327,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'Palavra que mistura letra e número quebra a automação: "n8n" vira n8m, nan, N8 na hora de digitar, e cada erro é um comentário que o robô não responde. No carrossel do n8n a palavra virou FLUXO por causa disso.',
         fonte: 'decisão do dono, 19/08/2026',
         confianca: 'decisao',
+        regra:
+          'A palavra do CTA é só de letras e pronunciável. Nada de misturar número (o carrossel do n8n usa FLUXO): cada pessoa que digita errado é um comentário que a automação não responde.',
       },
       {
         titulo: 'Pedágio no CTA custa comentário',
@@ -278,6 +337,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '16,9 com/mil, abaixo do top 5',
         fonte: 'semana de 07 a 14/08/2026',
         confianca: 'indicio',
+        regra:
+          'Não exija cadastro nem passo extra antes de entregar o que o CTA prometeu: o único post com pedágio ficou abaixo dos cinco primeiros da semana.',
       },
       {
         titulo: 'O CTA entrega só o que é do próprio post',
@@ -285,6 +346,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'Desde 12/08/2026 o "comenta PALAVRA" não inclui mais captação para evento. Prometa artefatos do post: o modelo pronto, o passo a passo, a lista, o link da ferramenta. Isso encerrou na prática a hipótese em que a Semana era a terceira entrega.',
         fonte: 'decisão do dono, 12/08/2026',
         confianca: 'decisao',
+        regra:
+          'O CTA promete só artefatos do PRÓPRIO post (o modelo, o passo a passo, a lista, o link da ferramenta). Nunca inclua captação para evento, curso ou semana.',
       },
       {
         titulo: 'O CTA colhe, não planta',
@@ -292,6 +355,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'O "comenta X" é necessário para a automação de DM, mas não faz o comentário explodir sozinho: tirando o JARVIS, posts com CTA ficam perto do baseline. O gatilho colhe o que o tema plantou. Não espere que um CTA bom salve um tema fraco.',
         fonte: 'análise de 113 carrosséis, 03/08/2026',
         confianca: 'medido',
+        regra:
+          'Não conte com o CTA para salvar tema fraco: o gatilho colhe o que o tema plantou. Se o tema não dá motivo de comentar, volte e troque o tema.',
       },
     ],
   },
@@ -310,6 +375,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '0,91 contra 0,45 seguidores/1k',
         fonte: '150 carrosséis por tema, 19/08/2026',
         confianca: 'medido',
+        regra:
+          'Escreva para quem quer CONSTRUIR com IA, não para dev. Conteúdo de sintaxe, comando de Git, CSS e array é salvo mas não traz seguidor (0,45 contra 0,91 por mil): o dev guarda a cola e vai embora. O teste ao escolher o ângulo: isso ensina a MONTAR algo com IA ou ensina sintaxe?',
       },
       {
         titulo: 'A exceção que confirma',
@@ -318,6 +385,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '382 seguidores',
         fonte: 'banco, 19/08/2026',
         confianca: 'medido',
+        regra:
+          'Tema de programação só entra com embalagem de DESCOBERTA (um jogo, um desafio, uma curiosidade), nunca como aula. Jogo viaja; lista de comando não.',
       },
       {
         titulo: 'Lista traz seguidor; ferramenta única não',
@@ -326,6 +395,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '282 contra 1',
         fonte: 'posts de 07 a 18/08/2026',
         confianca: 'medido',
+        regra:
+          'Para ganhar SEGUIDOR, prefira LISTA de 5 a 12 ferramentas com nome próprio (282 seguidores no melhor caso). Ferramenta única rende comentário e salvamento, mas quase nenhum seguidor (1), mesmo com gancho forte.',
       },
       {
         titulo: 'Jargão não afasta; definição sem fantasia afasta',
@@ -334,6 +405,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '18,4 contra 3,1 comentários/mil',
         fonte: 'banco, 15/08/2026',
         confianca: 'medido',
+        regra:
+          'Não tenha medo de jargão: título com jargão rende 18,4 comentários por mil contra 3,1 sem. O que afasta é abrir com uma DEFINIÇÃO em vez de uma fantasia que a pessoa já tem na cabeça.',
       },
       {
         titulo: 'O eixo virou comercial',
@@ -341,6 +414,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'Desde 20/08/2026 a conta fala bem mais de ferramenta de vibe coding do que de programação, e de construir site, agente e sistema para quem quer FATURAR com isso. A pergunta que fecha a peça deixou de ser "entendeu?" e passou a ser "dá para cobrar por isso, e quanto?".',
         fonte: 'definição do dono, 20/08/2026',
         confianca: 'decisao',
+        regra:
+          'O público quer GANHAR DINHEIRO construindo com IA, não é hobby. Toda peça sobre ferramenta responde "dá para cobrar por isso, e quanto".',
       },
     ],
   },
@@ -358,6 +433,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'Encurte e marque com negrito as partes que a pessoa precisa levar. Mire em três ou quatro linhas renderizadas; se passar, corte em vez de reescrever menor. Parágrafo de cinco linhas em fonte monoespaçada vira parede, e quem rola o feed desliza embora antes de achar a informação boa.',
         fonte: 'correção do dono, 12/08/2026',
         confianca: 'decisao',
+        regra:
+          'O corpo de um slide NUNCA é bloco de texto corrido: três ou quatro linhas, com **negrito** nas partes que a pessoa precisa levar. Se passar disso, corte em vez de reescrever menor.',
       },
       {
         titulo: 'Mas resumir demais não é clareza',
@@ -365,6 +442,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'A regra que concilia as duas: encurta o que é ORNAMENTO, nunca o que é EXPLICAÇÃO. Rótulo de duas palavras só funciona para quem já sabe o que ele significa, e o público é justamente quem não sabe. Ao escrever um item, leia só o sub e pergunte "quem nunca viu isso entende?".',
         fonte: 'correção do dono no slide de preço do n8n, 19/08/2026',
         confianca: 'decisao',
+        regra:
+          'Encurte o que é ORNAMENTO, nunca o que é EXPLICAÇÃO. Rótulo de duas palavras ("2 sistemas") só funciona para quem já sabe o que significa, e o público é quem não sabe: troque por uma frase com exemplo concreto.',
       },
       {
         titulo: 'Número que importa vira título de item, não linha de terminal',
@@ -372,6 +451,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'Bloco de terminal é para comando e tabela alinhada. Quando o número é o que interessa no slide, ele precisa ser o título grande do item, com uma frase inteira e exemplo concreto embaixo.',
         fonte: 'mesma correção, 19/08/2026',
         confianca: 'decisao',
+        regra:
+          'Número que importa (preço, faixa, resultado) vira TÍTULO do item, não linha dentro de bloco de terminal. Terminal é para comando e tabela alinhada.',
       },
       {
         titulo: 'Exemplo precisa ser apresentado antes de virar "a"',
@@ -379,6 +460,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'O leitor entra em qualquer slide sem contexto. Artigo definido é uma promessa de que aquilo já foi dito: "a clínica" antes de existir uma clínica soa como continuação de uma conversa que ele não teve. O primeiro slide que cita um exemplo usa artigo indefinido; só do próximo em diante pode usar "a" e "ela". Vale para ferramenta, número e personagem.',
         fonte: 'correção do dono no n8n, 19/08/2026',
         confianca: 'decisao',
+        regra:
+          'Ao citar um exemplo pela primeira vez use artigo INDEFINIDO ("uma clínica", "um cliente"). Só do slide seguinte em diante pode virar "a clínica" e "ela". Vale para ferramenta, número e personagem: o leitor entra em qualquer slide sem contexto.',
       },
       {
         titulo: 'Nunca travessão, nunca nome inventado',
@@ -386,6 +469,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'Travessão não entra em nenhum texto de conteúdo: troque por ponto, vírgula ou dois-pontos. E nome de método ou produto tem que ser real. O último slide é sempre o CTA, no formato "Comenta XXX que eu te mando YYY na DM".',
         fonte: 'voz de marca, pedido repetido do dono',
         confianca: 'decisao',
+        regra:
+          'NUNCA use travessão em nenhum texto de conteúdo: troque por ponto, vírgula ou dois-pontos. NUNCA invente nome de método, produto ou empresa. O último slide é sempre o CTA.',
       },
     ],
   },
@@ -404,6 +489,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: 'alvo de 700 a 900 caracteres',
         fonte: 'determinação do dono, 17/08/2026',
         confianca: 'decisao',
+        regra:
+          'A legenda tem de 700 a 900 caracteres, em cinco blocos: o CTA na primeira linha, o problema, a virada, o número que prova, e o CTA de novo no fim. Não conte o presente inteiro na legenda: isso tira o motivo de comentar.',
       },
       {
         titulo: 'Cinco hashtags, uma de cada função',
@@ -412,6 +499,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
         numero: '5 tags',
         fonte: 'determinação do dono, 17/08/2026',
         confianca: 'decisao',
+        regra:
+          'Exatamente CINCO hashtags, uma de cada função: nicho exato, categoria, alcance, intenção de quem lê, e devemdobro (que nunca sai).',
       },
       {
         titulo: 'A linha de follow é montada na hora',
@@ -419,12 +508,16 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           '"Segue @devemdobro pra aprender a usar IA do jeito certo." abre toda descrição, mas NÃO é gravada na legenda de cada post: ela é aplicada na montagem. Assim vale para os posts antigos e futuros, e muda num lugar só.',
         fonte: 'decisão do dono, 05/08/2026',
         confianca: 'decisao',
+        regra:
+          'Não escreva chamada de follow na legenda: a linha "Segue @devemdobro..." é montada na hora e sairia repetida.',
       },
       {
         titulo: 'Legenda que nasce de referência copia a ESTRUTURA dela',
         texto:
           'Quando o post vem de uma referência, a legenda segue os blocos da legenda DELA (CTA → confissão → o que surpreendeu → para quem serve), nunca um resumo dos slides.',
         confianca: 'decisao',
+        regra:
+          'Se o post nasce de uma REFERÊNCIA, a legenda segue os blocos da legenda dela (CTA, confissão, o que surpreendeu, para quem serve), nunca um resumo dos slides.',
       },
     ],
   },
@@ -442,6 +535,8 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'Sai de "é de graça e roda na sua máquina" para "você monta de graça e vende por R$ X". O slide da tabela de preço vira o slide salvável do post. Use o PISO da faixa no título, não o teto: melhor a pessoa cobrar 800 e conseguir do que 2.500 e travar.',
         fonte: 'pedido do dono, 15/08/2026',
         confianca: 'decisao',
+        regra:
+          'Em post de ferramenta, diga o que dá para COBRAR com ela: "você monta de graça e vende por R$ X". Use o PISO da faixa no título, nunca o teto. A tabela de preço vira o slide salvável do post.',
       },
       {
         titulo: 'Preço é afirmação verificável, sempre em duas fontes',
@@ -449,17 +544,24 @@ export const CARROSSEL_DOSSIE: DossieSecao[] = [
           'Nunca sai da cabeça de ninguém. Faixas já levantadas e reaproveitáveis: automação n8n de R$ 400 a 900 (simples), 900 a 2.500 (com decisão no meio) e 2.500 a 10.000+ (com agente de IA); transcrição de R$ 3 a 12 por minuto conforme o tipo, com a hora transcrita em R$ 225. Preço errado é o erro mais caro que a conta pode cometer.',
         fonte: 'horadecodar + automacaohoje; vozparatexto + auditorioibirapuera',
         confianca: 'consenso',
+        regra:
+          'NUNCA invente faixa de preço. Preço é afirmação verificável e só entra com duas fontes conferidas. Se não houver fonte, escreva o post sem número de preço.',
       },
       {
         titulo: 'Sempre um slide de aviso honesto',
         texto:
           'O custo da operação (servidor, API, revisão, suporte) precisa aparecer, para o post não virar promessa de dinheiro fácil. E o argumento que fecha venda de ferramenta local é sempre o mesmo: o arquivo do cliente não sai da máquina dele.',
         confianca: 'decisao',
+        regra:
+          'Todo post que fala de dinheiro tem um slide com o CUSTO real da operação (servidor, API, suporte), para não virar promessa de dinheiro fácil. Em ferramenta local, o argumento que fecha é que o arquivo do cliente não sai da máquina dele.',
       },
     ],
   },
 
   // ============================================================
+  // Seção sem NENHUMA `regra`, de propósito: é como um humano interpreta as
+  // métricas depois que o post saiu, não instrução para quem escreve. Mandar isto
+  // ao gerador só gastaria contexto e ensinaria a duvidar dos próprios números.
   {
     id: 'ler-numeros',
     titulo: 'Como ler estes números sem se enganar',
@@ -532,3 +634,37 @@ export const CARROSSEL_DOSSIE_EM = '20/08/2026';
 
 /** Quantos achados o dossiê carrega hoje (mostrado no selo do topo). */
 export const CARROSSEL_DOSSIE_TOTAL = CARROSSEL_DOSSIE.reduce((s, sec) => s + sec.itens.length, 0);
+
+/**
+ * Os achados como bloco de prompt para QUEM ESCREVE o post.
+ *
+ * Entra SÓ o campo `regra` de cada item, que é a ordem curta. O `texto` da tela
+ * explica com contexto ("o contra-exemplo está no mesmo banco..."), e contexto no
+ * prompt vira prosa que dilui as ordens que importam.
+ *
+ * Ordem de leitura no prompt: as seções aparecem na mesma sequência da tela, que
+ * é a ordem em que as decisões acontecem quando alguém escreve um carrossel
+ * (que tipo de post → o gancho → a capa → a espinha → o CTA → para quem →
+ * o texto → a legenda → o dinheiro).
+ *
+ * ⚠️ O TEXTO DAS `regra` NÃO USA TRAVESSÃO, e não é preciosismo: o modelo imita o
+ * estilo do que lê. Uma regra que manda "nunca use travessão" escrita COM um
+ * travessão ensina o contrário do que diz. O mesmo vale para qualquer convenção
+ * da casa que apareça aqui: escreva a regra já obedecendo a ela.
+ */
+export function achadosParaGerador(): string[] {
+  const linhas: string[] = [
+    '## A régua da casa: o que esta conta já aprendeu, medido nos nossos posts',
+    'Isto NÃO é sugestão. Cada linha saiu de post que foi ao ar e foi medido, ou de',
+    'uma decisão do dono que não se discute com dado. Quando uma regra daqui brigar',
+    'com a sua intuição, a regra ganha: a intuição já custou caro aqui.',
+  ];
+
+  for (const secao of CARROSSEL_DOSSIE) {
+    const regras = secao.itens.filter((i) => i.regra);
+    if (!regras.length) continue;
+    linhas.push('', `### ${secao.titulo}`);
+    for (const item of regras) linhas.push(`- ${item.regra}`);
+  }
+  return linhas;
+}

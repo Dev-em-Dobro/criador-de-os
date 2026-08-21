@@ -14,10 +14,10 @@
 // Os tipos saíram daqui em 20/08/2026, quando o dossiê de carrossel nasceu e os
 // dois passaram a compartilhar a mesma forma. O re-export mantém quem importava
 // `Confianca`, `DossieSecao` e `CONFIANCA_LABEL` deste arquivo funcionando.
-export type { Confianca, DossieItem, DossieSecao, Fonte } from './dossie-tipos';
-export { CONFIANCA_LABEL } from './dossie-tipos';
+export type { Confianca, DossieItem, DossieSecao, Fonte } from '../../shared/dossie-tipos';
+export { CONFIANCA_LABEL } from '../../shared/dossie-tipos';
 
-import type { DossieSecao, Fonte } from './dossie-tipos';
+import type { DossieSecao, Fonte } from '../../shared/dossie-tipos';
 
 export const YAP_DOSSIE: DossieSecao[] = [
   {

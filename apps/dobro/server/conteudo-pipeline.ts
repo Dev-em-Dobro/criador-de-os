@@ -27,6 +27,9 @@ import {
   type PostParaPrever,
 } from './conteudo-previsao.js';
 import { carregarDossie, carregarVies, dossieParaGerador, type Dossie } from './conteudo-dossie.js';
+// A extensão `.js` não é enfeite: a function da Vercel builda como ESM nodenext e
+// quebra em runtime sem ela. O typecheck local usa `bundler` e NÃO pega isso.
+import { achadosParaGerador } from '../shared/carrossel-dossie.js';
 
 /** Client Drizzle (owner OU role de menor privilégio) — injetado nas escritas. */
 type Database = typeof db;
@@ -269,12 +272,29 @@ const VEREDITO_FALLBACK = [
 ];
 
 /**
- * Voz da casa + o que os números dizem. O dossiê entra no lugar do veredito fixo
- * quando carrega; sem ele, o prompt continua igual ao de antes.
+ * Voz da casa + o que os números dizem + a régua do que a conta já aprendeu.
+ *
+ * São TRÊS blocos com papéis diferentes, e a ordem importa:
+ *   1. VOZ_FIXA — como a casa escreve;
+ *   2. o VEREDITO, que sai do banco a cada geração (`dossieParaGerador`) e traz o
+ *      ranking com os números de HOJE, ou o texto fixo quando o banco não
+ *      responde;
+ *   3. os ACHADOS (`shared/carrossel-dossie.ts`), escritos à mão, que dizem o que
+ *      FAZER: o gancho que replica os campeões, a lacuna do endereço, o CTA de
+ *      três entregas, o público que segue.
+ *
+ * O 2 e o 3 não se sobrepõem de propósito: o ranking por estrutura só existe no
+ * bloco automático, e nenhuma `regra` dos achados repete número de ranking. Se os
+ * dois trouxessem a mesma tabela, um dia ela envelheceria num lugar só e o modelo
+ * receberia duas verdades no mesmo prompt.
+ *
+ * Os achados entram SEMPRE, inclusive quando o banco está fora: eles não dependem
+ * de query nenhuma, e são justamente o que impede o gerador de reaprender na
+ * tentativa e erro o que a conta já pagou para descobrir.
  */
 function vozEVeredito(dossie: Dossie | null): string[] {
   const veredito = dossie ? dossieParaGerador(dossie) : VEREDITO_FALLBACK;
-  return [...VOZ_FIXA, '', ...veredito];
+  return [...VOZ_FIXA, '', ...veredito, '', ...achadosParaGerador()];
 }
 
 /**

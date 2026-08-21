@@ -39,8 +39,8 @@ import {
   CARROSSEL_FONTES,
   CARROSSEL_DOSSIE_EM,
   CARROSSEL_DOSSIE_TOTAL,
-} from './carrossel-dossie';
-import { CONFIANCA_LABEL, type Confianca, type DossieSecao, type Fonte } from './dossie-tipos';
+} from '../../shared/carrossel-dossie';
+import { CONFIANCA_LABEL, type Confianca, type DossieSecao, type Fonte } from '../../shared/dossie-tipos';
 
 type Row = Record<string, unknown>;
 /** Qual frente a aba está mostrando. */
