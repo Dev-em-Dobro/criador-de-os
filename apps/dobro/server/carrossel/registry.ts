@@ -30,6 +30,8 @@ import { instalarNoClaude } from './carrosseis/instalar-no-claude';
 import { claudeLinkedinCurriculo } from './carrosseis/claude-linkedin-curriculo';
 import { claudeLinkedinPerfil } from './carrosseis/claude-linkedin-perfil';
 import { seteRepos } from './carrosseis/7-repos';
+import { agentReach } from './carrosseis/agent-reach';
+import { stackSite } from './carrosseis/stack-site';
 import { cincoPastas } from './carrosseis/5-pastas';
 import { quatroMcpGratis } from './carrosseis/4-mcp-gratis';
 import { claudeMd } from './carrosseis/claude-md';
@@ -77,6 +79,8 @@ const CARROSSEIS: Record<string, Carrossel> = {
   [caraDeCaro.slug]: caraDeCaro,
   [instalarNoClaude.slug]: instalarNoClaude,
   [seteRepos.slug]: seteRepos,
+  [agentReach.slug]: agentReach,
+  [stackSite.slug]: stackSite,
   [cincoPastas.slug]: cincoPastas,
   [quatroMcpGratis.slug]: quatroMcpGratis,
   [claudeMd.slug]: claudeMd,

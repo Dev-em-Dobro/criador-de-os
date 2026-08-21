@@ -261,20 +261,80 @@ const DEFAULT_STATUS: Record<string, StatusEntry> = {
   publicado: { label: 'Publicado', tone: 'done' },
 };
 
-/** Selo colorido por formato (cor só decorativa; abreviação vem do próprio texto). */
-const FORMAT_TONES: Record<string, { chip: string; text: string }> = {
-  reel: { chip: 'bg-fuchsia-500/15', text: 'text-fuchsia-300' },
-  reels: { chip: 'bg-fuchsia-500/15', text: 'text-fuchsia-300' },
-  carrossel: { chip: 'bg-blue-500/15', text: 'text-blue-300' },
-  carousel: { chip: 'bg-blue-500/15', text: 'text-blue-300' },
-  story: { chip: 'bg-amber-500/15', text: 'text-amber-300' },
-  stories: { chip: 'bg-amber-500/15', text: 'text-amber-300' },
-  post: { chip: 'bg-emerald-500/15', text: 'text-emerald-300' },
-  imagem: { chip: 'bg-emerald-500/15', text: 'text-emerald-300' },
-  video: { chip: 'bg-rose-500/15', text: 'text-rose-300' },
+/**
+ * Cor por formato. `chip`/`text` pintam o selo de 2 letras; `card` pinta a BORDA
+ * do card do cronograma, com uma faixa lateral mais forte à esquerda. A faixa é
+ * o que deixa a semana escaneável de longe: dá pra ver quantos reels e quantos
+ * carrosséis tem no dia sem ler nada.
+ */
+const FORMAT_TONES: Record<string, { chip: string; text: string; card: string; dot: string }> = {
+  reel: {
+    chip: 'bg-fuchsia-500/15',
+    text: 'text-fuchsia-300',
+    card: 'border-fuchsia-500/30 border-l-fuchsia-500/70 hover:border-fuchsia-400/50 hover:border-l-fuchsia-400',
+    dot: 'bg-fuchsia-400',
+  },
+  reels: {
+    chip: 'bg-fuchsia-500/15',
+    text: 'text-fuchsia-300',
+    card: 'border-fuchsia-500/30 border-l-fuchsia-500/70 hover:border-fuchsia-400/50 hover:border-l-fuchsia-400',
+    dot: 'bg-fuchsia-400',
+  },
+  carrossel: {
+    chip: 'bg-blue-500/15',
+    text: 'text-blue-300',
+    card: 'border-blue-500/30 border-l-blue-500/70 hover:border-blue-400/50 hover:border-l-blue-400',
+    dot: 'bg-blue-400',
+  },
+  carousel: {
+    chip: 'bg-blue-500/15',
+    text: 'text-blue-300',
+    card: 'border-blue-500/30 border-l-blue-500/70 hover:border-blue-400/50 hover:border-l-blue-400',
+    dot: 'bg-blue-400',
+  },
+  story: {
+    chip: 'bg-amber-500/15',
+    text: 'text-amber-300',
+    card: 'border-amber-500/30 border-l-amber-500/70 hover:border-amber-400/50 hover:border-l-amber-400',
+    dot: 'bg-amber-400',
+  },
+  stories: {
+    chip: 'bg-amber-500/15',
+    text: 'text-amber-300',
+    card: 'border-amber-500/30 border-l-amber-500/70 hover:border-amber-400/50 hover:border-l-amber-400',
+    dot: 'bg-amber-400',
+  },
+  post: {
+    chip: 'bg-emerald-500/15',
+    text: 'text-emerald-300',
+    card: 'border-emerald-500/30 border-l-emerald-500/70 hover:border-emerald-400/50 hover:border-l-emerald-400',
+    dot: 'bg-emerald-400',
+  },
+  imagem: {
+    chip: 'bg-emerald-500/15',
+    text: 'text-emerald-300',
+    card: 'border-emerald-500/30 border-l-emerald-500/70 hover:border-emerald-400/50 hover:border-l-emerald-400',
+    dot: 'bg-emerald-400',
+  },
+  video: {
+    chip: 'bg-rose-500/15',
+    text: 'text-rose-300',
+    card: 'border-rose-500/30 border-l-rose-500/70 hover:border-rose-400/50 hover:border-l-rose-400',
+    dot: 'bg-rose-400',
+  },
 };
 
-const FORMAT_FALLBACK = { chip: 'bg-gray-600/20', text: 'text-gray-300' };
+const FORMAT_FALLBACK = {
+  chip: 'bg-gray-600/20',
+  text: 'text-gray-300',
+  card: 'border-gray-700 border-l-gray-600 hover:border-gray-600 hover:border-l-gray-500',
+  dot: 'bg-gray-400',
+};
+
+/** Cores de um formato, com fallback pro que ainda não tem tom próprio. */
+function formatTone(formato: string) {
+  return FORMAT_TONES[formato.toLowerCase()] ?? FORMAT_FALLBACK;
+}
 
 /** Opções de formato/estado do editor de cronograma (bate com o backend). */
 const FORMATO_OPTS: ReadonlyArray<[string, string]> = [
@@ -472,7 +532,7 @@ interface FieldMap {
 
 /** Selo de formato (abreviação de 2 letras, cor decorativa). */
 function FormatChip({ formato, size = 'md' }: { formato: string; size?: 'sm' | 'md' }) {
-  const tone = FORMAT_TONES[formato.toLowerCase()] ?? FORMAT_FALLBACK;
+  const tone = formatTone(formato);
   const abbr = (formato.slice(0, 2) || '••').toUpperCase();
   const dim = size === 'sm' ? 'h-8 w-8 text-[10px]' : 'h-9 w-9 text-[11px]';
   return (
@@ -484,6 +544,36 @@ function FormatChip({ formato, size = 'md' }: { formato: string; size?: 'sm' | '
       {abbr}
     </span>
   );
+}
+
+/**
+ * Legenda das cores de borda do cronograma. Sem ela a faixa colorida é só
+ * enfeite; com ela a semana se lê de relance.
+ */
+function LegendaFormatos() {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+      {FORMATO_OPTS.map(([valor, label]) => (
+        <span key={valor} className="inline-flex items-center gap-1.5 text-[11px] text-gray-500">
+          <span className={`h-2.5 w-1 rounded-full ${formatTone(valor).dot}`} aria-hidden="true" />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Resumo "3 reels · 1 carrossel" pro cabeçalho do dia. */
+function resumoFormatos(formatos: string[]): string {
+  const contagem = new Map<string, number>();
+  for (const f of formatos) {
+    const chave = f.toLowerCase() || 'sem formato';
+    contagem.set(chave, (contagem.get(chave) ?? 0) + 1);
+  }
+  return [...contagem.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([chave, n]) => `${n} ${FORMATO_OPTS.find(([v]) => v === chave)?.[1].toLowerCase() ?? chave}`)
+    .join(' · ');
 }
 
 /** Pílula de estado (Rascunho/Pronto/Publicado). */
@@ -1367,11 +1457,14 @@ function SchedulePage({
     const st = DEFAULT_STATUS[r.estado] ?? { label: r.estado || '—', tone: 'neutral' as StatusTone };
     const stTone = STATUS_TONES[st.tone] ?? STATUS_TONES.neutral;
     const formatoLabel = FORMATO_OPTS.find(([v]) => v === r.formato)?.[1] ?? r.formato;
+    /* A borda (e a faixa lateral grossa) diz o FORMATO sem precisar ler:
+       reels é fúcsia, carrossel é azul. Mesma cor do selo de 2 letras. */
+    const tone = formatTone(r.formato);
 
     return (
       <div
         key={r.key}
-        className="overflow-hidden rounded-xl border border-gray-700 bg-gray-800 shadow-sm transition-colors hover:border-gray-600"
+        className={`overflow-hidden rounded-xl border border-l-4 bg-gray-800 shadow-sm transition-colors ${tone.card}`}
       >
         {/* Resumo compacto — clique abre o popup de edição. */}
         <div className="flex items-start gap-2 p-3">
@@ -1455,6 +1548,7 @@ function SchedulePage({
           <div>
             <h2 className="text-xl font-semibold text-gray-100" style={DISPLAY}>Cronograma</h2>
             <p className="text-xs text-gray-500">Adicione, edite ou remova as postagens de cada dia — tudo é salvo automaticamente.</p>
+            <LegendaFormatos />
           </div>
           <div className="flex items-center gap-2">
             <button type="button" className={navBtn} onClick={() => setWeekStart((w) => addDays(w, -7))} aria-label="Semana anterior">‹</button>
@@ -1483,6 +1577,11 @@ function SchedulePage({
                 <h3 className={`text-base font-semibold ${isToday ? 'text-blue-300' : 'text-gray-100'}`} style={DISPLAY}>
                   {DIA_ABBR[day.getDay()]} {day.getDate()}
                   {isToday && <span className="ml-1.5 text-xs font-normal text-blue-400/80">· hoje</span>}
+                  {/* Quantos de cada formato caem no dia — a conta que importa
+                      quando a meta é em reels por dia. */}
+                  {dayRows.length > 0 && (
+                    <span className="ml-2 text-[11px] font-normal text-gray-500">{resumoFormatos(dayRows.map((r) => r.formato))}</span>
+                  )}
                 </h3>
                 <button
                   type="button"

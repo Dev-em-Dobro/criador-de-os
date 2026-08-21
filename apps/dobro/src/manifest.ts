@@ -511,7 +511,7 @@ export const dobroManifest: ClientManifest = {
             view: {
               block: 'custom:conteudo-estrategista',
               title: 'Estrategista',
-              subtitle: 'Qual estrutura de carrossel mais rende, pelos números reais',
+              subtitle: 'Carrossel pelos números reais e o dossiê do formato yap (reels)',
               config: { meta: 'seguidores' },
               // Mesma view do Desempenho: precisa das métricas + a estrutura classificada.
               dataSource: {
